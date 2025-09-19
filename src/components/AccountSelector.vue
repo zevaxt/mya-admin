@@ -66,12 +66,13 @@ const selectAccount = (account: Account) => {
 
 <template>
   <div class="account-selector">
-    <!-- Botón de depuración para mostrar el estado -->
+    <!-- Botón de actualización de cuentas -->
     <v-btn
       icon
       size="small"
-      color="info"
-      class="mb-1"
+      color="white"
+      variant="outlined"
+      class="mb-1 refresh-btn"
       @click="async () => {
         loading = true
         await accountStore.fetchUserAccounts()
@@ -79,6 +80,12 @@ const selectAccount = (account: Account) => {
       }"
     >
       <v-icon>mdi-refresh</v-icon>
+      <v-tooltip
+        activator="parent"
+        location="bottom"
+      >
+        Actualizar cuentas
+      </v-tooltip>
     </v-btn>
 
     <v-menu v-model="menuOpen" :close-on-content-click="false" location="bottom">
@@ -162,15 +169,23 @@ const selectAccount = (account: Account) => {
 <style scoped>
 .account-selector {
   display: inline-block;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   border-radius: 8px;
   padding: 2px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .account-selector-btn {
   min-width: 180px;
   text-transform: none;
   font-weight: bold;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.refresh-btn {
+  margin-right: 4px;
+  border-color: rgba(255, 255, 255, 0.6) !important;
 }
 </style>
