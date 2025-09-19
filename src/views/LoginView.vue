@@ -30,25 +30,23 @@ onMounted(() => {
 })
 
 const rules = {
-  username: [
-    (v: string) => !!v || 'El nombre de usuario es requerido'
-  ],
+  username: [(v: string) => !!v || 'El nombre de usuario es requerido'],
   password: [
     (v: string) => !!v || 'La contraseña es requerida',
-    (v: string) => v.length >= 3 || 'La contraseña debe tener al menos 3 caracteres'
-  ]
+    (v: string) => v.length >= 3 || 'La contraseña debe tener al menos 3 caracteres',
+  ],
 }
 
 const login = async () => {
   // Validar formulario
   if (!formValid.value) return
-  
+
   // Llamar al store para hacer login
   const success = await authStore.login({
     username: username.value,
-    password: password.value
+    password: password.value,
   })
-  
+
   if (success) {
     // Si la opción de recordarme está activada, guardar preferencia
     if (rememberMe.value) {
@@ -56,7 +54,7 @@ const login = async () => {
     } else {
       localStorage.removeItem('remember_user')
     }
-    
+
     // Redirigir a la página de landing después del login exitoso
     router.push('/landing')
   }
@@ -70,13 +68,7 @@ const login = async () => {
       <v-col cols="12" sm="8" md="6" lg="4">
         <v-card class="elevation-12 rounded-lg">
           <v-card-title class="text-center pt-8 pb-4">
-            <v-img
-              src="/logo-meli.png"
-              alt="Logo"
-              contain
-              height="60"
-              class="mx-auto mb-4"
-            />
+            <v-img src="/logo-meli.png" alt="Logo" contain height="60" class="mx-auto mb-4" />
             <h1 class="text-h5 font-weight-bold primary--text">MYA Admin</h1>
           </v-card-title>
 
@@ -126,12 +118,7 @@ const login = async () => {
                   hide-details
                   density="compact"
                 />
-                <v-btn
-                  variant="text"
-                  color="primary"
-                  class="text-caption"
-                  density="compact"
-                >
+                <v-btn variant="text" color="primary" class="text-caption" density="compact">
                   ¿Olvidaste tu contraseña?
                 </v-btn>
               </div>
@@ -158,6 +145,22 @@ const login = async () => {
               @click="router.push('/register')"
             >
               Regístrate
+            </v-btn>
+          </v-card-actions>
+
+          <!-- Botón de desarrollo para inicio rápido -->
+          <v-card-actions class="justify-center pb-2">
+            <v-btn
+              color="success"
+              variant="outlined"
+              size="small"
+              @click="() => {
+                username = 'admin'
+                password = 'password123'
+                login()
+              }"
+            >
+              Inicio rápido (desarrollo)
             </v-btn>
           </v-card-actions>
         </v-card>

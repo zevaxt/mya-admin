@@ -12,53 +12,10 @@ onMounted(() => {
     router.push('/')
   }
 })
-
-// Función para cerrar sesión
-const logout = () => {
-  authStore.logout()
-  router.push('/')
-}
 </script>
 
 <template>
   <v-container fluid>
-    <v-app-bar color="primary" dark app>
-      <v-app-bar-nav-icon></v-app-bar-nav-icon>
-      <v-toolbar-title>MYA Admin</v-toolbar-title>
-      <v-spacer></v-spacer>
-      <v-btn icon>
-        <v-icon>mdi-magnify</v-icon>
-      </v-btn>
-      <v-btn icon>
-        <v-icon>mdi-bell</v-icon>
-      </v-btn>
-      <v-menu offset-y>
-        <template v-slot:activator="{ props }">
-          <v-btn icon v-bind="props">
-            <v-avatar size="36">
-              <v-icon>mdi-account-circle</v-icon>
-            </v-avatar>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item>
-            <v-list-item-title>
-              <strong>{{ authStore.username }}</strong>
-            </v-list-item-title>
-          </v-list-item>
-          <v-divider></v-divider>
-          <v-list-item @click="logout">
-            <v-list-item-title>
-              <v-icon start>mdi-logout</v-icon>
-              Cerrar sesión
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-    </v-app-bar>
-
-    <v-main>
-      <v-container fluid>
         <v-row>
           <v-col cols="12">
             <v-card class="mb-4">
@@ -128,10 +85,7 @@ const logout = () => {
             </v-card>
           </v-col>
         </v-row>
-      </v-container>
-    </v-main>
-
-    <v-footer app class="d-flex flex-column">
+      <v-footer app class="d-flex flex-column mt-8">
       <div class="text-center">
         <span>&copy; {{ new Date().getFullYear() }} MYA. Todos los derechos reservados.</span>
       </div>
