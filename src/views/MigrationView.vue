@@ -309,10 +309,36 @@ watch(
         </v-alert>
 
         <v-card>
-          <v-tabs v-model="activeTab" @update:model-value="handleTabChange">
-            <v-tab value="0">IDs de Publicaciones</v-tab>
-            <v-tab value="1">Publicaciones Huérfanas</v-tab>
-            <v-tab value="2">Publicaciones Faltantes</v-tab>
+          <v-tabs 
+            v-model="activeTab" 
+            @update:model-value="handleTabChange"
+            bg-color="grey-lighten-4"
+            slider-color="primary"
+          >
+            <v-tab 
+              value="0" 
+              :color="activeTab === 0 ? 'primary' : undefined"
+              class="font-weight-medium"
+            >
+              <v-icon start>mdi-format-list-bulleted</v-icon>
+              IDs de Publicaciones
+            </v-tab>
+            <v-tab 
+              value="1" 
+              :color="activeTab === 1 ? 'warning' : undefined"
+              class="font-weight-medium"
+            >
+              <v-icon start>mdi-alert-circle-outline</v-icon>
+              Publicaciones Huérfanas
+            </v-tab>
+            <v-tab 
+              value="2" 
+              :color="activeTab === 2 ? 'success' : undefined"
+              class="font-weight-medium"
+            >
+              <v-icon start>mdi-plus-circle-outline</v-icon>
+              Publicaciones Faltantes
+            </v-tab>
           </v-tabs>
 
           <v-card-text>
@@ -717,6 +743,22 @@ watch(
 <style scoped>
 .items-per-page-select {
   width: 100px;
+}
+
+.v-tab {
+  min-height: 48px;
+  border-radius: 4px 4px 0 0;
+  margin-right: 2px;
+  transition: all 0.3s ease;
+}
+
+.v-tab--selected {
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.v-tabs-slider {
+  height: 3px;
 }
 
 .pagination-centered {

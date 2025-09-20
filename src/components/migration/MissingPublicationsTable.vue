@@ -25,9 +25,16 @@ const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
 const hasAccount = computed(() => !!currentAccount.value)
 
+// Nombre de la cuenta formateado
+const accountName = computed(() => {
+  if (!currentAccount.value) return 'N/A'
+  return currentAccount.value.Nickname || currentAccount.value.Email || `Cuenta #${accountId.value}`
+})
+
 // Cabeceras de tabla para publicaciones faltantes
 const missingPublicationsHeaders = [
   { title: 'ID', key: 'id', sortable: true },
+  { title: 'Cuenta', key: 'account', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
@@ -102,12 +109,41 @@ defineExpose({
 
 <template>
   <div>
+    <!-- Header con información y botón de actualizar -->
+    <div class="d-flex justify-space-between align-center mb-4">
+      <div>
+        <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones Faltantes</h3>
+        <p class="text-caption text-grey">Publicaciones que existen en Mercado Libre pero no en la base de datos</p>
+      </div>
+      <v-btn 
+        color="primary" 
+        variant="outlined" 
+        @click="loadMissingPublications"
+        :loading="loading"
+        size="small"
+      >
+        <v-icon start>mdi-refresh</v-icon>
+        Actualizar
+      </v-btn>
+    </div>
+    
+    <!-- Contador de resultados -->
+    <div v-if="total > 0" class="mb-2">
+      <v-chip color="info" size="small" variant="outlined">
+        <v-icon start size="small">mdi-information</v-icon>
+        {{ total }} publicaciones faltantes encontradas
+      </v-chip>
+    </div>
+    
     <v-data-table
       :headers="missingPublicationsHeaders"
-      :items="missingPublicationIds.map(id => ({ id }))"
+      :items="missingPublicationIds.map(id => ({ 
+        id, 
+        account: accountName 
+      }))"
       :loading="loading"
       :items-per-page="100"
-      class="elevation-1"
+      class="elevation-1 rounded-lg"
       :no-data-text="
         hasAccount
           ? 'No hay publicaciones faltantes'
@@ -118,6 +154,15 @@ defineExpose({
       <template #[`item.id`]="{ item }">
         <div class="d-flex align-center">
           <span class="text-truncate">{{ item.id }}</span>
+        </div>
+      </template>
+
+      <!-- Columna de Cuenta -->
+      <template #[`item.account`]="{ item }">
+        <div class="d-flex align-center">
+          <v-chip size="small" color="primary" variant="outlined" class="text-truncate">
+            {{ item.account }}
+          </v-chip>
         </div>
       </template>
 
@@ -152,5 +197,18 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.v-data-table {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.v-data-table :deep(th) {
+  font-weight: 600 !important;
+  background-color: #f5f5f5;
+}
+
+.v-data-table :deep(tr:hover) {
+  background-color: #f9f9f9;
 }
 </style>
