@@ -49,6 +49,7 @@ const productIdsHeaders = [
   { title: 'Catálogo Activo', key: 'CatalogActive', sortable: true },
   { title: 'Estado', key: 'Status', sortable: true },
   { title: 'Por Sincronizar', key: 'ToSync', sortable: true },
+  { title: 'Populate', key: 'Populate', sortable: true },
   { title: 'Actualizado', key: 'updated_at', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
@@ -493,6 +494,12 @@ watch(
 
                 <template #[`item.ToSync`]="{ item }">
                   <span>{{ item.ToSync === null ? 'N/A' : item.ToSync ? 'Sí' : 'No' }}</span>
+                </template>
+
+                <template #[`item.Populate`]="{ item }">
+                  <v-chip :color="item.Populate ? 'success' : 'error'" size="small">
+                    {{ item.Populate ? 'Sí' : 'No' }}
+                  </v-chip>
                 </template>
 
                 <template #[`item.updated_at`]="{ item }">

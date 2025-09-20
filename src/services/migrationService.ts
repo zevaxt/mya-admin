@@ -14,6 +14,8 @@ export interface ProductId {
   Status: boolean
   ToSync: null | boolean
   updated_at: string
+  Attributes?: Record<string, unknown> // Campo para almacenar los atributos del producto
+  Populate?: boolean // Campo para indicar si tiene atributos
 }
 
 export interface ProductIdListResponse {
@@ -174,6 +176,7 @@ export const migrationService = {
           SyncActive?: boolean
           AccountID?: number
           updated_at?: string
+          Attributes?: Record<string, unknown>
         }) => {
           // Buscar el nombre de la cuenta si está disponible
           let accountName = 'N/A'
@@ -184,6 +187,11 @@ export const migrationService = {
             }
           }
           
+          // Determinar si tiene atributos (Populate)
+          const hasAttributes = product.Attributes !== null && 
+                               product.Attributes !== undefined && 
+                               Object.keys(product.Attributes || {}).length > 0
+          
           return {
             ID: product.ID,
             AccountID: product.AccountID,
@@ -193,6 +201,8 @@ export const migrationService = {
             Status: product.Status,
             ToSync: product.ToSync,
             updated_at: product.updated_at,
+            Attributes: product.Attributes,
+            Populate: hasAttributes
           }
         },
       )
