@@ -10119,8 +10119,7 @@ paths:
         - migration tag
       summary: /v1/migration/products/orphans
       description: >-
-        consultar el total de id de publicacionde de la cuenta y almacenar el
-        detalle los productos
+        Este endpoint parece estar diseñado para identificar publicaciones que están en una cuenta específica pero que no están sincronizadas con ninguna otra cuenta
       security:
         - bearerAuth: []
       parameters:

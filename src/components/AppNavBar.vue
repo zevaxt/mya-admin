@@ -25,6 +25,27 @@ onMounted(() => {
     
     <v-toolbar-title>MYA Admin</v-toolbar-title>
     
+    <!-- Menú de navegación -->
+    <div class="ml-4">
+      <v-btn
+        variant="text"
+        :to="{ name: 'dashboard' }"
+        color="white"
+      >
+        <v-icon start>mdi-view-dashboard</v-icon>
+        Dashboard
+      </v-btn>
+      
+      <v-btn
+        variant="text"
+        :to="{ name: 'migrations' }"
+        color="white"
+      >
+        <v-icon start>mdi-swap-horizontal</v-icon>
+        Migraciones
+      </v-btn>
+    </div>
+    
     <v-spacer></v-spacer>
     
     <!-- Selector de cuentas -->

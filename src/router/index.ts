@@ -29,6 +29,12 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
       meta: { requiresAuth: false }
     },
+    {
+      path: '/migrations',
+      name: 'migrations',
+      component: () => import('../views/MigrationView.vue'),
+      meta: { requiresAuth: true }
+    },
     // Redirigir cualquier ruta no encontrada al login
     {
       path: '/:pathMatch(.*)*',
