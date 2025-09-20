@@ -3,13 +3,13 @@ import apiClient from './api'
 
 // Interfaces para las respuestas de la API
 export interface ProductId {
-  id: string
-  title: string
-  category_id: string
-  price: number
-  available_quantity: number
-  status: string
-  permalink?: string
+  ID: string
+  AccountID: number
+  SyncActive: boolean
+  CatalogActive: boolean
+  Status: boolean
+  ToSync: null | boolean
+  updated_at: string
 }
 
 export interface ProductIdListResponse {
@@ -111,7 +111,34 @@ export const migrationService = {
         },
       })
 
-      return response.data as ProductIdListResponse
+      // Transformar la respuesta al nuevo formato
+      const data = response.data
+      const products = data.products.map(
+        (product: {
+          ID: string
+          Status: boolean
+          CatalogActive: boolean
+          ToSync?: boolean
+          SyncActive?: boolean
+          AccountID?: number
+          updated_at?: string
+        }) => ({
+          ID: product.ID,
+          AccountID: product.AccountID,
+          SyncActive: product.SyncActive,
+          CatalogActive: product.CatalogActive,
+          Status: product.Status,
+          ToSync: product.ToSync,
+          updated_at: product.updated_at,
+        }),
+      )
+
+      return {
+        products,
+        total: data.total,
+        offset: data.offset,
+        limit: data.limit,
+      } as ProductIdListResponse
     } catch (error) {
       console.error('Error al obtener IDs de productos:', error)
       throw error

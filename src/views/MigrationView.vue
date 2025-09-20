@@ -26,18 +26,19 @@ const statusOptions = [
   { title: 'Todos', value: '' },
   { title: 'Activo', value: 'active' },
   { title: 'Pausado', value: 'paused' },
-  { title: 'Finalizado', value: 'closed' }
+  { title: 'Finalizado', value: 'closed' },
 ]
 
 // Cabeceras de tabla para IDs de productos
 const productIdsHeaders = [
-  { title: 'ID', key: 'id', sortable: true },
-  { title: 'Título', key: 'title', sortable: true },
-  { title: 'Categoría', key: 'category_id', sortable: true },
-  { title: 'Precio', key: 'price', sortable: true },
-  { title: 'Cantidad', key: 'available_quantity', sortable: true },
-  { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false }
+  { title: 'ID', key: 'ID', sortable: true },
+  { title: 'Cuenta', key: 'AccountID', sortable: true },
+  { title: 'Sync Activo', key: 'SyncActive', sortable: true },
+  { title: 'Catálogo Activo', key: 'CatalogActive', sortable: true },
+  { title: 'Estado', key: 'Status', sortable: true },
+  { title: 'Por Sincronizar', key: 'ToSync', sortable: true },
+  { title: 'Actualizado', key: 'updated_at', sortable: true },
+  { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
 // Cabeceras de tabla para productos huérfanos
@@ -47,7 +48,7 @@ const orphanProductsHeaders = [
   { title: 'Categoría', key: 'category_id', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
   { title: 'Estado de Sincronización', key: 'sync_status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false }
+  { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
 // Computed properties
@@ -61,19 +62,19 @@ const loadProductIds = async () => {
     error.value = 'Selecciona una cuenta para ver los productos'
     return
   }
-  
+
   loading.value = true
   error.value = null
-  
+
   try {
     const offset = (page.value - 1) * itemsPerPage.value
     const response = await migrationService.getProductIds(
-      accountId.value, 
+      accountId.value,
       statusFilter.value,
       offset,
-      itemsPerPage.value
+      itemsPerPage.value,
     )
-    
+
     productIds.value = response.products
     totalProductIds.value = response.total
   } catch (err) {
@@ -93,19 +94,19 @@ const loadOrphanProducts = async () => {
     error.value = 'Selecciona una cuenta para ver los productos huérfanos'
     return
   }
-  
+
   loading.value = true
   error.value = null
-  
+
   try {
     const offset = (page.value - 1) * itemsPerPage.value
     const response = await migrationService.getOrphanProducts(
-      accountId.value, 
+      accountId.value,
       statusFilter.value,
       offset,
-      itemsPerPage.value
+      itemsPerPage.value,
     )
-    
+
     orphanProducts.value = response.products
     totalOrphans.value = response.total
   } catch (err) {
@@ -122,10 +123,10 @@ const loadOrphanProducts = async () => {
 
 const viewProductDetail = async (productId: string) => {
   if (!hasAccount.value) return
-  
+
   loading.value = true
   error.value = null
-  
+
   try {
     const response = await migrationService.getProductDetail(accountId.value, productId)
     selectedProduct.value = response.product
@@ -143,14 +144,16 @@ const viewProductDetail = async (productId: string) => {
 }
 
 const openProductInNewTab = (productId: string) => {
-  window.open(`https://articulo.mercadolibre.com.ar/${productId}`, '_blank')
+  // Insertar un guion después de los primeros 3 caracteres (MCO-1233526781)
+  const formattedId = productId.slice(0, 3) + '-' + productId.slice(3)
+  window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
 }
 
 const handleTabChange = (tabIndex: unknown) => {
   const index = Number(tabIndex)
   activeTab.value = index
   page.value = 1
-  
+
   if (index === 0) {
     loadProductIds()
   } else {
@@ -183,14 +186,17 @@ onMounted(() => {
 })
 
 // Observar cambios en la cuenta seleccionada
-watch(() => accountId.value, () => {
-  page.value = 1
-  if (activeTab.value === 0) {
-    loadProductIds()
-  } else {
-    loadOrphanProducts()
-  }
-})
+watch(
+  () => accountId.value,
+  () => {
+    page.value = 1
+    if (activeTab.value === 0) {
+      loadProductIds()
+    } else {
+      loadOrphanProducts()
+    }
+  },
+)
 </script>
 
 <template>
@@ -198,34 +204,21 @@ watch(() => accountId.value, () => {
     <v-row>
       <v-col cols="12">
         <h1 class="text-h4 mb-4">Gestión de Migraciones</h1>
-        
-        <v-alert
-          v-if="!hasAccount"
-          type="warning"
-          class="mb-4"
-        >
+
+        <v-alert v-if="!hasAccount" type="warning" class="mb-4">
           Selecciona una cuenta para ver los productos disponibles para migración.
         </v-alert>
-        
-        <v-alert
-          v-if="error"
-          type="error"
-          class="mb-4"
-          closable
-          @click:close="error = null"
-        >
+
+        <v-alert v-if="error" type="error" class="mb-4" closable @click:close="error = null">
           {{ error }}
         </v-alert>
-        
+
         <v-card>
-          <v-tabs
-            v-model="activeTab"
-            @update:model-value="handleTabChange"
-          >
+          <v-tabs v-model="activeTab" @update:model-value="handleTabChange">
             <v-tab value="0">IDs de Publicaciones</v-tab>
             <v-tab value="1">Publicaciones Huérfanas</v-tab>
           </v-tabs>
-          
+
           <v-card-text>
             <v-row class="mb-4">
               <v-col cols="12" md="4">
@@ -240,7 +233,7 @@ watch(() => accountId.value, () => {
                   @update:model-value="handleStatusFilterChange"
                 ></v-select>
               </v-col>
-              
+
               <v-col cols="12" md="8" class="d-flex justify-end align-center">
                 <v-btn
                   color="primary"
@@ -252,7 +245,7 @@ watch(() => accountId.value, () => {
                 </v-btn>
               </v-col>
             </v-row>
-            
+
             <!-- Tabla de IDs de productos -->
             <v-data-table
               v-if="activeTab === 0"
@@ -261,45 +254,57 @@ watch(() => accountId.value, () => {
               :loading="loading"
               :items-per-page="itemsPerPage"
               class="elevation-1"
-              :no-data-text="hasAccount ? 'No hay productos disponibles' : 'Selecciona una cuenta para ver los productos'"
+              :no-data-text="
+                hasAccount
+                  ? 'No hay productos disponibles'
+                  : 'Selecciona una cuenta para ver los productos'
+              "
             >
-              <template #[`item.price`]="{ item }">
-                {{ new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(item.price) }}
-              </template>
-              
-              <template #[`item.status`]="{ item }">
-                <v-chip
-                  :color="item.status === 'active' ? 'success' : item.status === 'paused' ? 'warning' : 'error'"
-                  size="small"
-                >
-                  {{ item.status === 'active' ? 'Activo' : item.status === 'paused' ? 'Pausado' : 'Finalizado' }}
+              <template #[`item.SyncActive`]="{ item }">
+                <v-chip :color="item.SyncActive ? 'success' : 'error'" size="small">
+                  {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
                 </v-chip>
               </template>
-              
+
+              <template #[`item.CatalogActive`]="{ item }">
+                <v-chip :color="item.CatalogActive ? 'success' : 'error'" size="small">
+                  {{ item.CatalogActive ? 'Activo' : 'Inactivo' }}
+                </v-chip>
+              </template>
+
+              <template #[`item.Status`]="{ item }">
+                <v-chip :color="item.Status ? 'success' : 'error'" size="small">
+                  {{ item.Status ? 'Activo' : 'Inactivo' }}
+                </v-chip>
+              </template>
+
+              <template #[`item.ToSync`]="{ item }">
+                <span>{{ item.ToSync === null ? 'N/A' : item.ToSync ? 'Sí' : 'No' }}</span>
+              </template>
+
+              <template #[`item.updated_at`]="{ item }">
+                {{ new Date(item.updated_at).toLocaleString() }}
+              </template>
+
               <template #[`item.actions`]="{ item }">
                 <v-btn
                   icon
                   size="small"
                   color="primary"
                   class="mr-2"
-                  @click="viewProductDetail(item.id)"
+                  @click="viewProductDetail(item.ID)"
                   :disabled="loading"
                 >
                   <v-icon>mdi-eye</v-icon>
                   <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
                 </v-btn>
-                
-                <v-btn
-                  icon
-                  size="small"
-                  color="info"
-                  @click="openProductInNewTab(item.id)"
-                >
+
+                <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
                   <v-icon>mdi-open-in-new</v-icon>
                   <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
                 </v-btn>
               </template>
-              
+
               <template #bottom>
                 <v-pagination
                   v-model="page"
@@ -309,7 +314,7 @@ watch(() => accountId.value, () => {
                 ></v-pagination>
               </template>
             </v-data-table>
-            
+
             <!-- Tabla de productos huérfanos -->
             <v-data-table
               v-if="activeTab === 1"
@@ -318,52 +323,75 @@ watch(() => accountId.value, () => {
               :loading="loading"
               :items-per-page="itemsPerPage"
               class="elevation-1"
-              :no-data-text="hasAccount ? 'No hay productos huérfanos' : 'Selecciona una cuenta para ver los productos huérfanos'"
+              :no-data-text="
+                hasAccount
+                  ? 'No hay productos huérfanos'
+                  : 'Selecciona una cuenta para ver los productos huérfanos'
+              "
             >
               <template #[`item.status`]="{ item }">
                 <v-chip
-                  :color="item.status === 'active' ? 'success' : item.status === 'paused' ? 'warning' : 'error'"
+                  :color="
+                    item.status === 'active'
+                      ? 'success'
+                      : item.status === 'paused'
+                        ? 'warning'
+                        : 'error'
+                  "
                   size="small"
                 >
-                  {{ item.status === 'active' ? 'Activo' : item.status === 'paused' ? 'Pausado' : 'Finalizado' }}
+                  {{
+                    item.status === 'active'
+                      ? 'Activo'
+                      : item.status === 'paused'
+                        ? 'Pausado'
+                        : 'Finalizado'
+                  }}
                 </v-chip>
               </template>
-              
+
               <template #[`item.sync_status`]="{ item }">
                 <v-chip
                   v-if="item.sync_status"
-                  :color="item.sync_status === 'synced' ? 'success' : item.sync_status === 'pending' ? 'warning' : 'error'"
+                  :color="
+                    item.sync_status === 'synced'
+                      ? 'success'
+                      : item.sync_status === 'pending'
+                        ? 'warning'
+                        : 'error'
+                  "
                   size="small"
                 >
-                  {{ item.sync_status === 'synced' ? 'Sincronizado' : item.sync_status === 'pending' ? 'Pendiente' : 'Error' }}
+                  {{
+                    item.sync_status === 'synced'
+                      ? 'Sincronizado'
+                      : item.sync_status === 'pending'
+                        ? 'Pendiente'
+                        : 'Error'
+                  }}
                 </v-chip>
                 <span v-else>No disponible</span>
               </template>
-              
+
               <template #[`item.actions`]="{ item }">
                 <v-btn
                   icon
                   size="small"
                   color="primary"
                   class="mr-2"
-                  @click="viewProductDetail(item.id)"
+                  @click="viewProductDetail(item.ID)"
                   :disabled="loading"
                 >
                   <v-icon>mdi-eye</v-icon>
                   <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
                 </v-btn>
-                
-                <v-btn
-                  icon
-                  size="small"
-                  color="info"
-                  @click="openProductInNewTab(item.id)"
-                >
+
+                <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
                   <v-icon>mdi-open-in-new</v-icon>
                   <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
                 </v-btn>
               </template>
-              
+
               <template #bottom>
                 <v-pagination
                   v-model="page"
@@ -377,13 +405,9 @@ watch(() => accountId.value, () => {
         </v-card>
       </v-col>
     </v-row>
-    
+
     <!-- Diálogo de detalle de producto -->
-    <v-dialog
-      v-model="showProductDetail"
-      max-width="900"
-      scrollable
-    >
+    <v-dialog v-model="showProductDetail" max-width="900" scrollable>
       <v-card v-if="selectedProduct">
         <v-card-title class="d-flex justify-space-between align-center">
           <div>
@@ -394,43 +418,61 @@ watch(() => accountId.value, () => {
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-text>
           <v-row>
             <v-col cols="12" md="6">
               <h3 class="text-h6 mb-2">{{ selectedProduct.title }}</h3>
-              
+
               <v-list density="compact">
                 <v-list-item>
                   <v-list-item-title>Precio</v-list-item-title>
-                  <v-list-item-subtitle>{{ new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(selectedProduct.price) }}</v-list-item-subtitle>
+                  <v-list-item-subtitle>{{
+                    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(
+                      selectedProduct.price,
+                    )
+                  }}</v-list-item-subtitle>
                 </v-list-item>
-                
+
                 <v-list-item>
                   <v-list-item-title>Cantidad disponible</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedProduct.available_quantity }}</v-list-item-subtitle>
+                  <v-list-item-subtitle>{{
+                    selectedProduct.available_quantity
+                  }}</v-list-item-subtitle>
                 </v-list-item>
-                
+
                 <v-list-item>
                   <v-list-item-title>Categoría</v-list-item-title>
                   <v-list-item-subtitle>{{ selectedProduct.category_id }}</v-list-item-subtitle>
                 </v-list-item>
-                
+
                 <v-list-item>
                   <v-list-item-title>Estado</v-list-item-title>
                   <v-list-item-subtitle>
                     <v-chip
-                      :color="selectedProduct.status === 'active' ? 'success' : selectedProduct.status === 'paused' ? 'warning' : 'error'"
+                      :color="
+                        selectedProduct.status === 'active'
+                          ? 'success'
+                          : selectedProduct.status === 'paused'
+                            ? 'warning'
+                            : 'error'
+                      "
                       size="small"
                     >
-                      {{ selectedProduct.status === 'active' ? 'Activo' : selectedProduct.status === 'paused' ? 'Pausado' : 'Finalizado' }}
+                      {{
+                        selectedProduct.status === 'active'
+                          ? 'Activo'
+                          : selectedProduct.status === 'paused'
+                            ? 'Pausado'
+                            : 'Finalizado'
+                      }}
                     </v-chip>
                   </v-list-item-subtitle>
                 </v-list-item>
               </v-list>
-              
+
               <v-btn
                 color="primary"
                 class="mt-4"
@@ -442,18 +484,12 @@ watch(() => accountId.value, () => {
             </v-col>
           </v-row>
         </v-card-text>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="showProductDetail = false"
-          >
-            Cerrar
-          </v-btn>
+          <v-btn color="primary" variant="text" @click="showProductDetail = false"> Cerrar </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

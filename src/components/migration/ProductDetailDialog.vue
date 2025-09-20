@@ -16,7 +16,7 @@ const emit = defineEmits<{
 // Computed
 const dialog = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value) => emit('update:modelValue', value),
 })
 
 // Tabs
@@ -28,16 +28,15 @@ const formatPrice = (price: number) => {
 }
 
 const openProductInNewTab = () => {
-  window.open(`https://articulo.mercadolibre.com.ar/${props.product.id}`, '_blank')
+  // Insertar un guion después de los primeros 3 caracteres (MCO-1233526781)
+  const productId = props.product.id
+  const formattedId = productId.slice(0, 3) + '-' + productId.slice(3)
+  window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
 }
 </script>
 
 <template>
-  <v-dialog
-    v-model="dialog"
-    max-width="900"
-    scrollable
-  >
+  <v-dialog v-model="dialog" max-width="900" scrollable>
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <div>
@@ -48,43 +47,55 @@ const openProductInNewTab = () => {
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
-      
+
       <v-divider></v-divider>
-      
+
       <v-card-text>
         <v-row>
           <v-col cols="12" md="6">
             <h3 class="text-h6 mb-2">{{ product.title }}</h3>
-            
+
             <v-list density="compact">
               <v-list-item>
                 <v-list-item-title>Precio</v-list-item-title>
                 <v-list-item-subtitle>{{ formatPrice(product.price) }}</v-list-item-subtitle>
               </v-list-item>
-              
+
               <v-list-item>
                 <v-list-item-title>Cantidad disponible</v-list-item-title>
                 <v-list-item-subtitle>{{ product.available_quantity }}</v-list-item-subtitle>
               </v-list-item>
-              
+
               <v-list-item>
                 <v-list-item-title>Categoría</v-list-item-title>
                 <v-list-item-subtitle>{{ product.category_id }}</v-list-item-subtitle>
               </v-list-item>
-              
+
               <v-list-item>
                 <v-list-item-title>Estado</v-list-item-title>
                 <v-list-item-subtitle>
                   <v-chip
-                    :color="product.status === 'active' ? 'success' : product.status === 'paused' ? 'warning' : 'error'"
+                    :color="
+                      product.status === 'active'
+                        ? 'success'
+                        : product.status === 'paused'
+                          ? 'warning'
+                          : 'error'
+                    "
                     size="small"
                   >
-                    {{ product.status === 'active' ? 'Activo' : product.status === 'paused' ? 'Pausado' : 'Finalizado' }}
+                    {{
+                      product.status === 'active'
+                        ? 'Activo'
+                        : product.status === 'paused'
+                          ? 'Pausado'
+                          : 'Finalizado'
+                    }}
                   </v-chip>
                 </v-list-item-subtitle>
               </v-list-item>
             </v-list>
-            
+
             <v-btn
               color="primary"
               class="mt-4"
@@ -94,7 +105,7 @@ const openProductInNewTab = () => {
               Ver en Mercado Libre
             </v-btn>
           </v-col>
-          
+
           <v-col cols="12" md="6">
             <v-carousel
               v-if="product.pictures && product.pictures.length > 0"
@@ -109,7 +120,7 @@ const openProductInNewTab = () => {
                 cover
               ></v-carousel-item>
             </v-carousel>
-            
+
             <v-img
               v-else
               src="https://via.placeholder.com/300x300?text=Sin+imagen"
@@ -119,12 +130,12 @@ const openProductInNewTab = () => {
             ></v-img>
           </v-col>
         </v-row>
-        
+
         <v-tabs v-model="activeTab" class="mt-4">
           <v-tab value="0">Atributos</v-tab>
           <v-tab value="1">Variaciones</v-tab>
         </v-tabs>
-        
+
         <v-window v-model="activeTab">
           <!-- Atributos -->
           <v-window-item value="0">
@@ -144,15 +155,11 @@ const openProductInNewTab = () => {
                 </tr>
               </tbody>
             </v-table>
-            <v-alert
-              v-else
-              type="info"
-              class="mt-4"
-            >
+            <v-alert v-else type="info" class="mt-4">
               Este producto no tiene atributos definidos.
             </v-alert>
           </v-window-item>
-          
+
           <!-- Variaciones -->
           <v-window-item value="1">
             <div v-if="product.variations && product.variations.length > 0">
@@ -171,17 +178,21 @@ const openProductInNewTab = () => {
                     <v-list density="compact">
                       <v-list-item>
                         <v-list-item-title>Precio</v-list-item-title>
-                        <v-list-item-subtitle>{{ formatPrice(variation.price) }}</v-list-item-subtitle>
+                        <v-list-item-subtitle>{{
+                          formatPrice(variation.price)
+                        }}</v-list-item-subtitle>
                       </v-list-item>
-                      
+
                       <v-list-item>
                         <v-list-item-title>Cantidad disponible</v-list-item-title>
-                        <v-list-item-subtitle>{{ variation.available_quantity }}</v-list-item-subtitle>
+                        <v-list-item-subtitle>{{
+                          variation.available_quantity
+                        }}</v-list-item-subtitle>
                       </v-list-item>
                     </v-list>
-                    
+
                     <v-divider class="my-2"></v-divider>
-                    
+
                     <h4 class="text-subtitle-1 mb-2">Combinaciones de atributos</h4>
                     <v-chip
                       v-for="attr in variation.attribute_combinations"
@@ -196,28 +207,16 @@ const openProductInNewTab = () => {
                 </v-expansion-panel>
               </v-expansion-panels>
             </div>
-            <v-alert
-              v-else
-              type="info"
-              class="mt-4"
-            >
-              Este producto no tiene variaciones.
-            </v-alert>
+            <v-alert v-else type="info" class="mt-4"> Este producto no tiene variaciones. </v-alert>
           </v-window-item>
         </v-window>
       </v-card-text>
-      
+
       <v-divider></v-divider>
-      
+
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn
-          color="primary"
-          variant="text"
-          @click="dialog = false"
-        >
-          Cerrar
-        </v-btn>
+        <v-btn color="primary" variant="text" @click="dialog = false"> Cerrar </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
