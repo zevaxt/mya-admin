@@ -184,13 +184,13 @@ paths:
 
 
         - Method: POST
-            
+
         - URL: `{{sv}}/v1/migration/token/refresh/{id}`
-            
+
         - Body:
-            
+
             - `refresh_token` (text, required): The refresh token to be used for refreshing the migration token.
-                
+
 
         #### Response
 
@@ -200,11 +200,11 @@ paths:
 
 
         - `access_token`: The new access token.
-            
+
         - `token_type`: The type of token.
-            
+
         - `expires_in`: The duration for which the token is valid.
-            
+
         - `refresh_token`: The new refresh token.
       requestBody:
         content: {}
@@ -288,6 +288,101 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /v1/provider/publications/compare:
+    get:
+      tags:
+        - provider tag
+      summary: Comparar publicaciones en DB vs Mercado Libre
+      description: >
+        ### Descripción
+
+
+        Este endpoint compara las publicaciones almacenadas en la base de datos con las publicaciones
+        existentes en Mercado Libre para una cuenta específica. Devuelve una lista de IDs de publicaciones
+        que existen en Mercado Libre pero no están registradas en la base de datos local.
+
+
+        ### Parámetros de la solicitud
+
+
+        - **Method:** GET
+
+
+        - **Endpoint:** `/v1/provider/publications/compare`
+
+
+        - **Headers requeridos:**
+          - `account-id`: ID de la cuenta de Mercado Libre a consultar
+
+
+        ### Estructura de la respuesta
+
+
+        La respuesta es un objeto JSON con los siguientes campos:
+
+
+        - `total` (número): Cantidad total de publicaciones faltantes.
+
+
+        - `missing_publication_ids` (array de strings): Lista de IDs de publicaciones que existen en Mercado Libre pero no en la base de datos.
+
+
+        ### Códigos de respuesta
+
+
+        - **200 OK**: La comparación se realizó correctamente.
+
+
+        - **400 Bad Request**: Parámetros de solicitud inválidos.
+
+
+        - **500 Internal Server Error**: Error al procesar la solicitud.
+
+
+        ### Ejemplo de respuesta
+
+
+        ```json
+        {
+          "total": 3,
+          "missing_publication_ids": [
+            "MCO123456789",
+            "MCO987654321",
+            "MCO567891234"
+          ]
+        }
+        ```
+      parameters:
+        - name: account-id
+          in: header
+          required: true
+          description: ID de la cuenta de Mercado Libre a consultar
+          schema:
+            type: string
+          example: '1'
+      responses:
+        '200':
+          description: Comparación exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Cantidad total de publicaciones faltantes
+                  missing_publication_ids:
+                    type: array
+                    items:
+                      type: string
+                    description: Lista de IDs de publicaciones que existen en Mercado Libre pero no en la base de datos
+        '400':
+          description: Parámetros de solicitud inválidos
+        '500':
+          description: Error al procesar la solicitud
+      security:
+        - bearerAuth: []
+
   /v1/provider/products/ids:
     post:
       tags:
@@ -332,27 +427,47 @@ paths:
       tags:
         - migration tag
       summary: https://mercaloyaapi.loca.lt/v1/migration/products/ids
+      parameters:
+        - name: offset
+          in: query
+          description: Número de registros a omitir (para paginación)
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: Número máximo de registros a devolver (para paginación)
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: account-id
+          in: header
+          schema:
+            type: integer
+          example: '1'
       description: >-
         ### Get Product IDs for Migration
 
 
-        Consulta los ids almancenados en la bd de una cuenta
+        Consulta los ids almacenados en la bd de una cuenta
 
 
-        #### Request Body
+        ### Response Structure
 
 
-        This request does not require a request body.
+        The response is a JSON object containing the following fields:
 
 
-        #### Response Body
+        - `publications_ids` (array of strings): An array containing the product IDs.
 
+        - `total` (number): The total count of product IDs available for the account.
 
-        - `count` (number): The total count of product IDs.
-            
-        - `publications_ids` (array of strings): An array containing the product
-        IDs.
-            
+        - `offset` (number): The offset used in the request.
+
+        - `limit` (number): The limit used in the request.
+
 
         Example:
 
@@ -360,19 +475,15 @@ paths:
         ``` json
 
         {
-            "count": 0,
-            "publications_ids": [""]
+            "publications_ids": ["MCO1119265852", "MCO1146473973", "MCO1149637532"],
+            "total": 437,
+            "offset": 0,
+            "limit": 3
         }
 
-         ```
+        ```
       security:
         - bearerAuth: []
-      parameters:
-        - name: account-id
-          in: header
-          schema:
-            type: integer
-          example: '1'
       responses:
         '200':
           description: Successful response
@@ -383,6 +494,26 @@ paths:
       tags:
         - migration tag
       summary: /v1/migration/products/
+      parameters:
+        - name: offset
+          in: query
+          description: Número de registros a omitir (para paginación)
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: Número máximo de registros a devolver (para paginación)
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: account-id
+          in: header
+          schema:
+            type: integer
+          example: '1'
       description: >-
         ### Request Description
 
@@ -395,141 +526,139 @@ paths:
 
 
         - **Method:** GET
-            
+
         - **Endpoint:** `{{sv}}/v1/migration/products`
-            
+
 
         ### Response Structure
 
 
-        On a successful request, the API returns a JSON array containing product
-        objects with the following structure:
+        The response is a JSON object containing the following fields:
 
 
-        - **ID**: Unique identifier for the product.
-            
-        - **Attributes**: Object containing various attributes of the product:
-            
-            - **id**: Identifier for the product.
-                
+        - **products**: Array of product objects, each containing:
+          - **ID**: Unique identifier for the product.
+        - **total**: Total number of products available for the account.
+        - **offset**: The offset used in the request.
+        - **limit**: The limit used in the request.
             - **tags**: Array of tags associated with the product.
-                
+
             - **price**: Price of the product.
-                
+
             - **title**: Title of the product.
-                
+
             - **health**: Health status of the product.
-                
+
             - **status**: Current status of the product.
-                
+
             - **site_id**: Identifier for the site.
-                
+
             - **channels**: Array of channels where the product is listed.
-                
+
             - **deal_ids**: Array of deal identifiers.
-                
+
             - **end_time**: End time of the product listing.
-                
+
             - **location**: Object containing location details.
-                
+
             - **pictures**: Array of picture objects with details such as id, url, size, quality, and secure_url.
-                
+
             - **shipping**: Object containing shipping details including mode, tags, methods, dimensions, and shipping options.
-                
+
             - **subtitle**: Subtitle of the product (if any).
-                
+
             - **video_id**: Video identifier (if applicable).
-                
+
             - **warnings**: Array of warnings related to the product.
-                
+
             - **warranty**: Warranty information.
-                
+
             - **condition**: Condition of the product.
-                
+
             - **domain_id**: Identifier for the domain.
-                
+
             - **permalink**: Permalink for the product.
-                
+
             - **seller_id**: Identifier for the seller.
-                
+
             - **stop_time**: Stop time for the product listing.
-                
+
             - **thumbnail**: Thumbnail image of the product.
-                
+
             - **attributes**: Array of attribute objects detailing product characteristics.
-                
+
             - **base_price**: Base price of the product.
-                
+
             - **sale_terms**: Array of sale term objects.
-                
+
             - **start_time**: Start time for the product listing.
-                
+
             - **sub_status**: Array of sub-statuses.
-                
+
             - **variations**: Array of product variations.
-                
+
             - **buying_mode**: Buying mode for the product.
-                
+
             - **category_id**: Identifier for the product category.
-                
+
             - **currency_id**: Currency identifier.
-                
+
             - **geolocation**: Object containing latitude and longitude.
-                
+
             - **date_created**: Creation date of the product listing.
-                
+
             - **descriptions**: Array of product descriptions.
-                
+
             - **inventory_id**: Identifier for the inventory.
-                
+
             - **last_updated**: Last updated timestamp.
-                
+
             - **thumbnail_id**: Identifier for the thumbnail.
-                
+
             - **sold_quantity**: Quantity sold.
-                
+
             - **coverage_areas**: Array of coverage areas.
-                
+
             - **item_relations**: Array of item relation objects.
-                
+
             - **listing_source**: Source of the listing.
-                
+
             - **original_price**: Original price of the product.
-                
+
             - **parent_item_id**: Identifier for the parent item (if applicable).
-                
+
             - **seller_address**: Object containing seller's address details.
-                
+
             - **seller_contact**: Seller contact information (if available).
-                
+
             - **catalog_listing**: Boolean indicating if it's a catalog listing.
-                
+
             - **expiration_time**: Expiration time for the listing.
-                
+
             - **listing_type_id**: Identifier for the listing type.
-                
+
             - **automatic_relist**: Boolean indicating if the product should be automatically relisted.
-                
+
             - **initial_quantity**: Initial quantity of the product.
-                
+
             - **secure_thumbnail**: Secure thumbnail URL.
-                
+
             - **official_store_id**: Identifier for the official store (if applicable).
-                
+
             - **available_quantity**: Quantity available for sale.
-                
+
             - **catalog_product_id**: Identifier for the catalog product.
-                
+
             - **accepts_mercadopago**: Boolean indicating if MercadoPago is accepted.
-                
+
             - **seller_custom_field**: Custom field for the seller (if applicable).
-                
+
             - **differential_pricing**: Differential pricing information (if applicable).
-                
+
             - **international_delivery_mode**: Mode for international delivery.
-                
+
             - **non_mercado_pago_payment_methods**: Array of non-MercadoPago payment methods.
-                
+
 
         ### Response Code
 
@@ -538,12 +667,6 @@ paths:
         data is returned.
       security:
         - bearerAuth: []
-      parameters:
-        - name: account-id
-          in: header
-          schema:
-            type: integer
-          example: '1'
       responses:
         '200':
           description: Successful response
@@ -569,9 +692,9 @@ paths:
 
 
         - Method: `GET`
-            
+
         - URL: `{{sv}}/v1/migration/product/{id}`
-            
+
 
         #### Response
 
@@ -1453,7 +1576,7 @@ paths:
 
 
         - No request body is required for this endpoint.
-            
+
 
         #### Response
 
@@ -2184,14 +2307,14 @@ paths:
 
         - `product_ids` (array of strings) - The IDs of the products to be
         updated.
-            
+
 
         #### Response Body
 
 
         - `success` (boolean) - Indicates if the update operation was
         successful.
-            
+
         - `message` (string) - A message providing details about the update
         operation.
       requestBody:
@@ -2248,7 +2371,7 @@ paths:
 
         - `product_ids` (array of strings) - The IDs of the products to be
         updated.
-            
+
 
         #### Response Body
 
@@ -8924,6 +9047,34 @@ paths:
       tags:
         - migration tag
       summary: /v1/migration/update/products/populate
+      parameters:
+        - name: offset
+          in: query
+          description: Número de registros a omitir (para paginación)
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: limit
+          in: query
+          description: Número máximo de registros a devolver (para paginación)
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+        - name: account-id
+          in: header
+          description: ID de la cuenta
+          required: true
+          schema:
+            type: integer
+          example: '1'
+        - name: is_empty
+          in: header
+          description: Indica si solo se deben procesar publicaciones con atributos vacíos
+          schema:
+            type: boolean
+          example: 'false'
       description: >-
         consultar el total de id de publicacionde de la cuenta y almacenar el
         detalle los productos
@@ -8931,17 +9082,6 @@ paths:
         content: {}
       security:
         - bearerAuth: []
-      parameters:
-        - name: account-id
-          in: header
-          schema:
-            type: integer
-          example: '1'
-        - name: is_empty
-          in: header
-          schema:
-            type: boolean
-          example: 'false'
       responses:
         '200':
           description: Successful response
@@ -10119,7 +10259,8 @@ paths:
         - migration tag
       summary: /v1/migration/products/orphans
       description: >-
-        Este endpoint parece estar diseñado para identificar publicaciones que están en una cuenta específica pero que no están sincronizadas con ninguna otra cuenta
+        consultar el total de id de publicacionde de la cuenta y almacenar el
+        detalle los productos
       security:
         - bearerAuth: []
       parameters:
@@ -11370,7 +11511,7 @@ paths:
                            El adaptador UGREEN USB A a Lan no tiene controladores para Windows 11/10/8.1/8, macOS y Chrome OS. También es libre de controladores y compatible con Nintendo Switch y Switch Oled. Simplemente conecta y disfruta de una red cableada suave.
 
 
-                          • Compatible con Nintendo Switch: 
+                          • Compatible con Nintendo Switch:
 
                           Este adaptador USB a Ethernet es perfectamente
                           compatible con Nintendo Switch y Switch Oled. No más
@@ -11379,7 +11520,7 @@ paths:
                           con amigos.
 
 
-                          • Amplia compatibilidad: 
+                          • Amplia compatibilidad:
 
                           El adaptador Ethernet USB UGREEN es compatible con la
                           mayoría de PC de escritorio, portátiles, Nintendo
@@ -11818,7 +11959,7 @@ paths:
                           dispositivo se quede sin energía.
 
 
-                          TRANSFERENCIA DE DATOS DE 5 GBPS: 
+                          TRANSFERENCIA DE DATOS DE 5 GBPS:
 
                           Estación de acoplamiento de doble monitor con 3
                           puertos USB 3.0 sincroniza datos a velocidades
@@ -12699,7 +12840,7 @@ paths:
                           protegiendo de intrusos.
 
 
-                          ALMACENAMIENTO LOCAL SEGURO O EN LA NUBE: 
+                          ALMACENAMIENTO LOCAL SEGURO O EN LA NUBE:
 
                           Guarda imágenes continuamente en una tarjeta microSD
                           de hasta 128 GB (no incluida) o suscríbete a Tapo Care
@@ -12709,7 +12850,7 @@ paths:
                           bebé y mucho más.
 
 
-                          VISIÓN NOCTURNA DE HASTA 30 PIES: 
+                          VISIÓN NOCTURNA DE HASTA 30 PIES:
 
                           Nunca te pierdas nada que continúa, incluso por la
                           noche gracias al sistema IR integrado en esta cámara
@@ -12724,7 +12865,7 @@ paths:
                           sosteniendo o con qué está jugando tu mascota.
 
 
-                          COMPARTIR DISPOSITIVOS: 
+                          COMPARTIR DISPOSITIVOS:
 
                           Mira la alimentación de tu cámara WiFi desde dos
                           dispositivos de teléfono inteligente diferentes. Ahora
@@ -12733,7 +12874,7 @@ paths:
                           pequeños sea un poco más fácil.
 
 
-                          FUNCIONA CON ALEXA Y GOOGLE ASSISTANT: 
+                          FUNCIONA CON ALEXA Y GOOGLE ASSISTANT:
 
                           Totalmente compatible con Amazon Alexa y Google
                           Assistant, utiliza tu simple comando de voz para ver
@@ -14038,7 +14179,7 @@ paths:
                           •Fácil de instalar y ahorro de energía:
                            Simplemente atornilla las bombillas inteligentes en cualquier enchufe estándar E26. No requiere concentrador. No funciona con interruptor inteligente e interruptor de atenuación. Pocos pasos para conectar con la aplicación del teléfono. Wi-Fi 2.4G (no 5G). Luces inteligentes de bajo consumo de solo 9 W de potencia, equivalente a bombillas incandescentes tradicionales de 60 W. Ahorra hasta un 80% de energía, vida útil más larga de la bombilla y reduce tus facturas.
 
-                          •Ajuste de horarios y control de grupo: 
+                          •Ajuste de horarios y control de grupo:
 
                           Puedes configurar horarios para que la luz inteligente
                           se encienda y apague de acuerdo a tus rutinas diarias.
@@ -14311,12 +14452,12 @@ paths:
 
                           El afilador de cuchillos eléctrico o manual compacto
                           KitchenIQ Gourmet presenta un afilado eléctrico y
-                          manual en una unidad compacta. 
+                          manual en una unidad compacta.
 
                           Las ranuras de afilado eléctrico cuentan con una rueda
                           de afilado abrasivo sintético con guías de cuchilla
                           para sostener automáticamente la cuchilla en el ángulo
-                          de afilado correcto. 
+                          de afilado correcto.
 
                           Después de afilar con la rueda de afilar eléctrica,
                           KitchenIQ recomienda usar las varillas de cerámica
@@ -15643,7 +15784,7 @@ paths:
                           y grabar música y videos cortos.
 
 
-                          EXCELENTE CALIDAD DE SONIDO: 
+                          EXCELENTE CALIDAD DE SONIDO:
 
                           El micrófono de condensador utiliza tecnología
                           avanzada de reducción de ruido inteligente y
@@ -15655,7 +15796,7 @@ paths:
                           sonido claro y completo.
 
 
-                          TARJETA DE SONIDO MULTIFUNCIONAL: 
+                          TARJETA DE SONIDO MULTIFUNCIONAL:
 
                           La tarjeta de sonido clásica V8 puede ajustar cuatro
                           modos de sonido para satisfacer las necesidades de tu
@@ -15665,7 +15806,7 @@ paths:
                           a tu transmisión en vivo.
 
 
-                          POTENTE COMPATIBILIDAD: 
+                          POTENTE COMPATIBILIDAD:
 
                           La interfaz de audio tiene una gran compatibilidad,
                           compatible con teléfonos inteligentes, PC,
@@ -15676,7 +15817,7 @@ paths:
                           Conducir gratis, plug and play.
 
 
-                          CONEXIÓN USB PLUG AND PLAY: 
+                          CONEXIÓN USB PLUG AND PLAY:
 
                           Fácil como Plug and Play, simplemente utiliza los
                           cables, auriculares, para conectar con la tarjeta de
@@ -15708,7 +15849,7 @@ paths:
                           adaptador de APPLE/TYPE-C.
 
 
-                          ESPECIFICACIONES 
+                          ESPECIFICACIONES
 
                           Rango de frecuencia: 20 a 20.000 Hz
 
@@ -15725,7 +15866,7 @@ paths:
                           Conector: XLR de 3 pines a IEC
 
 
-                          ATENCIÓN: 
+                          ATENCIÓN:
 
                           Cuando utilices el dispositivo por primera vez o el
                           producto no se ha utilizado durante mucho tiempo, te
@@ -16126,10 +16267,10 @@ paths:
                           Esta tarjeta MicroSDXC posee un almacenamiento
                           confiable y de gran rendimiento. Ideal para filmar
                           videos de alta resolución y tomar fotografías con alto
-                          nivel de detalle. 
+                          nivel de detalle.
 
 
-                          Máximo rendimiento 
+                          Máximo rendimiento
 
                           Ahorra tiempo gracias a su velocidad clase 10, que
                           posibilita la transferencia de datos de forma rápida y
@@ -16565,7 +16706,7 @@ paths:
                           tema parezca más bonito.
 
 
-                          ALIMENTADO POR USB Y CONTROL REMOTO INALÁMBRICO: 
+                          ALIMENTADO POR USB Y CONTROL REMOTO INALÁMBRICO:
 
                           No necesita batería, funciona con la mayoría de
                           dispositivos que soportan puerto USB, como un
@@ -16577,7 +16718,7 @@ paths:
                           familiar a una distancia adecuada.
 
 
-                          PLEGABLE, EXPANDIBLE Y PORTÁTIL: 
+                          PLEGABLE, EXPANDIBLE Y PORTÁTIL:
 
                           Con trípode de suelo y soporte de escritorio, mini y
                           plegable, bastante portátil, plegado de 7.28 pulgadas
@@ -16589,7 +16730,7 @@ paths:
                           maravillosos para ti.
 
 
-                          USO MULTIFUNCIÓN: 
+                          USO MULTIFUNCIÓN:
 
                           Gran anillo de luz LED para el trabajo diario y la
                           vida. Ideal para un tutorial de maquillaje, videos
@@ -16601,11 +16742,11 @@ paths:
                           brillar como una estrella.
 
 
-                          SOPORTE GIRATORIO DE 360°: 
+                          SOPORTE GIRATORIO DE 360°:
 
                           Con el diseño giratorio de 360°, puedes elegir entre
                           modos horizontal o vertical para obtener el mejor
-                          ángulo para tus fotos. 
+                          ángulo para tus fotos.
 
 
                           AMPLIA COMPATIBILIDAD
@@ -16983,7 +17124,7 @@ paths:
                           comida más fresca, jugosa y sabrosa.
 
 
-                          MATERIAL SEGURO: 
+                          MATERIAL SEGURO:
 
                           sin BPA, duradero, material de calidad alimentaria. No
                           hay problema con el fuego lento y el microondas.
@@ -16993,7 +17134,7 @@ paths:
                           como sopa, zumo, etc.
 
 
-                          FUNCIONA CON TODOS LOS SELLADORES AL VACÍO: 
+                          FUNCIONA CON TODOS LOS SELLADORES AL VACÍO:
 
                           Funciona con todos los selladores de calor al vacío de
                           succión como Seal A Meal, Nesco, Weston, Cabela'S,
@@ -17364,7 +17505,7 @@ paths:
                           comida más fresca, jugosa y sabrosa.
 
 
-                          MATERIAL SEGURO: 
+                          MATERIAL SEGURO:
 
                           sin BPA, duradero, material de calidad alimentaria. No
                           hay problema con el fuego lento y el microondas.
@@ -17374,7 +17515,7 @@ paths:
                           como sopa, zumo, etc.
 
 
-                          FUNCIONA CON TODOS LOS SELLADORES AL VACÍO: 
+                          FUNCIONA CON TODOS LOS SELLADORES AL VACÍO:
 
                           Funciona con todos los selladores de calor al vacío de
                           succión como Seal A Meal, Nesco, Weston, Cabela'S,
@@ -19154,10 +19295,10 @@ paths:
 
                     Esta tarjeta MicroSDXC posee un almacenamiento confiable y
                     de gran rendimiento. Ideal para filmar videos de alta
-                    resolución y tomar fotografías con alto nivel de detalle. 
+                    resolución y tomar fotografías con alto nivel de detalle.
 
 
-                    Máximo rendimiento 
+                    Máximo rendimiento
 
                     Ahorra tiempo gracias a su velocidad clase 10, que
                     posibilita la transferencia de datos de forma rápida y
@@ -19483,10 +19624,10 @@ paths:
 
                     Esta tarjeta MicroSDXC posee un almacenamiento confiable y
                     de gran rendimiento. Ideal para filmar videos de alta
-                    resolución y tomar fotografías con alto nivel de detalle. 
+                    resolución y tomar fotografías con alto nivel de detalle.
 
 
-                    Máximo rendimiento 
+                    Máximo rendimiento
 
                     Ahorra tiempo gracias a su velocidad clase 10, que
                     posibilita la transferencia de datos de forma rápida y

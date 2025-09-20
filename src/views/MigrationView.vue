@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
 import type { ProductId, ProductDetail, OrphanProduct } from '@/services/migrationService'
+import MissingPublicationsTable from '@/components/migration/MissingPublicationsTable.vue'
 
 // Stores
 const accountStore = useAccountStore()
@@ -21,7 +22,7 @@ const catalogActiveFilter = ref<string>('')
 const totalProductIds = ref(0)
 const totalOrphans = ref(0)
 const page = ref(1)
-const itemsPerPage = ref(10)
+const itemsPerPage = ref(100)
 
 // Opciones para items por página
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
@@ -218,7 +219,7 @@ const handleTabChange = (tabIndex: unknown) => {
 
   if (index === 0) {
     loadProductIds()
-  } else {
+  } else if (index === 1) {
     loadOrphanProducts()
   }
 }
@@ -226,7 +227,7 @@ const handleTabChange = (tabIndex: unknown) => {
 const handlePageChange = () => {
   if (activeTab.value === 0) {
     loadProductIds()
-  } else {
+  } else if (activeTab.value === 1) {
     loadOrphanProducts()
   }
 }
@@ -235,7 +236,7 @@ const handleItemsPerPageChange = () => {
   page.value = 1 // Resetear a la primera página cuando cambia el número de items por página
   if (activeTab.value === 0) {
     loadProductIds()
-  } else {
+  } else if (activeTab.value === 1) {
     loadOrphanProducts()
   }
 }
@@ -244,7 +245,7 @@ const handleStatusFilterChange = () => {
   page.value = 1
   if (activeTab.value === 0) {
     loadProductIds()
-  } else {
+  } else if (activeTab.value === 1) {
     loadOrphanProducts()
   }
 }
@@ -286,7 +287,7 @@ watch(
     page.value = 1
     if (activeTab.value === 0) {
       loadProductIds()
-    } else {
+    } else if (activeTab.value === 1) {
       loadOrphanProducts()
     }
   },
@@ -311,6 +312,7 @@ watch(
           <v-tabs v-model="activeTab" @update:model-value="handleTabChange">
             <v-tab value="0">IDs de Publicaciones</v-tab>
             <v-tab value="1">Publicaciones Huérfanas</v-tab>
+            <v-tab value="2">Publicaciones Faltantes</v-tab>
           </v-tabs>
 
           <v-card-text>
@@ -387,7 +389,7 @@ watch(
                 <v-btn
                   color="primary"
                   :loading="loading"
-                  @click="activeTab === 0 ? loadProductIds() : loadOrphanProducts()"
+                  @click="activeTab === 0 ? loadProductIds() : activeTab === 1 ? loadOrphanProducts() : null"
                 >
                   <v-icon start>mdi-refresh</v-icon>
                   Actualizar
@@ -513,7 +515,7 @@ watch(
               class="elevation-1"
               :no-data-text="
                 hasAccount
-                  ? 'No hay productos huérfanos'
+                  ? 'No hay productos huérfanos disponibles'
                   : 'Selecciona una cuenta para ver los productos huérfanos'
               "
             >
@@ -609,6 +611,14 @@ watch(
                 </div>
               </template>
             </v-data-table>
+
+            <!-- Tabla de publicaciones faltantes -->
+            <MissingPublicationsTable
+              v-if="activeTab === 2"
+              :loading="loading"
+              @update:loading="loading = $event"
+              @error="error = $event"
+            />
           </v-card-text>
         </v-card>
       </v-col>
