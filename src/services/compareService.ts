@@ -19,35 +19,35 @@ export interface MissingPublicationsOptions {
 export const compareService = {
   // Obtener publicaciones que existen en Mercado Libre pero no en la base de datos
   async getMissingPublications(
-    accountId: number, 
-    options?: MissingPublicationsOptions
+    accountId: number,
+    options?: MissingPublicationsOptions,
   ): Promise<MissingPublicationsResponse> {
     try {
       const headers: Record<string, string> = {
         'account-id': accountId.toString(),
       }
-      
+
       // Añadir encabezados opcionales si están presentes
       if (options?.status !== undefined) {
         headers['status'] = options.status
       }
-      
+
       if (options?.channels) {
         headers['channels'] = options.channels
       }
-      
+
       // Parámetros de paginación
       const url = '/v1/provider/publications/compare'
       const params: Record<string, string> = {}
-      
+
       if (options?.offset !== undefined) {
         params['offset'] = options.offset.toString()
       }
-      
+
       if (options?.limit !== undefined) {
         params['limit'] = options.limit.toString()
       }
-      
+
       const response = await apiClient.get(url, {
         headers,
         params,

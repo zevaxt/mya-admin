@@ -327,6 +327,124 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /v1/provider/publications/orphans:
+    get:
+      tags:
+        - provider tag
+      summary: Encontrar publicaciones huérfanas en DB
+      description: >
+        ### Descripción
+
+
+        Este endpoint identifica las publicaciones almacenadas en la base de datos que ya no existen
+        en Mercado Libre para una cuenta específica. Estas publicaciones son consideradas "huérfanas"
+        ya que existen en la base de datos local pero ya no en el proveedor (Mercado Libre).
+
+
+        ### Parámetros de la solicitud
+
+
+        - **Method:** GET
+
+
+        - **Endpoint:** `/v1/provider/publications/orphans`
+
+
+        - **Headers requeridos:**
+          - `account-id`: ID de la cuenta de Mercado Libre a consultar
+          - `status` (opcional): Estado de las publicaciones a consultar. Valores permitidos: "active", "paused" o vacío.
+          - `channels` (opcional): Canales de venta a consultar. Valores permitidos: "marketplace" (por defecto) o "marketplace,mshops".
+
+
+        ### Estructura de la respuesta
+
+
+        La respuesta es un objeto JSON con los siguientes campos:
+
+
+        - `total` (número): Cantidad total de publicaciones huérfanas encontradas.
+
+
+        - `orphan_publication_ids` (array de strings): Lista de IDs de publicaciones que existen en la base de datos pero no en Mercado Libre.
+
+
+        ### Códigos de respuesta
+
+
+        - **200 OK**: La búsqueda se realizó correctamente.
+
+
+        - **400 Bad Request**: Parámetros de solicitud inválidos.
+
+
+        - **500 Internal Server Error**: Error al procesar la solicitud.
+
+
+        ### Ejemplo de respuesta
+
+
+        ```json
+        {
+          "total": 3,
+          "orphan_publication_ids": [
+            "MCO123456789",
+            "MCO987654321",
+            "MCO567891234"
+          ]
+        }
+        ```
+      parameters:
+        - name: account-id
+          in: header
+          required: true
+          description: ID de la cuenta de Mercado Libre a consultar
+          schema:
+            type: string
+          example: '1'
+        - name: status
+          in: header
+          description: Estado de las publicaciones a consultar
+          schema:
+            type: string
+            enum:
+              - active
+              - paused
+              - deleted
+              - inactive
+              - ''
+          example: 'active'
+        - name: channels
+          in: header
+          description: Canales de venta a consultar
+          schema:
+            type: string
+            enum:
+              - marketplace
+              - marketplace,mshops
+          example: 'marketplace'
+      responses:
+        '200':
+          description: Búsqueda exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Cantidad total de publicaciones huérfanas
+                  orphan_publication_ids:
+                    type: array
+                    items:
+                      type: string
+                    description: Lista de IDs de publicaciones que existen en la base de datos pero no en Mercado Libre
+        '400':
+          description: Parámetros de solicitud inválidos
+        '500':
+          description: Error al procesar la solicitud
+      security:
+        - bearerAuth: []
+
   /v1/provider/publications/compare:
     get:
       tags:
