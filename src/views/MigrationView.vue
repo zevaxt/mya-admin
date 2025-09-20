@@ -4,6 +4,7 @@ import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
 import type { ProductId, ProductDetail, OrphanProduct } from '@/services/migrationService'
 import MissingPublicationsTable from '@/components/migration/MissingPublicationsTable.vue'
+import OrphanPublicationsTable from '@/components/migration/OrphanPublicationsTable.vue'
 
 // Stores
 const accountStore = useAccountStore()
@@ -320,6 +321,7 @@ const handleTabChange = (tabIndex: unknown) => {
   } else if (index === 1) {
     loadOrphanProducts()
   }
+  // Las pestañas 2 y 3 tienen sus propios componentes que manejan la carga de datos
 }
 
 const handlePageChange = () => {
@@ -452,6 +454,14 @@ watch(
             >
               <v-icon start color="info">mdi-database-import-outline</v-icon>
               Publicaciones Faltantes
+            </v-tab>
+            <v-tab
+              value="3"
+              :color="activeTab === 3 ? 'error' : undefined"
+              class="font-weight-medium tab-with-border"
+            >
+              <v-icon start color="error">mdi-database-remove</v-icon>
+              PUBLICACIONES DEPRECADAS
             </v-tab>
           </v-tabs>
 
@@ -811,6 +821,14 @@ watch(
             <!-- Tabla de publicaciones faltantes -->
             <MissingPublicationsTable
               v-if="activeTab === 2"
+              :loading="loading"
+              @update:loading="loading = $event"
+              @error="error = $event"
+            />
+
+            <!-- Tabla de publicaciones deprecadas -->
+            <OrphanPublicationsTable
+              v-if="activeTab === 3"
               :loading="loading"
               @update:loading="loading = $event"
               @error="error = $event"

@@ -352,10 +352,8 @@ paths:
 
         - **Headers requeridos:**
           - `account-id`: ID de la cuenta de Mercado Libre a consultar
-          - `status` (opcional): Estado de las publicaciones a consultar. Valores permitidos: "active", "paused" o vacío.
+          - `status` (opcional): Estado de las publicaciones a consultar. Valores permitidos: "active", "inactive", "paused", "deleted", "suspended", "freezed" o vacío.
           - `channels` (opcional): Canales de venta a consultar. Valores permitidos: "marketplace" (por defecto) o "marketplace,mshops".
-
-
         ### Estructura de la respuesta
 
 
@@ -408,9 +406,11 @@ paths:
             type: string
             enum:
               - active
+              - inactive
               - paused
               - deleted
               - inactive
+              - closed
               - ''
           example: 'active'
         - name: channels
@@ -526,6 +526,11 @@ paths:
             type: string
             enum:
               - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
               - ''
           example: 'active'
         - name: channels
@@ -1801,6 +1806,11 @@ paths:
             type: string
             enum:
               - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
               - ''
           example: 'active'
         - name: channels
@@ -1880,7 +1890,16 @@ paths:
           in: header
           schema:
             type: string
+            enum:
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           description: active, o vacio
+
         - name: channels
           in: header
           schema:
