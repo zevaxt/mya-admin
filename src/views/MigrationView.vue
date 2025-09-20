@@ -9,7 +9,7 @@ import MissingPublicationsTable from '@/components/migration/MissingPublications
 const accountStore = useAccountStore()
 
 // Estado
-const activeTab = ref(0)
+const activeTab = ref<number>(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const productIds = ref<ProductId[]>([])
@@ -460,218 +460,224 @@ watch(
             </div>
 
             <!-- Tabla de IDs de productos -->
-            <v-data-table
-              v-if="activeTab === 0"
-              :headers="productIdsHeaders"
-              :items="filteredProductIds"
-              :loading="loading"
-              :items-per-page="itemsPerPage"
-              class="elevation-1 rounded-lg"
-              :no-data-text="
-                hasAccount
-                  ? 'No hay productos disponibles'
-                  : 'Selecciona una cuenta para ver los productos'
-              "
-            >
-              <template #[`item.SyncActive`]="{ item }">
-                <v-chip :color="item.SyncActive ? 'success' : 'error'" size="small">
-                  {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
-                </v-chip>
-              </template>
+            <div v-if="activeTab === 0" class="position-relative">
+              <v-data-table
+                :headers="productIdsHeaders"
+                :items="filteredProductIds"
+                :loading="loading"
+                :items-per-page="itemsPerPage"
+                class="elevation-1 rounded-lg"
+                :no-data-text="
+                  hasAccount
+                    ? 'No hay productos disponibles'
+                    : 'Selecciona una cuenta para ver los productos'
+                "
+              >
+                <template #[`item.SyncActive`]="{ item }">
+                  <v-chip :color="item.SyncActive ? 'success' : 'error'" size="small">
+                    {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
+                  </v-chip>
+                </template>
 
-              <template #[`item.CatalogActive`]="{ item }">
-                <v-chip :color="item.CatalogActive ? 'success' : 'error'" size="small">
-                  {{ item.CatalogActive ? 'Activo' : 'Inactivo' }}
-                </v-chip>
-              </template>
+                <template #[`item.CatalogActive`]="{ item }">
+                  <v-chip :color="item.CatalogActive ? 'success' : 'error'" size="small">
+                    {{ item.CatalogActive ? 'Activo' : 'Inactivo' }}
+                  </v-chip>
+                </template>
 
-              <template #[`item.Status`]="{ item }">
-                <v-chip :color="item.Status ? 'success' : 'error'" size="small">
-                  {{ item.Status ? 'Activo' : 'Inactivo' }}
-                </v-chip>
-              </template>
+                <template #[`item.Status`]="{ item }">
+                  <v-chip :color="item.Status ? 'success' : 'error'" size="small">
+                    {{ item.Status ? 'Activo' : 'Inactivo' }}
+                  </v-chip>
+                </template>
 
-              <template #[`item.ToSync`]="{ item }">
-                <span>{{ item.ToSync === null ? 'N/A' : item.ToSync ? 'Sí' : 'No' }}</span>
-              </template>
+                <template #[`item.ToSync`]="{ item }">
+                  <span>{{ item.ToSync === null ? 'N/A' : item.ToSync ? 'Sí' : 'No' }}</span>
+                </template>
 
-              <template #[`item.updated_at`]="{ item }">
-                {{ new Date(item.updated_at).toLocaleString() }}
-              </template>
+                <template #[`item.updated_at`]="{ item }">
+                  {{ new Date(item.updated_at).toLocaleString() }}
+                </template>
 
-              <template #[`item.actions`]="{ item }">
-                <v-btn
-                  icon
-                  size="small"
-                  color="primary"
-                  class="mr-2"
-                  @click="viewProductDetail(item.ID)"
-                  :disabled="loading"
-                >
-                  <v-icon>mdi-eye</v-icon>
-                  <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
-                </v-btn>
+                <template #[`item.actions`]="{ item }">
+                  <v-btn
+                    icon
+                    size="small"
+                    color="primary"
+                    class="mr-2"
+                    @click="viewProductDetail(item.ID)"
+                    :disabled="loading"
+                  >
+                    <v-icon>mdi-eye</v-icon>
+                    <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
+                  </v-btn>
 
-                <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
-                  <v-icon>mdi-open-in-new</v-icon>
-                  <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
-                </v-btn>
-              </template>
+                  <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
+                    <v-icon>mdi-open-in-new</v-icon>
+                    <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
+                  </v-btn>
+                </template>
 
-              <template #bottom>
-                <div class="d-flex flex-column align-center pa-2">
-                  <!-- Información de paginación -->
-                  <div class="d-flex justify-space-between align-center w-100 mb-3">
-                    <div class="text-caption text-grey">
-                      {{ filteredProductIds.length > 0 ? 
-                        `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}` : 
-                        '0-0 de 0' }}
-                    </div>
-                    <v-pagination
-                      v-model="page"
-                      :length="Math.ceil(totalProductIds / itemsPerPage)"
-                      @update:model-value="handlePageChange"
-                      :disabled="loading"
-                      :total-visible="5"
-                      show-first
-                      show-last
-                      class="pagination-centered my-2"
-                      density="comfortable"
-                      rounded="circle"
-                      active-color="primary"
-                    ></v-pagination>
-                    <div class="d-flex align-center">
-                      <span class="text-caption me-2">Registros por página:</span>
-                      <v-select
-                        v-model="itemsPerPage"
-                        :items="itemsPerPageOptions"
-                        variant="outlined"
-                        density="compact"
-                        class="items-per-page-select"
-                        hide-details
-                        @update:model-value="handleItemsPerPageChange"
-                      ></v-select>
-                    </div>
+                <!-- No usamos el slot bottom para poder tener un paginador fijo -->
+                <template #bottom>
+                </template>
+              </v-data-table>
+              
+              <!-- Paginador fijo para la tabla de IDs de productos -->
+              <div class="pagination-fixed">
+                <div class="d-flex align-center w-100 px-4 py-2 bg-white">
+                  <div class="text-caption text-grey me-4">
+                    {{ filteredProductIds.length > 0 ? 
+                      `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}` : 
+                      '0-0 de 0' }}
                   </div>
+                  <div class="d-flex align-center me-4">
+                    <span class="text-caption me-2">Registros por página:</span>
+                    <v-select
+                      v-model="itemsPerPage"
+                      :items="itemsPerPageOptions"
+                      variant="outlined"
+                      density="compact"
+                      class="items-per-page-select"
+                      hide-details
+                      @update:model-value="handleItemsPerPageChange"
+                    ></v-select>
+                  </div>
+                  <v-pagination
+                    v-model="page"
+                    :length="Math.ceil(totalProductIds / itemsPerPage)"
+                    @update:model-value="handlePageChange"
+                    :disabled="loading"
+                    :total-visible="5"
+                    show-first
+                    show-last
+                    class="pagination-centered flex-grow-1"
+                    density="comfortable"
+                    rounded="circle"
+                    active-color="primary"
+                  ></v-pagination>
                 </div>
-              </template>
-            </v-data-table>
+              </div>
+            </div>
 
             <!-- Tabla de productos huérfanos -->
-            <v-data-table
-              v-if="activeTab === 1"
-              :headers="orphanProductsHeaders"
-              :items="orphanProducts"
-              :loading="loading"
-              :items-per-page="itemsPerPage"
-              class="elevation-1 rounded-lg"
-              :no-data-text="
-                hasAccount
-                  ? 'No hay productos huérfanos disponibles'
-                  : 'Selecciona una cuenta para ver los productos huérfanos'
-              "
-            >
-              <template #[`item.status`]="{ item }">
-                <v-chip
-                  :color="
-                    item.status === 'active'
-                      ? 'success'
-                      : item.status === 'paused'
-                        ? 'warning'
-                        : 'error'
-                  "
-                  size="small"
-                >
-                  {{
-                    item.status === 'active'
-                      ? 'Activo'
-                      : item.status === 'paused'
-                        ? 'Pausado'
-                        : 'Finalizado'
-                  }}
-                </v-chip>
-              </template>
+            <div v-if="activeTab === 1" class="position-relative">
+              <v-data-table
+                :headers="orphanProductsHeaders"
+                :items="orphanProducts"
+                :loading="loading"
+                :items-per-page="itemsPerPage"
+                class="elevation-1 rounded-lg"
+                :no-data-text="
+                  hasAccount
+                    ? 'No hay productos huérfanos disponibles'
+                    : 'Selecciona una cuenta para ver los productos huérfanos'
+                "
+              >
+                <template #[`item.status`]="{ item }">
+                  <v-chip
+                    :color="
+                      item.status === 'active'
+                        ? 'success'
+                        : item.status === 'paused'
+                          ? 'warning'
+                          : 'error'
+                    "
+                    size="small"
+                  >
+                    {{
+                      item.status === 'active'
+                        ? 'Activo'
+                        : item.status === 'paused'
+                          ? 'Pausado'
+                          : 'Finalizado'
+                    }}
+                  </v-chip>
+                </template>
 
-              <template #[`item.sync_status`]="{ item }">
-                <v-chip
-                  v-if="item.sync_status"
-                  :color="
-                    item.sync_status === 'synced'
-                      ? 'success'
-                      : item.sync_status === 'pending'
-                        ? 'warning'
-                        : 'error'
-                  "
-                  size="small"
-                >
-                  {{
-                    item.sync_status === 'synced'
-                      ? 'Sincronizado'
-                      : item.sync_status === 'pending'
-                        ? 'Pendiente'
-                        : 'Error'
-                  }}
-                </v-chip>
-                <span v-else>No disponible</span>
-              </template>
+                <template #[`item.sync_status`]="{ item }">
+                  <v-chip
+                    v-if="item.sync_status"
+                    :color="
+                      item.sync_status === 'synced'
+                        ? 'success'
+                        : item.sync_status === 'pending'
+                          ? 'warning'
+                          : 'error'
+                    "
+                    size="small"
+                  >
+                    {{
+                      item.sync_status === 'synced'
+                        ? 'Sincronizado'
+                        : item.sync_status === 'pending'
+                          ? 'Pendiente'
+                          : 'Error'
+                    }}
+                  </v-chip>
+                  <span v-else>No disponible</span>
+                </template>
 
-              <template #[`item.actions`]="{ item }">
-                <v-btn
-                  icon
-                  size="small"
-                  color="primary"
-                  class="mr-2"
-                  @click="viewProductDetail(item.id)"
-                  :disabled="loading"
-                >
-                  <v-icon>mdi-eye</v-icon>
-                  <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
-                </v-btn>
+                <template #[`item.actions`]="{ item }">
+                  <v-btn
+                    icon
+                    size="small"
+                    color="primary"
+                    class="mr-2"
+                    @click="viewProductDetail(item.id)"
+                    :disabled="loading"
+                  >
+                    <v-icon>mdi-eye</v-icon>
+                    <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
+                  </v-btn>
 
-                <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
-                  <v-icon>mdi-open-in-new</v-icon>
-                  <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
-                </v-btn>
-              </template>
+                  <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
+                    <v-icon>mdi-open-in-new</v-icon>
+                    <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
+                  </v-btn>
+                </template>
 
-              <template #bottom>
-                <div class="d-flex flex-column align-center pa-2">
-                  <!-- Información de paginación -->
-                  <div class="d-flex justify-space-between align-center w-100 mb-3">
-                    <div class="text-caption text-grey">
-                      {{ orphanProducts.length > 0 ? 
-                        `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalOrphans)} de ${totalOrphans}` : 
-                        '0-0 de 0' }}
-                    </div>
-                    <v-pagination
-                      v-model="page"
-                      :length="Math.ceil(totalOrphans / itemsPerPage)"
-                      @update:model-value="handlePageChange"
-                      :disabled="loading"
-                      :total-visible="5"
-                      show-first
-                      show-last
-                      class="pagination-centered my-2"
-                      density="comfortable"
-                      rounded="circle"
-                      active-color="primary"
-                    ></v-pagination>
-                    <div class="d-flex align-center">
-                      <span class="text-caption me-2">Registros por página:</span>
-                      <v-select
-                        v-model="itemsPerPage"
-                        :items="itemsPerPageOptions"
-                        variant="outlined"
-                        density="compact"
-                        class="items-per-page-select"
-                        hide-details
-                        @update:model-value="handleItemsPerPageChange"
-                      ></v-select>
-                    </div>
+                <!-- No usamos el slot bottom para poder tener un paginador fijo -->
+                <template #bottom>
+                </template>
+              </v-data-table>
+              
+              <!-- Paginador fijo para la tabla de productos huérfanos -->
+              <div class="pagination-fixed">
+                <div class="d-flex align-center w-100 px-4 py-2 bg-white">
+                  <div class="text-caption text-grey me-4">
+                    {{ orphanProducts.length > 0 ? 
+                      `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalOrphans)} de ${totalOrphans}` : 
+                      '0-0 de 0' }}
                   </div>
+                  <div class="d-flex align-center me-4">
+                    <span class="text-caption me-2">Registros por página:</span>
+                    <v-select
+                      v-model="itemsPerPage"
+                      :items="itemsPerPageOptions"
+                      variant="outlined"
+                      density="compact"
+                      class="items-per-page-select"
+                      hide-details
+                      @update:model-value="handleItemsPerPageChange"
+                    ></v-select>
+                  </div>
+                  <v-pagination
+                    v-model="page"
+                    :length="Math.ceil(totalOrphans / itemsPerPage)"
+                    @update:model-value="handlePageChange"
+                    :disabled="loading"
+                    :total-visible="5"
+                    show-first
+                    show-last
+                    class="pagination-centered flex-grow-1"
+                    density="comfortable"
+                    rounded="circle"
+                    active-color="primary"
+                  ></v-pagination>
                 </div>
-              </template>
-            </v-data-table>
+              </div>
+            </div>
 
             <!-- Tabla de publicaciones faltantes -->
             <MissingPublicationsTable
@@ -828,5 +834,20 @@ watch(
 
 .v-data-table :deep(tr:hover) {
   background-color: #f9f9f9;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.pagination-fixed {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 8px 8px;
 }
 </style>

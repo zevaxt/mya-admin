@@ -21,6 +21,11 @@ const missingPublicationIds = ref<string[]>([])
 const total = ref(0)
 const error = ref<string | null>(null)
 const syncLoading = ref(false)
+const page = ref(1)
+const itemsPerPage = ref(100)
+
+// Opciones para items por página
+const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Filtros
 const statusFilter = ref<'active' | ''>('active')
@@ -70,7 +75,9 @@ const loadMissingPublications = async () => {
     // Configurar opciones de filtrado
     const options = {
       status: statusFilter.value,
-      channels: channelsFilter.value
+      channels: channelsFilter.value,
+      offset: (page.value - 1) * itemsPerPage.value,
+      limit: itemsPerPage.value
     }
     
     const response = await compareService.getMissingPublications(accountId.value, options)
@@ -87,6 +94,11 @@ const loadMissingPublications = async () => {
   } finally {
     emit('update:loading', false)
   }
+}
+
+// Manejar cambio de página
+const handlePageChange = () => {
+  loadMissingPublications()
 }
 
 // Abrir publicación en Mercado Libre
@@ -305,21 +317,22 @@ defineExpose({
       </v-chip>
     </div>
     
-    <v-data-table
-      :headers="missingPublicationsHeaders"
-      :items="Array.isArray(missingPublicationIds) && missingPublicationIds.length > 0 ? missingPublicationIds.map(id => ({ 
-        id, 
-        account: accountName 
-      })) : []"
-      :loading="loading"
-      :items-per-page="100"
-      class="elevation-1 rounded-lg"
-      :no-data-text="
-        hasAccount
-          ? 'No hay publicaciones faltantes'
-          : 'Selecciona una cuenta para ver las publicaciones faltantes'
-      "
-    >
+    <div class="position-relative">
+      <v-data-table
+        :headers="missingPublicationsHeaders"
+        :items="Array.isArray(missingPublicationIds) && missingPublicationIds.length > 0 ? missingPublicationIds.map(id => ({ 
+          id, 
+          account: accountName 
+        })) : []"
+        :loading="loading"
+        :items-per-page="itemsPerPage"
+        class="elevation-1 rounded-lg"
+        :no-data-text="
+          hasAccount
+            ? 'No hay publicaciones faltantes'
+            : 'Selecciona una cuenta para ver las publicaciones faltantes'
+        "
+      >
       <!-- Columna de ID -->
       <template #[`item.id`]="{ item }">
         <div class="d-flex align-center">
@@ -358,7 +371,48 @@ defineExpose({
           </v-btn>
         </div>
       </template>
-    </v-data-table>
+      
+      <!-- No usamos el slot bottom para poder tener un paginador fijo -->
+      <template #bottom>
+      </template>
+      </v-data-table>
+      
+      <!-- Paginador fijo -->
+      <div class="pagination-fixed">
+        <div class="d-flex align-center w-100 px-4 py-2 bg-white">
+          <div class="text-caption text-grey me-4">
+            {{ total > 0 ? 
+              `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` : 
+              '0-0 de 0' }}
+          </div>
+          <div class="d-flex align-center me-4">
+            <span class="text-caption me-2">Registros por página:</span>
+            <v-select
+              v-model="itemsPerPage"
+              :items="itemsPerPageOptions"
+              variant="outlined"
+              density="compact"
+              class="items-per-page-select"
+              hide-details
+              @update:model-value="loadMissingPublications"
+            ></v-select>
+          </div>
+          <v-pagination
+            v-model="page"
+            :length="Math.ceil(total / itemsPerPage) || 1"
+            @update:model-value="handlePageChange"
+            :disabled="loading"
+            :total-visible="5"
+            show-first
+            show-last
+            class="pagination-centered flex-grow-1"
+            density="comfortable"
+            rounded="circle"
+            active-color="primary"
+          ></v-pagination>
+        </div>
+      </div>
+    </div>
     
     <!-- Notificación de éxito o error -->
     <v-snackbar
@@ -398,5 +452,24 @@ defineExpose({
 
 .v-data-table :deep(tr:hover) {
   background-color: #f9f9f9;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.pagination-fixed {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 8px 8px;
+}
+
+.items-per-page-select {
+  width: 100px;
 }
 </style>

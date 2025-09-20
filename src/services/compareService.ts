@@ -11,6 +11,8 @@ export interface MissingPublicationsResponse {
 export interface MissingPublicationsOptions {
   status?: 'active' | ''
   channels?: 'marketplace' | 'marketplace,mshops'
+  offset?: number
+  limit?: number
 }
 
 // Servicio de comparación
@@ -34,8 +36,21 @@ export const compareService = {
         headers['channels'] = options.channels
       }
       
-      const response = await apiClient.get('/v1/provider/publications/compare', {
+      // Parámetros de paginación
+      const url = '/v1/provider/publications/compare'
+      const params: Record<string, string> = {}
+      
+      if (options?.offset !== undefined) {
+        params['offset'] = options.offset.toString()
+      }
+      
+      if (options?.limit !== undefined) {
+        params['limit'] = options.limit.toString()
+      }
+      
+      const response = await apiClient.get(url, {
         headers,
+        params,
       })
 
       return response.data as MissingPublicationsResponse
