@@ -314,29 +314,45 @@ watch(
             @update:model-value="handleTabChange"
             bg-color="grey-lighten-4"
             slider-color="primary"
+            class="tabs-with-separators"
+            show-arrows
           >
             <v-tab 
               value="0" 
               :color="activeTab === 0 ? 'primary' : undefined"
-              class="font-weight-medium"
+              class="font-weight-medium tab-with-border"
             >
-              <v-icon start>mdi-format-list-bulleted</v-icon>
+              <v-icon start color="primary">mdi-format-list-bulleted</v-icon>
+              <v-badge
+                :content="productIds.length"
+                :model-value="productIds.length > 0"
+                color="primary"
+                inline
+                class="ml-2"
+              ></v-badge>
               IDs de Publicaciones
             </v-tab>
             <v-tab 
               value="1" 
               :color="activeTab === 1 ? 'warning' : undefined"
-              class="font-weight-medium"
+              class="font-weight-medium tab-with-border"
             >
-              <v-icon start>mdi-alert-circle-outline</v-icon>
+              <v-icon start color="warning">mdi-alert-circle-outline</v-icon>
+              <v-badge
+                :content="orphanProducts.length"
+                :model-value="orphanProducts.length > 0"
+                color="warning"
+                inline
+                class="ml-2"
+              ></v-badge>
               Publicaciones Huérfanas
             </v-tab>
             <v-tab 
               value="2" 
-              :color="activeTab === 2 ? 'success' : undefined"
-              class="font-weight-medium"
+              :color="activeTab === 2 ? 'info' : undefined"
+              class="font-weight-medium tab-with-border"
             >
-              <v-icon start>mdi-plus-circle-outline</v-icon>
+              <v-icon start color="info">mdi-database-import-outline</v-icon>
               Publicaciones Faltantes
             </v-tab>
           </v-tabs>
@@ -748,13 +764,30 @@ watch(
 .v-tab {
   min-height: 48px;
   border-radius: 4px 4px 0 0;
-  margin-right: 2px;
+  margin-right: 4px;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: visible;
+}
+
+.tab-with-border::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 30%;
+  height: 40%;
+  width: 1px;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .v-tab--selected {
   font-weight: bold;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.tabs-with-separators :deep(.v-slide-group__content) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .v-tabs-slider {
