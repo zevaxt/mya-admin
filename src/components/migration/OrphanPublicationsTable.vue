@@ -1,16 +1,23 @@
 <template>
   <div>
-    <!-- Botón de actualización -->
-    <div class="mb-4">
-      <v-btn
-        color="primary"
-        variant="elevated"
-        prepend-icon="mdi-refresh"
-        :loading="loading"
-        @click="loadOrphanPublications"
-      >
-        Actualizar
-      </v-btn>
+    <!-- Header con información y botón de actualizar -->
+    <div class="d-flex justify-space-between align-center mb-4">
+      <div>
+        <h3 class="text-h6 text-error font-weight-medium mb-1">Publicaciones Deprecadas</h3>
+        <p class="text-caption text-grey">Publicaciones que existen en la base de datos pero no en Mercado Libre</p>
+      </div>
+      <div class="d-flex gap-2">
+        <v-btn 
+          color="error" 
+          variant="outlined" 
+          @click="loadOrphanPublications"
+          :loading="loading"
+          size="small"
+        >
+          <v-icon start>mdi-refresh</v-icon>
+          Actualizar
+        </v-btn>
+      </div>
     </div>
 
     <!-- Contador de resultados -->

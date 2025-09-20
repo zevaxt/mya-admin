@@ -560,17 +560,24 @@ watch(
 
             <!-- Tabla de IDs de productos -->
             <div v-if="activeTab === 0" class="position-relative">
-              <!-- Botón de actualización específico para Publicaciones -->
-              <div class="d-flex justify-end mb-3">
-                <v-btn
-                  color="primary"
-                  variant="elevated"
-                  prepend-icon="mdi-refresh"
-                  :loading="loading"
-                  @click="loadProductIds"
-                >
-                  Actualizar Publicaciones
-                </v-btn>
+              <!-- Header con información y botón de actualizar -->
+              <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                  <h3 class="text-h6 text-primary font-weight-medium mb-1">PUBLICACIONES</h3>
+                  <p class="text-caption text-grey">Publicaciones registradas en el sistema</p>
+                </div>
+                <div class="d-flex gap-2">
+                  <v-btn 
+                    color="primary" 
+                    variant="outlined" 
+                    @click="loadProductIds"
+                    :loading="loading"
+                    size="small"
+                  >
+                    <v-icon start>mdi-refresh</v-icon>
+                    Actualizar
+                  </v-btn>
+                </div>
               </div>
               <v-data-table
                 :headers="productIdsHeaders"
@@ -704,17 +711,24 @@ watch(
 
             <!-- Tabla de productos huérfanos -->
             <div v-if="activeTab === 1" class="position-relative">
-              <!-- Botón de actualización específico para Productos Huérfanos -->
-              <div class="d-flex justify-end mb-3">
-                <v-btn
-                  color="warning"
-                  variant="elevated"
-                  prepend-icon="mdi-refresh"
-                  :loading="loading"
-                  @click="loadOrphanProducts"
-                >
-                  Actualizar Productos Huérfanos
-                </v-btn>
+              <!-- Header con información y botón de actualizar -->
+              <div class="d-flex justify-space-between align-center mb-4">
+                <div>
+                  <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
+                  <p class="text-caption text-grey">Productos que existen en la base de datos pero no tienen publicación</p>
+                </div>
+                <div class="d-flex gap-2">
+                  <v-btn 
+                    color="warning" 
+                    variant="outlined" 
+                    @click="loadOrphanProducts"
+                    :loading="loading"
+                    size="small"
+                  >
+                    <v-icon start>mdi-refresh</v-icon>
+                    Actualizar
+                  </v-btn>
+                </div>
               </div>
               <v-data-table
                 :headers="orphanProductsHeaders"
