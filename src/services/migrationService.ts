@@ -223,6 +223,22 @@ export const migrationService = {
       throw error
     }
   },
+
+  // Crear una publicación por ID
+  async createPublication(accountId: number, productId: string): Promise<string[]> {
+    try {
+      const response = await apiClient.post(`/v1/migration/product/id/${productId}`, {}, {
+        headers: {
+          'account-id': accountId.toString(),
+        },
+      })
+
+      return response.data as string[]
+    } catch (error) {
+      console.error(`Error al crear publicación ${productId}:`, error)
+      throw error
+    }
+  },
 }
 
 export default migrationService

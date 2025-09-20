@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import { compareService } from '@/services/compareService'
+import { migrationService } from '@/services/migrationService'
 
 // Props
 defineProps({
@@ -73,12 +74,52 @@ const openProductInNewTab = (productId: string) => {
   window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
 }
 
+// Estado para el diálogo de notificación
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref<'success' | 'error'>('success')
+const processingId = ref<string | null>(null)
+
 // Crear publicación
-const createPublication = (productId: string) => {
-  // Aquí se implementaría la lógica para crear la publicación
-  // Por ahora solo mostramos un mensaje en la consola
-  console.log(`Crear publicación para el ID: ${productId}`)
-  alert(`Funcionalidad para crear publicación ${productId} en desarrollo`)
+const createPublication = async (productId: string) => {
+  if (!hasAccount.value) {
+    notificationMessage.value = 'Selecciona una cuenta para crear la publicación'
+    notificationType.value = 'error'
+    showNotification.value = true
+    return
+  }
+
+  try {
+    processingId.value = productId
+    emit('update:loading', true)
+    
+    // Llamar al servicio para crear la publicación
+    const result = await migrationService.createPublication(accountId.value, productId)
+    
+    // Verificar que la respuesta contiene el ID de la publicación creada
+    if (result && result.length > 0 && result.includes(productId)) {
+      notificationMessage.value = `Publicación ${productId} creada exitosamente`
+      notificationType.value = 'success'
+      
+      // Recargar la lista de publicaciones faltantes para actualizar la vista
+      await loadMissingPublications()
+    } else {
+      notificationMessage.value = `Respuesta inesperada al crear la publicación ${productId}`
+      notificationType.value = 'error'
+    }
+  } catch (err) {
+    console.error(`Error al crear la publicación ${productId}:`, err)
+    if (err instanceof Error) {
+      notificationMessage.value = `Error al crear la publicación: ${err.message}`
+    } else {
+      notificationMessage.value = 'Error al crear la publicación'
+    }
+    notificationType.value = 'error'
+  } finally {
+    emit('update:loading', false)
+    showNotification.value = true
+    processingId.value = null
+  }
 }
 
 // Inicialización
@@ -175,9 +216,10 @@ defineExpose({
             color="success"
             class="mr-2"
             @click="createPublication(item.id)"
-            :disabled="loading"
+            :disabled="loading || processingId === item.id"
+            :loading="processingId === item.id"
           >
-            <v-icon>mdi-plus-circle</v-icon>
+            <v-icon v-if="processingId !== item.id">mdi-plus-circle</v-icon>
             <v-tooltip activator="parent" location="top">Crear publicación</v-tooltip>
           </v-btn>
 
@@ -188,6 +230,23 @@ defineExpose({
         </div>
       </template>
     </v-data-table>
+    
+    <!-- Notificación de éxito o error -->
+    <v-snackbar
+      v-model="showNotification"
+      :color="notificationType === 'success' ? 'success' : 'error'"
+      :timeout="3000"
+      location="top"
+    >
+      {{ notificationMessage }}
+      <template v-slot:actions>
+        <v-btn
+          variant="text"
+          icon="mdi-close"
+          @click="showNotification = false"
+        ></v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 

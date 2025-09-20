@@ -288,6 +288,45 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /v1/provider/products/ids:
+    post:
+      tags:
+        - provider tag
+      summary: /v1/migration/provider/ids
+      requestBody:
+        content: {}
+      parameters:
+        - name: authorization
+          in: header
+          schema:
+            type: string
+          example: '{{access_token_mya}}'
+        - name: account-id
+          in: header
+          schema:
+            type: integer
+          example: '2'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /v1/provider/publication/{id}:
+    get:
+      tags:
+        - provider tag
+      summary: v1/provider/publication/{id}
+      parameters:
+        - name: authorization
+          in: header
+          schema:
+            type: string
+          example: '{{access_token_mya}}'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
   /v1/provider/publications/compare:
     get:
       tags:
@@ -313,6 +352,8 @@ paths:
 
         - **Headers requeridos:**
           - `account-id`: ID de la cuenta de Mercado Libre a consultar
+          - `status`: Estado de las publicaciones a consultar
+          - `channels`: Canales de venta a consultar
 
 
         ### Estructura de la respuesta
@@ -360,6 +401,24 @@ paths:
           schema:
             type: string
           example: '1'
+        - name: status
+          in: header
+          description: Estado de las publicaciones a consultar
+          schema:
+            type: string
+            enum:
+              - active
+              - ''
+          example: 'active'
+        - name: channels
+          in: header
+          description: Canales de venta a consultar
+          schema:
+            type: string
+            enum:
+              - marketplace
+              - marketplace,mshops
+          example: 'marketplace'
       responses:
         '200':
           description: Comparación exitosa
@@ -382,46 +441,6 @@ paths:
           description: Error al procesar la solicitud
       security:
         - bearerAuth: []
-
-  /v1/provider/products/ids:
-    post:
-      tags:
-        - provider tag
-      summary: /v1/migration/provider/ids
-      requestBody:
-        content: {}
-      parameters:
-        - name: authorization
-          in: header
-          schema:
-            type: string
-          example: '{{access_token_mya}}'
-        - name: account-id
-          in: header
-          schema:
-            type: integer
-          example: '2'
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json: {}
-  /v1/provider/publication/{id}:
-    get:
-      tags:
-        - provider tag
-      summary: v1/provider/publication/{id}
-      parameters:
-        - name: authorization
-          in: header
-          schema:
-            type: string
-          example: '{{access_token_mya}}'
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json: {}
   /v1/migration/products/ids:
     get:
       tags:
@@ -1579,32 +1598,11 @@ paths:
 
 
         #### Response
-
-
-        The response will include the migrated product details such as its ID,
-        tags, price, title, health status, site ID, channels, deal IDs, end
-        time, location, pictures, shipping details, subtitle, video ID,
-        warnings, warranty, condition, domain ID, permalink, seller ID, stop
-        time, thumbnail, attributes, base price, sale terms, start time, sub
-        status, variations, buying mode, category ID, currency ID, geolocation,
-        date created, descriptions, inventory ID, last updated, thumbnail ID,
-        sold quantity, coverage areas, item relations, listing source, original
-        price, parent item ID, seller address, seller contact, catalog listing,
-        expiration time, listing type ID, automatic relist, initial quantity,
-        secure thumbnail, official store ID, available quantity, catalog product
-        ID, acceptance of MercadoPago, seller custom field, differential
-        pricing, international delivery mode, and non-MercadoPago payment
-        methods.
-
-
-        #### Example Response
-
-
-        ``` json
-
           [
               "MCO1382734853"
           ]
+
+
          ```
       requestBody:
         content: {}
@@ -1635,11 +1633,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
-                example:
-                  - "MCO1382734853"
+                type: object
   /v1/migration/update/products/ids:
     post:
       tags:
@@ -1684,15 +1678,22 @@ paths:
           example: '2'
         - name: status
           in: header
+          description: Estado de las publicaciones a consultar
           schema:
             type: string
-          example: active
+            enum:
+              - active
+              - ''
+          example: 'active'
         - name: channels
           in: header
+          description: Canales de venta a consultar
           schema:
             type: string
-          description: marketplace,mshops
-          example: marketplace
+            enum:
+              - marketplace
+              - marketplace,mshops
+          example: 'marketplace'
         - name: read-mode
           in: header
           schema:
