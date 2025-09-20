@@ -295,6 +295,26 @@ export const migrationService = {
       throw error
     }
   },
+
+  // Eliminar una publicación
+  async deleteProduct(accountId: number, productId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      await apiClient.delete(`/v1/migration/delete/product/${productId}`, {
+        headers: {
+          'account-id': accountId.toString(),
+          'delete-provider': 'false', // Siempre enviar false como se solicitó
+        },
+      })
+
+      return {
+        success: true,
+        message: `Publicación ${productId} eliminada correctamente`
+      }
+    } catch (error) {
+      console.error(`Error al eliminar la publicación ${productId}:`, error)
+      throw error
+    }
+  },
 }
 
 export default migrationService
