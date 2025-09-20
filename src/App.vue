@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // App.vue - Componente raíz
 import AppNavBar from './components/AppNavBar.vue'
-import DebugPanel from './components/DebugPanel.vue'
+// El panel de depuración ahora está integrado en AppNavBar
 import { useAuthStore } from './stores/auth'
 import { computed, onMounted } from 'vue'
 
@@ -28,8 +28,7 @@ onMounted(() => {
       <router-view />
     </v-main>
     
-    <!-- Panel de depuración (solo en desarrollo) -->
-    <DebugPanel />
+    <!-- El panel de depuración ahora está integrado en AppNavBar -->
   </v-app>
 </template>
 

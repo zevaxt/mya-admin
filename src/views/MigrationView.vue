@@ -21,6 +21,9 @@ const totalOrphans = ref(0)
 const page = ref(1)
 const itemsPerPage = ref(10)
 
+// Opciones para items por página
+const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
+
 // Opciones de filtro
 const statusOptions = [
   { title: 'Todos', value: '' },
@@ -169,6 +172,15 @@ const handlePageChange = () => {
   }
 }
 
+const handleItemsPerPageChange = () => {
+  page.value = 1 // Resetear a la primera página cuando cambia el número de items por página
+  if (activeTab.value === 0) {
+    loadProductIds()
+  } else {
+    loadOrphanProducts()
+  }
+}
+
 const handleStatusFilterChange = () => {
   page.value = 1
   if (activeTab.value === 0) {
@@ -306,12 +318,32 @@ watch(
               </template>
 
               <template #bottom>
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(totalProductIds / itemsPerPage)"
-                  @update:model-value="handlePageChange"
-                  :disabled="loading"
-                ></v-pagination>
+                <div class="d-flex flex-column align-center pa-2">
+                  <div class="d-flex justify-center align-center w-100 mb-3">
+                    <v-pagination
+                      v-model="page"
+                      :length="Math.ceil(totalProductIds / itemsPerPage)"
+                      @update:model-value="handlePageChange"
+                      :disabled="loading"
+                      :total-visible="5"
+                      show-first
+                      show-last
+                      class="pagination-centered"
+                    ></v-pagination>
+                  </div>
+                  <div class="d-flex align-center">
+                    <span class="text-caption me-2">Registros por página:</span>
+                    <v-select
+                      v-model="itemsPerPage"
+                      :items="itemsPerPageOptions"
+                      variant="outlined"
+                      density="compact"
+                      class="items-per-page-select"
+                      hide-details
+                      @update:model-value="handleItemsPerPageChange"
+                    ></v-select>
+                  </div>
+                </div>
               </template>
             </v-data-table>
 
@@ -393,12 +425,32 @@ watch(
               </template>
 
               <template #bottom>
-                <v-pagination
-                  v-model="page"
-                  :length="Math.ceil(totalOrphans / itemsPerPage)"
-                  @update:model-value="handlePageChange"
-                  :disabled="loading"
-                ></v-pagination>
+                <div class="d-flex flex-column align-center pa-2">
+                  <div class="d-flex justify-center align-center w-100 mb-3">
+                    <v-pagination
+                      v-model="page"
+                      :length="Math.ceil(totalOrphans / itemsPerPage)"
+                      @update:model-value="handlePageChange"
+                      :disabled="loading"
+                      :total-visible="5"
+                      show-first
+                      show-last
+                      class="pagination-centered"
+                    ></v-pagination>
+                  </div>
+                  <div class="d-flex align-center">
+                    <span class="text-caption me-2">Registros por página:</span>
+                    <v-select
+                      v-model="itemsPerPage"
+                      :items="itemsPerPageOptions"
+                      variant="outlined"
+                      density="compact"
+                      class="items-per-page-select"
+                      hide-details
+                      @update:model-value="handleItemsPerPageChange"
+                    ></v-select>
+                  </div>
+                </div>
               </template>
             </v-data-table>
           </v-card-text>
@@ -497,5 +549,11 @@ watch(
 </template>
 
 <style scoped>
-/* Estilos adicionales si son necesarios */
+.items-per-page-select {
+  width: 100px;
+}
+
+.pagination-centered {
+  margin: 0 auto;
+}
 </style>

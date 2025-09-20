@@ -1,16 +1,46 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { onMounted } from 'vue'
+import { useAccountStore } from '@/stores/account'
+import { onMounted, ref } from 'vue'
 import AccountSelector from './AccountSelector.vue'
 
 const authStore = useAuthStore()
+const accountStore = useAccountStore()
 const router = useRouter()
+
+// Estado para el panel de depuración
+const showDebugPanel = ref(false)
+const systemInfo = ref({
+  version: '1.0.0',
+  environment: import.meta.env.MODE || 'development',
+  apiUrl: import.meta.env.VITE_API_URL || 'No configurado',
+  browser: navigator.userAgent,
+  timestamp: new Date().toISOString()
+})
+
+// Función para cargar cuentas
+const loadAccounts = async () => {
+  await accountStore.fetchUserAccounts()
+}
 
 // Función para cerrar sesión
 const logout = () => {
   authStore.logout()
   router.push('/')
+}
+
+// Función para mostrar/ocultar el panel de depuración
+const toggleDebugPanel = () => {
+  showDebugPanel.value = !showDebugPanel.value
+}
+
+// Función para actualizar la información del sistema
+const refreshSystemInfo = () => {
+  systemInfo.value = {
+    ...systemInfo.value,
+    timestamp: new Date().toISOString()
+  }
 }
 
 // Inicializar el componente
@@ -65,6 +95,12 @@ onMounted(() => {
       <v-icon>mdi-bell</v-icon>
     </v-btn>
     
+    <!-- Botón para mostrar/ocultar panel de depuración -->
+    <v-btn icon class="mx-1" @click="toggleDebugPanel" :color="showDebugPanel ? 'error' : 'default'">
+      <v-icon>mdi-bug</v-icon>
+      <v-tooltip activator="parent" location="bottom">Panel de depuración</v-tooltip>
+    </v-btn>
+    
     <v-menu offset-y v-if="authStore.isAuthenticated">
       <template v-slot:activator="{ props }">
         <v-btn icon v-bind="props" class="mx-1">
@@ -102,8 +138,115 @@ onMounted(() => {
       </v-list>
     </v-menu>
   </v-app-bar>
+
+  <!-- Panel de depuración -->
+  <v-navigation-drawer
+    v-model="showDebugPanel"
+    location="right"
+    temporary
+    width="400"
+    class="debug-panel"
+  >
+    <v-card flat>
+      <v-card-title class="d-flex justify-space-between align-center bg-grey-lighten-3">
+        <span class="text-primary font-weight-bold">
+          <v-icon color="primary" class="mr-1">mdi-bug</v-icon>
+          Panel de depuración
+        </span>
+        <v-btn icon @click="toggleDebugPanel">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </v-card-title>
+      
+      <v-divider></v-divider>
+      
+      <v-card-text>
+        <!-- Información del sistema -->
+        <h3 class="text-subtitle-1 font-weight-bold mb-2">Información del sistema</h3>
+        <v-list density="compact" class="bg-grey-lighten-4 mb-3">
+          <v-list-item>
+            <v-list-item-title>Versión</v-list-item-title>
+            <v-list-item-subtitle>{{ systemInfo.version }}</v-list-item-subtitle>
+          </v-list-item>
+          
+          <v-list-item>
+            <v-list-item-title>Entorno</v-list-item-title>
+            <v-list-item-subtitle>{{ systemInfo.environment }}</v-list-item-subtitle>
+          </v-list-item>
+          
+          <v-list-item>
+            <v-list-item-title>URL de API</v-list-item-title>
+            <v-list-item-subtitle>{{ systemInfo.apiUrl }}</v-list-item-subtitle>
+          </v-list-item>
+          
+          <v-list-item>
+            <v-list-item-title>Navegador</v-list-item-title>
+            <v-list-item-subtitle class="text-truncate">{{ systemInfo.browser }}</v-list-item-subtitle>
+          </v-list-item>
+          
+          <v-list-item>
+            <v-list-item-title>Timestamp</v-list-item-title>
+            <v-list-item-subtitle>{{ systemInfo.timestamp }}</v-list-item-subtitle>
+          </v-list-item>
+        </v-list>
+        
+        <!-- Estado de autenticación -->
+        <h3 class="text-subtitle-1 font-weight-bold mb-2">Estado de autenticación</h3>
+        <pre>isAuthenticated: {{ authStore.isAuthenticated }}</pre>
+        <pre>token: {{ authStore.token ? '✓' : '✗' }}</pre>
+        <pre>userId: {{ authStore.userId }}</pre>
+        <pre>username: {{ authStore.username }}</pre>
+        
+        <v-divider class="my-3"></v-divider>
+        
+        <!-- Estado de cuentas -->
+        <h3 class="text-subtitle-1 font-weight-bold mb-2">Estado de cuentas</h3>
+        <pre>cuentas cargadas: {{ accountStore.accounts.length }}</pre>
+        <pre>cuenta seleccionada: {{ accountStore.selectedAccount?.ID || 'ninguna' }}</pre>
+        
+        <v-alert v-if="accountStore.error" type="error" class="mt-2">
+          {{ accountStore.error }}
+        </v-alert>
+        
+        <v-list v-if="accountStore.accounts.length > 0" class="mt-2 bg-grey-lighten-4">
+          <v-list-item v-for="account in accountStore.accounts" :key="account.ID">
+            <v-list-item-title>{{ account.Nickname || `Cuenta #${account.ID}` }}</v-list-item-title>
+            <v-list-item-subtitle>{{ account.Email }}</v-list-item-subtitle>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+      
+      <v-card-actions>
+        <v-btn color="secondary" @click="loadAccounts" :disabled="!authStore.isAuthenticated">
+          Cargar cuentas
+        </v-btn>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" @click="refreshSystemInfo">
+          <v-icon start>mdi-refresh</v-icon>
+          Actualizar
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-navigation-drawer>
 </template>
 
 <style scoped>
-/* Estilos adicionales si son necesarios */
+.debug-panel {
+  z-index: 1000;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.debug-panel .v-list-item-subtitle {
+  word-break: break-all;
+}
+
+pre {
+  background-color: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 4px 0;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
 </style>
