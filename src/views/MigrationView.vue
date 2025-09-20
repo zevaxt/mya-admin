@@ -466,7 +466,7 @@ watch(
               :items="filteredProductIds"
               :loading="loading"
               :items-per-page="itemsPerPage"
-              class="elevation-1"
+              class="elevation-1 rounded-lg"
               :no-data-text="
                 hasAccount
                   ? 'No hay productos disponibles'
@@ -520,7 +520,13 @@ watch(
 
               <template #bottom>
                 <div class="d-flex flex-column align-center pa-2">
-                  <div class="d-flex justify-center align-center w-100 mb-3">
+                  <!-- Información de paginación -->
+                  <div class="d-flex justify-space-between align-center w-100 mb-3">
+                    <div class="text-caption text-grey">
+                      {{ filteredProductIds.length > 0 ? 
+                        `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}` : 
+                        '0-0 de 0' }}
+                    </div>
                     <v-pagination
                       v-model="page"
                       :length="Math.ceil(totalProductIds / itemsPerPage)"
@@ -529,20 +535,23 @@ watch(
                       :total-visible="5"
                       show-first
                       show-last
-                      class="pagination-centered"
+                      class="pagination-centered my-2"
+                      density="comfortable"
+                      rounded="circle"
+                      active-color="primary"
                     ></v-pagination>
-                  </div>
-                  <div class="d-flex align-center">
-                    <span class="text-caption me-2">Registros por página:</span>
-                    <v-select
-                      v-model="itemsPerPage"
-                      :items="itemsPerPageOptions"
-                      variant="outlined"
-                      density="compact"
-                      class="items-per-page-select"
-                      hide-details
-                      @update:model-value="handleItemsPerPageChange"
-                    ></v-select>
+                    <div class="d-flex align-center">
+                      <span class="text-caption me-2">Registros por página:</span>
+                      <v-select
+                        v-model="itemsPerPage"
+                        :items="itemsPerPageOptions"
+                        variant="outlined"
+                        density="compact"
+                        class="items-per-page-select"
+                        hide-details
+                        @update:model-value="handleItemsPerPageChange"
+                      ></v-select>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -555,7 +564,7 @@ watch(
               :items="orphanProducts"
               :loading="loading"
               :items-per-page="itemsPerPage"
-              class="elevation-1"
+              class="elevation-1 rounded-lg"
               :no-data-text="
                 hasAccount
                   ? 'No hay productos huérfanos disponibles'
@@ -627,7 +636,13 @@ watch(
 
               <template #bottom>
                 <div class="d-flex flex-column align-center pa-2">
-                  <div class="d-flex justify-center align-center w-100 mb-3">
+                  <!-- Información de paginación -->
+                  <div class="d-flex justify-space-between align-center w-100 mb-3">
+                    <div class="text-caption text-grey">
+                      {{ orphanProducts.length > 0 ? 
+                        `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalOrphans)} de ${totalOrphans}` : 
+                        '0-0 de 0' }}
+                    </div>
                     <v-pagination
                       v-model="page"
                       :length="Math.ceil(totalOrphans / itemsPerPage)"
@@ -636,20 +651,23 @@ watch(
                       :total-visible="5"
                       show-first
                       show-last
-                      class="pagination-centered"
+                      class="pagination-centered my-2"
+                      density="comfortable"
+                      rounded="circle"
+                      active-color="primary"
                     ></v-pagination>
-                  </div>
-                  <div class="d-flex align-center">
-                    <span class="text-caption me-2">Registros por página:</span>
-                    <v-select
-                      v-model="itemsPerPage"
-                      :items="itemsPerPageOptions"
-                      variant="outlined"
-                      density="compact"
-                      class="items-per-page-select"
-                      hide-details
-                      @update:model-value="handleItemsPerPageChange"
-                    ></v-select>
+                    <div class="d-flex align-center">
+                      <span class="text-caption me-2">Registros por página:</span>
+                      <v-select
+                        v-model="itemsPerPage"
+                        :items="itemsPerPageOptions"
+                        variant="outlined"
+                        density="compact"
+                        class="items-per-page-select"
+                        hide-details
+                        @update:model-value="handleItemsPerPageChange"
+                      ></v-select>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -797,5 +815,18 @@ watch(
 
 .pagination-centered {
   margin: 0 auto;
+}
+
+.v-data-table {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.v-data-table :deep(th) {
+  font-weight: 600 !important;
+  background-color: #f5f5f5;
+}
+
+.v-data-table :deep(tr:hover) {
+  background-color: #f9f9f9;
 }
 </style>
