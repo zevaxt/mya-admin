@@ -16,6 +16,8 @@ const orphanProducts = ref<OrphanProduct[]>([])
 const selectedProduct = ref<ProductDetail | null>(null)
 const showProductDetail = ref(false)
 const statusFilter = ref('')
+const syncActiveFilter = ref<string>('')
+const catalogActiveFilter = ref<string>('')
 const totalProductIds = ref(0)
 const totalOrphans = ref(0)
 const page = ref(1)
@@ -32,10 +34,16 @@ const statusOptions = [
   { title: 'Finalizado', value: 'closed' },
 ]
 
+const booleanFilterOptions = [
+  { title: 'Todos', value: '' },
+  { title: 'Sí', value: 'true' },
+  { title: 'No', value: 'false' },
+]
+
 // Cabeceras de tabla para IDs de productos
 const productIdsHeaders = [
   { title: 'ID', key: 'ID', sortable: true },
-  { title: 'Cuenta', key: 'AccountID', sortable: true },
+  { title: 'Cuenta', key: 'AccountName', sortable: true },
   { title: 'Sync Activo', key: 'SyncActive', sortable: true },
   { title: 'Catálogo Activo', key: 'CatalogActive', sortable: true },
   { title: 'Estado', key: 'Status', sortable: true },
@@ -59,6 +67,50 @@ const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
 const hasAccount = computed(() => !!currentAccount.value)
 
+// Verificar si hay filtros activos
+const hasActiveFilters = computed(() => {
+  return statusFilter.value !== '' || syncActiveFilter.value !== '' || catalogActiveFilter.value !== ''
+})
+
+// Mensaje de resultados filtrados
+const filteredMessage = computed(() => {
+  if (!hasActiveFilters.value || !productIds.value.length) return ''
+  
+  const total = productIds.value.length
+  const filtered = filteredProductIds.value.length
+  
+  if (filtered === total) return ''
+  
+  return `Mostrando ${filtered} de ${total} registros`
+})
+
+// Filtrado de productos en la tabla
+const filteredProductIds = computed(() => {
+  if (!productIds.value.length) return []
+  
+  return productIds.value.filter(product => {
+    // Filtrar por estado si hay un filtro seleccionado
+    if (statusFilter.value) {
+      const productStatus = product.Status ? 'active' : 'closed'
+      if (productStatus !== statusFilter.value) return false
+    }
+    
+    // Filtrar por Sync Activo
+    if (syncActiveFilter.value !== '') {
+      const isSyncActive = syncActiveFilter.value === 'true'
+      if (product.SyncActive !== isSyncActive) return false
+    }
+    
+    // Filtrar por Catálogo Activo
+    if (catalogActiveFilter.value !== '') {
+      const isCatalogActive = catalogActiveFilter.value === 'true'
+      if (product.CatalogActive !== isCatalogActive) return false
+    }
+    
+    return true
+  })
+})
+
 // Métodos
 const loadProductIds = async () => {
   if (!hasAccount.value) {
@@ -71,11 +123,18 @@ const loadProductIds = async () => {
 
   try {
     const offset = (page.value - 1) * itemsPerPage.value
+    
+    // Convertir los valores de string a boolean para los filtros
+    const syncActive = syncActiveFilter.value === '' ? undefined : syncActiveFilter.value === 'true'
+    const catalogActive = catalogActiveFilter.value === '' ? undefined : catalogActiveFilter.value === 'true'
+    
     const response = await migrationService.getProductIds(
       accountId.value,
       statusFilter.value,
       offset,
       itemsPerPage.value,
+      syncActive,
+      catalogActive,
     )
 
     productIds.value = response.products
@@ -190,6 +249,29 @@ const handleStatusFilterChange = () => {
   }
 }
 
+const handleSyncActiveFilterChange = () => {
+  page.value = 1
+  if (activeTab.value === 0) {
+    loadProductIds()
+  }
+}
+
+const handleCatalogActiveFilterChange = () => {
+  page.value = 1
+  if (activeTab.value === 0) {
+    loadProductIds()
+  }
+}
+
+// Función para limpiar todos los filtros
+const clearAllFilters = () => {
+  statusFilter.value = ''
+  syncActiveFilter.value = ''
+  catalogActiveFilter.value = ''
+  page.value = 1
+  loadProductIds()
+}
+
 // Inicialización
 onMounted(() => {
   if (hasAccount.value) {
@@ -233,7 +315,7 @@ watch(
 
           <v-card-text>
             <v-row class="mb-4">
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="3">
                 <v-select
                   v-model="statusFilter"
                   :items="statusOptions"
@@ -243,10 +325,65 @@ watch(
                   variant="outlined"
                   density="comfortable"
                   @update:model-value="handleStatusFilterChange"
-                ></v-select>
+                  :color="statusFilter ? 'primary' : undefined"
+                  :bg-color="statusFilter ? 'primary-lighten-5' : undefined"
+                >
+                  <template v-slot:append-inner>
+                    <v-icon v-if="statusFilter" color="primary" @click.stop="statusFilter = ''; handleStatusFilterChange()">mdi-close</v-icon>
+                  </template>
+                </v-select>
+              </v-col>
+              
+              <v-col cols="12" md="3" v-if="activeTab === 0">
+                <v-select
+                  v-model="syncActiveFilter"
+                  :items="booleanFilterOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="Filtrar por Sync Activo"
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="handleSyncActiveFilterChange"
+                  :color="syncActiveFilter ? 'primary' : undefined"
+                  :bg-color="syncActiveFilter ? 'primary-lighten-5' : undefined"
+                >
+                  <template v-slot:append-inner>
+                    <v-icon v-if="syncActiveFilter" color="primary" @click.stop="syncActiveFilter = ''; handleSyncActiveFilterChange()">mdi-close</v-icon>
+                  </template>
+                </v-select>
+              </v-col>
+              
+              <v-col cols="12" md="3" v-if="activeTab === 0">
+                <v-select
+                  v-model="catalogActiveFilter"
+                  :items="booleanFilterOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="Filtrar por Catálogo Activo"
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="handleCatalogActiveFilterChange"
+                  :color="catalogActiveFilter ? 'primary' : undefined"
+                  :bg-color="catalogActiveFilter ? 'primary-lighten-5' : undefined"
+                >
+                  <template v-slot:append-inner>
+                    <v-icon v-if="catalogActiveFilter" color="primary" @click.stop="catalogActiveFilter = ''; handleCatalogActiveFilterChange()">mdi-close</v-icon>
+                  </template>
+                </v-select>
               </v-col>
 
-              <v-col cols="12" md="8" class="d-flex justify-end align-center">
+              <v-col :cols="12" :md="activeTab === 0 ? 3 : 9" class="d-flex justify-end align-center gap-2">
+                <v-btn
+                  v-if="activeTab === 0 && hasActiveFilters"
+                  color="secondary"
+                  variant="outlined"
+                  @click="clearAllFilters"
+                  class="mr-2"
+                  size="small"
+                >
+                  <v-icon start>mdi-filter-remove</v-icon>
+                  Limpiar filtros
+                </v-btn>
                 <v-btn
                   color="primary"
                   :loading="loading"
@@ -258,11 +395,30 @@ watch(
               </v-col>
             </v-row>
 
+            <!-- Mensaje de filtrado -->
+            <div v-if="filteredMessage && activeTab === 0" class="d-flex align-center mb-2">
+              <v-chip color="info" variant="outlined" size="small" class="mr-2">
+                <v-icon start size="small">mdi-filter</v-icon>
+                {{ filteredMessage }}
+              </v-chip>
+              <v-btn 
+                size="x-small" 
+                icon 
+                variant="text" 
+                color="grey" 
+                @click="clearAllFilters"
+                v-if="hasActiveFilters"
+              >
+                <v-icon size="small">mdi-close</v-icon>
+                <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
+              </v-btn>
+            </div>
+            
             <!-- Tabla de IDs de productos -->
             <v-data-table
               v-if="activeTab === 0"
               :headers="productIdsHeaders"
-              :items="productIds"
+              :items="filteredProductIds"
               :loading="loading"
               :items-per-page="itemsPerPage"
               class="elevation-1"
@@ -411,14 +567,14 @@ watch(
                   size="small"
                   color="primary"
                   class="mr-2"
-                  @click="viewProductDetail(item.ID)"
+                  @click="viewProductDetail(item.id)"
                   :disabled="loading"
                 >
                   <v-icon>mdi-eye</v-icon>
                   <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
                 </v-btn>
 
-                <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
+                <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
                   <v-icon>mdi-open-in-new</v-icon>
                   <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
                 </v-btn>

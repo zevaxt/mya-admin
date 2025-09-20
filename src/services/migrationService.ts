@@ -1,10 +1,14 @@
 // Servicio para manejar las operaciones de migración
 import apiClient from './api'
+import { accountService } from './accountService'
+import { useAuthStore } from '@/stores/auth'
+import type { Account } from './api'
 
 // Interfaces para las respuestas de la API
 export interface ProductId {
   ID: string
   AccountID: number
+  AccountName?: string // Nuevo campo para mostrar el nombre de la cuenta
   SyncActive: boolean
   CatalogActive: boolean
   Status: boolean
@@ -98,11 +102,19 @@ export const migrationService = {
     status?: string,
     offset = 0,
     limit = 50,
+    syncActive?: boolean,
+    catalogActive?: boolean,
   ): Promise<ProductIdListResponse> {
     try {
       let url = `/v1/migration/products?offset=${offset}&limit=${limit}`
       if (status) {
         url += `&status=${status}`
+      }
+      if (syncActive !== undefined) {
+        url += `&syncActive=${syncActive}`
+      }
+      if (catalogActive !== undefined) {
+        url += `&catalogActive=${catalogActive}`
       }
 
       const response = await apiClient.get(url, {
@@ -113,6 +125,19 @@ export const migrationService = {
 
       // Transformar la respuesta al nuevo formato
       const data = response.data
+      // Obtener las cuentas para mapear los nombres
+      const authStore = useAuthStore()
+      const userId = authStore.currentUserId
+      let accounts: Account[] = []
+      
+      try {
+        if (userId) {
+          accounts = await accountService.getUserAccounts(userId)
+        }
+      } catch (err) {
+        console.warn('No se pudieron cargar las cuentas para mostrar nombres:', err)
+      }
+      
       const products = data.products.map(
         (product: {
           ID: string
@@ -122,15 +147,27 @@ export const migrationService = {
           SyncActive?: boolean
           AccountID?: number
           updated_at?: string
-        }) => ({
-          ID: product.ID,
-          AccountID: product.AccountID,
-          SyncActive: product.SyncActive,
-          CatalogActive: product.CatalogActive,
-          Status: product.Status,
-          ToSync: product.ToSync,
-          updated_at: product.updated_at,
-        }),
+        }) => {
+          // Buscar el nombre de la cuenta si está disponible
+          let accountName = 'N/A'
+          if (product.AccountID && accounts.length > 0) {
+            const account = accounts.find(acc => acc.ID === product.AccountID)
+            if (account) {
+              accountName = account.Nickname || account.Email || `Cuenta #${product.AccountID}`
+            }
+          }
+          
+          return {
+            ID: product.ID,
+            AccountID: product.AccountID,
+            AccountName: accountName,
+            SyncActive: product.SyncActive,
+            CatalogActive: product.CatalogActive,
+            Status: product.Status,
+            ToSync: product.ToSync,
+            updated_at: product.updated_at,
+          }
+        },
       )
 
       return {
