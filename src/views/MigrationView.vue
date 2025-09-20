@@ -536,15 +536,6 @@ watch(
                   <v-icon start>mdi-filter-remove</v-icon>
                   Limpiar filtros
                 </v-btn>
-                <v-btn
-                  v-if="activeTab !== 2"
-                  color="primary"
-                  :loading="loading"
-                  @click="activeTab === 0 ? loadProductIds() : activeTab === 1 ? loadOrphanProducts() : null"
-                >
-                  <v-icon start>mdi-refresh</v-icon>
-                  Actualizar
-                </v-btn>
               </v-col>
             </v-row>
 
@@ -569,6 +560,18 @@ watch(
 
             <!-- Tabla de IDs de productos -->
             <div v-if="activeTab === 0" class="position-relative">
+              <!-- Botón de actualización específico para Publicaciones -->
+              <div class="d-flex justify-end mb-3">
+                <v-btn
+                  color="primary"
+                  variant="elevated"
+                  prepend-icon="mdi-refresh"
+                  :loading="loading"
+                  @click="loadProductIds"
+                >
+                  Actualizar Publicaciones
+                </v-btn>
+              </div>
               <v-data-table
                 :headers="productIdsHeaders"
                 :items="filteredProductIds"
@@ -701,6 +704,18 @@ watch(
 
             <!-- Tabla de productos huérfanos -->
             <div v-if="activeTab === 1" class="position-relative">
+              <!-- Botón de actualización específico para Productos Huérfanos -->
+              <div class="d-flex justify-end mb-3">
+                <v-btn
+                  color="warning"
+                  variant="elevated"
+                  prepend-icon="mdi-refresh"
+                  :loading="loading"
+                  @click="loadOrphanProducts"
+                >
+                  Actualizar Productos Huérfanos
+                </v-btn>
+              </div>
               <v-data-table
                 :headers="orphanProductsHeaders"
                 :items="orphanProducts"

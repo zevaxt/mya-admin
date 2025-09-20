@@ -1,59 +1,37 @@
 <template>
   <div>
-    <!-- Filtros -->
-    <v-row class="mb-4">
-      <v-col cols="12" sm="6" md="4" lg="3">
-        <v-select
-          v-model="statusFilter"
-          :items="statusOptions"
-          label="Estado"
-          variant="outlined"
-          density="compact"
-          hide-details
-          class="mb-2"
-          @update:model-value="loadOrphanPublications"
-        ></v-select>
-      </v-col>
-      <v-col cols="12" sm="6" md="4" lg="3">
-        <v-select
-          v-model="channelsFilter"
-          :items="channelsOptions"
-          label="Canales"
-          variant="outlined"
-          density="compact"
-          hide-details
-          class="mb-2"
-          @update:model-value="loadOrphanPublications"
-        ></v-select>
-      </v-col>
-      <v-col cols="12" sm="6" md="4" lg="3">
-        <v-btn
-          color="primary"
-          variant="elevated"
-          prepend-icon="mdi-refresh"
-          :loading="loading"
-          @click="loadOrphanPublications"
-        >
-          Actualizar
-        </v-btn>
-      </v-col>
-    </v-row>
-    
+    <!-- Botón de actualización -->
+    <div class="mb-4">
+      <v-btn
+        color="primary"
+        variant="elevated"
+        prepend-icon="mdi-refresh"
+        :loading="loading"
+        @click="loadOrphanPublications"
+      >
+        Actualizar
+      </v-btn>
+    </div>
+
     <!-- Contador de resultados -->
     <div v-if="total > 0" class="mb-2">
       <v-chip color="error" size="small" variant="outlined">
         <v-icon start size="small">mdi-information</v-icon>
-        {{ total }} publicaciones deprecadas encontradas
+        {{ total }} publicaciones deprecadas encontradas (No existen en Mercado Libre)
       </v-chip>
     </div>
-    
+
     <div class="position-relative">
       <v-data-table
         :headers="orphanPublicationsHeaders"
-        :items="Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0 ? orphanPublicationIds.map(id => ({ 
-          id, 
-          account: accountName 
-        })) : []"
+        :items="
+          Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0
+            ? orphanPublicationIds.map((id) => ({
+                id,
+                account: accountName,
+              }))
+            : []
+        "
         :loading="loading"
         :items-per-page="itemsPerPage"
         class="elevation-1 rounded-lg"
@@ -63,55 +41,56 @@
             : 'Selecciona una cuenta para ver las publicaciones deprecadas'
         "
       >
-      <!-- Columna de ID -->
-      <template #[`item.id`]="{ item }">
-        <div class="d-flex align-center">
-          <span class="text-truncate">{{ item.id }}</span>
-        </div>
-      </template>
+        <!-- Columna de ID -->
+        <template #[`item.id`]="{ item }">
+          <div class="d-flex align-center">
+            <span class="text-truncate">{{ item.id }}</span>
+          </div>
+        </template>
 
-      <!-- Columna de Cuenta -->
-      <template #[`item.account`]="{ item }">
-        <div class="d-flex align-center">
-          <span>{{ item.account }}</span>
-        </div>
-      </template>
+        <!-- Columna de Cuenta -->
+        <template #[`item.account`]="{ item }">
+          <div class="d-flex align-center">
+            <span>{{ item.account }}</span>
+          </div>
+        </template>
 
-      <!-- Columna de Acciones -->
-      <template #[`item.actions`]="{ item }">
-        <div class="d-flex">
-          <v-btn
-            icon
-            size="small"
-            color="error"
-            class="mr-2"
-            @click="confirmDeleteProduct(item.id)"
-            :disabled="loading || processingDeleteId === item.id"
-            :loading="processingDeleteId === item.id"
-          >
-            <v-icon v-if="processingDeleteId !== item.id">mdi-delete</v-icon>
-            <v-tooltip activator="parent" location="top">Eliminar publicación</v-tooltip>
-          </v-btn>
+        <!-- Columna de Acciones -->
+        <template #[`item.actions`]="{ item }">
+          <div class="d-flex">
+            <v-btn
+              icon
+              size="small"
+              color="error"
+              class="mr-2"
+              @click="confirmDeleteProduct(item.id)"
+              :disabled="loading || processingDeleteId === item.id"
+              :loading="processingDeleteId === item.id"
+            >
+              <v-icon v-if="processingDeleteId !== item.id">mdi-delete</v-icon>
+              <v-tooltip activator="parent" location="top">Eliminar publicación</v-tooltip>
+            </v-btn>
 
-          <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
-            <v-icon>mdi-open-in-new</v-icon>
-            <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
-          </v-btn>
-        </div>
-      </template>
-      
-      <!-- No usamos el slot bottom para poder tener un paginador fijo -->
-      <template #bottom>
-      </template>
+            <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
+              <v-icon>mdi-open-in-new</v-icon>
+              <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
+            </v-btn>
+          </div>
+        </template>
+
+        <!-- No usamos el slot bottom para poder tener un paginador fijo -->
+        <template #bottom> </template>
       </v-data-table>
-      
+
       <!-- Paginador fijo -->
       <div class="pagination-fixed">
         <div class="d-flex align-center w-100 px-4 py-2 bg-white">
           <div class="text-caption text-grey me-4">
-            {{ total > 0 ? 
-              `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` : 
-              '0-0 de 0' }}
+            {{
+              total > 0
+                ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}`
+                : '0-0 de 0'
+            }}
           </div>
           <div class="d-flex align-center me-4">
             <span class="text-caption me-2">Registros por página:</span>
@@ -141,21 +120,12 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Notificación de éxito o error -->
-    <v-snackbar
-      v-model="showNotification"
-      :color="notificationType"
-      :timeout="3000"
-      location="top"
-    >
+    <v-snackbar v-model="showNotification" :color="notificationType" :timeout="3000" location="top">
       {{ notificationMessage }}
       <template v-slot:actions>
-        <v-btn
-          variant="text"
-          icon="mdi-close"
-          @click="showNotification = false"
-        ></v-btn>
+        <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
 
@@ -176,10 +146,12 @@
           <v-btn
             color="error"
             variant="elevated"
-            @click="async () => {
-              showConfirmDialog = false;
-              await confirmDialogAction();
-            }"
+            @click="
+              async () => {
+                showConfirmDialog = false
+                await confirmDialogAction()
+              }
+            "
           >
             Confirmar
           </v-btn>
@@ -229,23 +201,7 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 // Opciones para items por página
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
-// Filtros
-const statusFilter = ref<'active' | 'paused' | 'deleted' | 'inactive' | ''>('active')
-const channelsFilter = ref<'marketplace' | 'marketplace,mshops'>('marketplace')
-
-// Opciones para los filtros
-const statusOptions = [
-  { title: 'Activas', value: 'active' },
-  { title: 'Pausadas', value: 'paused' },
-  { title: 'Eliminadas', value: 'deleted' },
-  { title: 'Inactivas', value: 'inactive' },
-  { title: 'Todas', value: '' },
-]
-
-const channelsOptions = [
-  { title: 'Marketplace', value: 'marketplace' },
-  { title: 'Marketplace y Tiendas', value: 'marketplace,mshops' },
-]
+// No se utilizan filtros
 
 // Cabeceras de tabla
 const orphanPublicationsHeaders = [
@@ -257,7 +213,10 @@ const orphanPublicationsHeaders = [
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
-const accountName = computed(() => currentAccount.value?.Nickname || currentAccount.value?.Email || `Cuenta #${accountId.value}`)
+const accountName = computed(
+  () =>
+    currentAccount.value?.Nickname || currentAccount.value?.Email || `Cuenta #${accountId.value}`,
+)
 const hasAccount = computed(() => !!currentAccount.value)
 
 // Cargar publicaciones huérfanas
@@ -272,14 +231,12 @@ const loadOrphanPublications = async () => {
   error.value = null
 
   try {
-    // Configurar opciones de filtrado
+    // Configurar opciones de paginación
     const options = {
-      status: statusFilter.value,
-      channels: channelsFilter.value,
       offset: (page.value - 1) * itemsPerPage.value,
-      limit: itemsPerPage.value
+      limit: itemsPerPage.value,
     }
-    
+
     const response = await compareService.getOrphanPublications(accountId.value, options)
     orphanPublicationIds.value = response.orphan_publication_ids || []
     total.value = response.total || 0
@@ -325,14 +282,14 @@ const deleteProduct = async (productId: string) => {
 
   try {
     processingDeleteId.value = productId
-    
+
     // Llamar al servicio para eliminar la publicación
     const result = await migrationService.deleteProduct(accountId.value, productId)
-    
+
     if (result && result.success) {
       notificationMessage.value = result.message
       notificationType.value = 'success'
-      
+
       // Recargar la lista de publicaciones para actualizar la vista
       await loadOrphanPublications()
     } else {
@@ -363,7 +320,7 @@ watch(
       orphanPublicationIds.value = []
       total.value = 0
     }
-  }
+  },
 )
 
 // Cargar datos al montar el componente

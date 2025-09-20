@@ -22,8 +22,6 @@ export interface MissingPublicationsOptions {
 
 // Opciones para la consulta de publicaciones huérfanas
 export interface OrphanPublicationsOptions {
-  status?: 'active' | 'paused' | 'deleted' | 'inactive' | ''
-  channels?: 'marketplace' | 'marketplace,mshops'
   offset?: number
   limit?: number
 }
@@ -81,15 +79,6 @@ export const compareService = {
     try {
       const headers: Record<string, string> = {
         'account-id': accountId.toString(),
-      }
-
-      // Añadir encabezados opcionales si están presentes
-      if (options?.status !== undefined) {
-        headers['status'] = options.status
-      }
-      
-      if (options?.channels) {
-        headers['channels'] = options.channels
       }
       
       // Parámetros de paginación
