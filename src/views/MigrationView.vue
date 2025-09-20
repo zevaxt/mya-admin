@@ -76,38 +76,38 @@ const hasActiveFilters = computed(() => {
 // Mensaje de resultados filtrados
 const filteredMessage = computed(() => {
   if (!hasActiveFilters.value || !productIds.value.length) return ''
-  
+
   const total = productIds.value.length
   const filtered = filteredProductIds.value.length
-  
+
   if (filtered === total) return ''
-  
+
   return `Mostrando ${filtered} de ${total} registros`
 })
 
 // Filtrado de productos en la tabla
 const filteredProductIds = computed(() => {
   if (!productIds.value.length) return []
-  
+
   return productIds.value.filter(product => {
     // Filtrar por estado si hay un filtro seleccionado
     if (statusFilter.value) {
       const productStatus = product.Status ? 'active' : 'closed'
       if (productStatus !== statusFilter.value) return false
     }
-    
+
     // Filtrar por Sync Activo
     if (syncActiveFilter.value !== '') {
       const isSyncActive = syncActiveFilter.value === 'true'
       if (product.SyncActive !== isSyncActive) return false
     }
-    
+
     // Filtrar por Catálogo Activo
     if (catalogActiveFilter.value !== '') {
       const isCatalogActive = catalogActiveFilter.value === 'true'
       if (product.CatalogActive !== isCatalogActive) return false
     }
-    
+
     return true
   })
 })
@@ -124,11 +124,11 @@ const loadProductIds = async () => {
 
   try {
     const offset = (page.value - 1) * itemsPerPage.value
-    
+
     // Convertir los valores de string a boolean para los filtros
     const syncActive = syncActiveFilter.value === '' ? undefined : syncActiveFilter.value === 'true'
     const catalogActive = catalogActiveFilter.value === '' ? undefined : catalogActiveFilter.value === 'true'
-    
+
     const response = await migrationService.getProductIds(
       accountId.value,
       statusFilter.value,
@@ -309,16 +309,16 @@ watch(
         </v-alert>
 
         <v-card>
-          <v-tabs 
-            v-model="activeTab" 
+          <v-tabs
+            v-model="activeTab"
             @update:model-value="handleTabChange"
             bg-color="grey-lighten-4"
             slider-color="primary"
             class="tabs-with-separators"
             show-arrows
           >
-            <v-tab 
-              value="0" 
+            <v-tab
+              value="0"
               :color="activeTab === 0 ? 'primary' : undefined"
               class="font-weight-medium tab-with-border"
             >
@@ -332,8 +332,8 @@ watch(
               ></v-badge>
               IDs de Publicaciones
             </v-tab>
-            <v-tab 
-              value="1" 
+            <v-tab
+              value="1"
               :color="activeTab === 1 ? 'warning' : undefined"
               class="font-weight-medium tab-with-border"
             >
@@ -347,8 +347,8 @@ watch(
               ></v-badge>
               Publicaciones Huérfanas
             </v-tab>
-            <v-tab 
-              value="2" 
+            <v-tab
+              value="2"
               :color="activeTab === 2 ? 'info' : undefined"
               class="font-weight-medium tab-with-border"
             >
@@ -359,7 +359,7 @@ watch(
 
           <v-card-text>
             <v-row class="mb-4">
-              <v-col cols="12" md="3">
+              <v-col cols="12" md="3" v-if="activeTab !== 2">
                 <v-select
                   v-model="statusFilter"
                   :items="statusOptions"
@@ -377,7 +377,7 @@ watch(
                   </template>
                 </v-select>
               </v-col>
-              
+
               <v-col cols="12" md="3" v-if="activeTab === 0">
                 <v-select
                   v-model="syncActiveFilter"
@@ -396,7 +396,7 @@ watch(
                   </template>
                 </v-select>
               </v-col>
-              
+
               <v-col cols="12" md="3" v-if="activeTab === 0">
                 <v-select
                   v-model="catalogActiveFilter"
@@ -429,6 +429,7 @@ watch(
                   Limpiar filtros
                 </v-btn>
                 <v-btn
+                  v-if="activeTab !== 2"
                   color="primary"
                   :loading="loading"
                   @click="activeTab === 0 ? loadProductIds() : activeTab === 1 ? loadOrphanProducts() : null"
@@ -445,11 +446,11 @@ watch(
                 <v-icon start size="small">mdi-filter</v-icon>
                 {{ filteredMessage }}
               </v-chip>
-              <v-btn 
-                size="x-small" 
-                icon 
-                variant="text" 
-                color="grey" 
+              <v-btn
+                size="x-small"
+                icon
+                variant="text"
+                color="grey"
                 @click="clearAllFilters"
                 v-if="hasActiveFilters"
               >
@@ -457,7 +458,7 @@ watch(
                 <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
               </v-btn>
             </div>
-            
+
             <!-- Tabla de IDs de productos -->
             <v-data-table
               v-if="activeTab === 0"

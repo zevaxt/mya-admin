@@ -21,6 +21,21 @@ const missingPublicationIds = ref<string[]>([])
 const total = ref(0)
 const error = ref<string | null>(null)
 
+// Filtros
+const statusFilter = ref<'active' | ''>('active')
+const channelsFilter = ref<'marketplace' | 'marketplace,mshops'>('marketplace')
+
+// Opciones para los filtros
+const statusOptions = [
+  { title: 'Activas', value: 'active' },
+  { title: 'Todas', value: '' },
+]
+
+const channelsOptions = [
+  { title: 'Marketplace', value: 'marketplace' },
+  { title: 'Marketplace y Tiendas', value: 'marketplace,mshops' },
+]
+
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
@@ -51,7 +66,13 @@ const loadMissingPublications = async () => {
   error.value = null
 
   try {
-    const response = await compareService.getMissingPublications(accountId.value)
+    // Configurar opciones de filtrado
+    const options = {
+      status: statusFilter.value,
+      channels: channelsFilter.value
+    }
+    
+    const response = await compareService.getMissingPublications(accountId.value, options)
     missingPublicationIds.value = response.missing_publication_ids
     total.value = response.total
   } catch (err) {
@@ -167,6 +188,49 @@ defineExpose({
         Actualizar
       </v-btn>
     </div>
+    
+    <!-- Filtros -->
+    <v-row class="mb-4">
+      <v-col cols="12" md="6" lg="4">
+        <v-select
+          v-model="statusFilter"
+          :items="statusOptions"
+          item-title="title"
+          item-value="value"
+          label="Estado de publicaciones"
+          variant="outlined"
+          density="comfortable"
+          hide-details
+          @update:model-value="loadMissingPublications"
+          :color="statusFilter ? 'primary' : undefined"
+          :bg-color="statusFilter ? 'primary-lighten-5' : undefined"
+        >
+          <template v-slot:append-inner>
+            <v-icon v-if="statusFilter !== ''" color="primary" @click.stop="statusFilter = ''; loadMissingPublications()">mdi-close</v-icon>
+          </template>
+        </v-select>
+      </v-col>
+      
+      <v-col cols="12" md="6" lg="4">
+        <v-select
+          v-model="channelsFilter"
+          :items="channelsOptions"
+          item-title="title"
+          item-value="value"
+          label="Canales de venta"
+          variant="outlined"
+          density="comfortable"
+          hide-details
+          @update:model-value="loadMissingPublications"
+          :color="channelsFilter !== 'marketplace' ? 'primary' : undefined"
+          :bg-color="channelsFilter !== 'marketplace' ? 'primary-lighten-5' : undefined"
+        >
+          <template v-slot:append-inner>
+            <v-icon v-if="channelsFilter !== 'marketplace'" color="primary" @click.stop="channelsFilter = 'marketplace'; loadMissingPublications()">mdi-close</v-icon>
+          </template>
+        </v-select>
+      </v-col>
+    </v-row>
     
     <!-- Contador de resultados -->
     <div v-if="total > 0" class="mb-2">

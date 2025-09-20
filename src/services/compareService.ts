@@ -7,15 +7,35 @@ export interface MissingPublicationsResponse {
   missing_publication_ids: string[]
 }
 
+// Opciones para la consulta de publicaciones faltantes
+export interface MissingPublicationsOptions {
+  status?: 'active' | ''
+  channels?: 'marketplace' | 'marketplace,mshops'
+}
+
 // Servicio de comparación
 export const compareService = {
   // Obtener publicaciones que existen en Mercado Libre pero no en la base de datos
-  async getMissingPublications(accountId: number): Promise<MissingPublicationsResponse> {
+  async getMissingPublications(
+    accountId: number, 
+    options?: MissingPublicationsOptions
+  ): Promise<MissingPublicationsResponse> {
     try {
+      const headers: Record<string, string> = {
+        'account-id': accountId.toString(),
+      }
+      
+      // Añadir encabezados opcionales si están presentes
+      if (options?.status !== undefined) {
+        headers['status'] = options.status
+      }
+      
+      if (options?.channels) {
+        headers['channels'] = options.channels
+      }
+      
       const response = await apiClient.get('/v1/provider/publications/compare', {
-        headers: {
-          'account-id': accountId.toString(),
-        },
+        headers,
       })
 
       return response.data as MissingPublicationsResponse
