@@ -82,9 +82,7 @@ const hasAccount = computed(() => !!currentAccount.value)
 
 // Verificar si hay filtros activos
 const hasActiveFilters = computed(() => {
-  return (
-    statusFilter.value !== '' || syncActiveFilter.value !== '' || catalogActiveFilter.value !== ''
-  )
+  return statusFilter.value !== '' || syncActiveFilter.value !== '' || catalogActiveFilter.value !== ''
 })
 
 // Mensaje de resultados filtrados
@@ -103,7 +101,7 @@ const filteredMessage = computed(() => {
 const filteredProductIds = computed(() => {
   if (!productIds.value.length) return []
 
-  return productIds.value.filter((product) => {
+  return productIds.value.filter(product => {
     // Filtrar por estado si hay un filtro seleccionado
     if (statusFilter.value) {
       const productStatus = product.Status ? 'active' : 'closed'
@@ -141,8 +139,7 @@ const loadProductIds = async () => {
 
     // Convertir los valores de string a boolean para los filtros
     const syncActive = syncActiveFilter.value === '' ? undefined : syncActiveFilter.value === 'true'
-    const catalogActive =
-      catalogActiveFilter.value === '' ? undefined : catalogActiveFilter.value === 'true'
+    const catalogActive = catalogActiveFilter.value === '' ? undefined : catalogActiveFilter.value === 'true'
 
     const response = await migrationService.getProductIds(
       accountId.value,
@@ -474,15 +471,7 @@ watch(
                   :bg-color="statusFilter ? 'primary-lighten-5' : undefined"
                 >
                   <template v-slot:append-inner>
-                    <v-icon
-                      v-if="statusFilter"
-                      color="primary"
-                      @click.stop="
-                        statusFilter = ''
-                        handleStatusFilterChange()
-                      "
-                      >mdi-close</v-icon
-                    >
+                    <v-icon v-if="statusFilter" color="primary" @click.stop="statusFilter = ''; handleStatusFilterChange()">mdi-close</v-icon>
                   </template>
                 </v-select>
               </v-col>
@@ -501,15 +490,7 @@ watch(
                   :bg-color="syncActiveFilter ? 'primary-lighten-5' : undefined"
                 >
                   <template v-slot:append-inner>
-                    <v-icon
-                      v-if="syncActiveFilter"
-                      color="primary"
-                      @click.stop="
-                        syncActiveFilter = ''
-                        handleSyncActiveFilterChange()
-                      "
-                      >mdi-close</v-icon
-                    >
+                    <v-icon v-if="syncActiveFilter" color="primary" @click.stop="syncActiveFilter = ''; handleSyncActiveFilterChange()">mdi-close</v-icon>
                   </template>
                 </v-select>
               </v-col>
@@ -528,24 +509,12 @@ watch(
                   :bg-color="catalogActiveFilter ? 'primary-lighten-5' : undefined"
                 >
                   <template v-slot:append-inner>
-                    <v-icon
-                      v-if="catalogActiveFilter"
-                      color="primary"
-                      @click.stop="
-                        catalogActiveFilter = ''
-                        handleCatalogActiveFilterChange()
-                      "
-                      >mdi-close</v-icon
-                    >
+                    <v-icon v-if="catalogActiveFilter" color="primary" @click.stop="catalogActiveFilter = ''; handleCatalogActiveFilterChange()">mdi-close</v-icon>
                   </template>
                 </v-select>
               </v-col>
 
-              <v-col
-                :cols="12"
-                :md="activeTab === 0 ? 3 : 9"
-                class="d-flex justify-end align-center gap-2"
-              >
+              <v-col :cols="12" :md="activeTab === 0 ? 3 : 9" class="d-flex justify-end align-center gap-2">
                 <v-btn
                   v-if="activeTab === 0 && hasActiveFilters"
                   color="secondary"
@@ -561,13 +530,7 @@ watch(
                   v-if="activeTab !== 2"
                   color="primary"
                   :loading="loading"
-                  @click="
-                    activeTab === 0
-                      ? loadProductIds()
-                      : activeTab === 1
-                        ? loadOrphanProducts()
-                        : null
-                  "
+                  @click="activeTab === 0 ? loadProductIds() : activeTab === 1 ? loadOrphanProducts() : null"
                 >
                   <v-icon start>mdi-refresh</v-icon>
                   Actualizar
@@ -653,13 +616,7 @@ watch(
                     <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
                   </v-btn>
 
-                  <v-btn
-                    icon
-                    size="small"
-                    color="info"
-                    class="mr-2"
-                    @click="openProductInNewTab(item.ID)"
-                  >
+                  <v-btn icon size="small" color="info" class="mr-2" @click="openProductInNewTab(item.ID)">
                     <v-icon>mdi-open-in-new</v-icon>
                     <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
                   </v-btn>
@@ -670,9 +627,7 @@ watch(
                     color="warning"
                     class="mr-2"
                     @click="updateProductPopulate(item.ID)"
-                    :disabled="
-                      loading || processingPopulateId === item.ID || processingDeleteId === item.ID
-                    "
+                    :disabled="loading || processingPopulateId === item.ID || processingDeleteId === item.ID"
                     :loading="processingPopulateId === item.ID"
                   >
                     <v-icon v-if="processingPopulateId !== item.ID">mdi-database-import</v-icon>
@@ -684,9 +639,7 @@ watch(
                     size="small"
                     color="error"
                     @click="confirmDeleteProduct(item.ID)"
-                    :disabled="
-                      loading || processingPopulateId === item.ID || processingDeleteId === item.ID
-                    "
+                    :disabled="loading || processingPopulateId === item.ID || processingDeleteId === item.ID"
                     :loading="processingDeleteId === item.ID"
                   >
                     <v-icon v-if="processingDeleteId !== item.ID">mdi-delete</v-icon>
@@ -695,18 +648,17 @@ watch(
                 </template>
 
                 <!-- No usamos el slot bottom para poder tener un paginador fijo -->
-                <template #bottom> </template>
+                <template #bottom>
+                </template>
               </v-data-table>
 
               <!-- Paginador fijo para la tabla de IDs de productos -->
               <div class="pagination-fixed">
                 <div class="d-flex align-center w-100 px-4 py-2 bg-white">
                   <div class="text-caption text-grey me-4">
-                    {{
-                      filteredProductIds.length > 0
-                        ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}`
-                        : '0-0 de 0'
-                    }}
+                    {{ filteredProductIds.length > 0 ?
+                      `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}` :
+                      '0-0 de 0' }}
                   </div>
                   <div class="d-flex align-center me-4">
                     <span class="text-caption me-2">Registros por página:</span>
@@ -815,18 +767,17 @@ watch(
                 </template>
 
                 <!-- No usamos el slot bottom para poder tener un paginador fijo -->
-                <template #bottom> </template>
+                <template #bottom>
+                </template>
               </v-data-table>
 
               <!-- Paginador fijo para la tabla de productos huérfanos -->
               <div class="pagination-fixed">
                 <div class="d-flex align-center w-100 px-4 py-2 bg-white">
                   <div class="text-caption text-grey me-4">
-                    {{
-                      orphanProducts.length > 0
-                        ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalOrphans)} de ${totalOrphans}`
-                        : '0-0 de 0'
-                    }}
+                    {{ orphanProducts.length > 0 ?
+                      `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalOrphans)} de ${totalOrphans}` :
+                      '0-0 de 0' }}
                   </div>
                   <div class="d-flex align-center me-4">
                     <span class="text-caption me-2">Registros por página:</span>
@@ -974,12 +925,10 @@ watch(
           <v-btn
             color="error"
             variant="elevated"
-            @click="
-              async () => {
-                showConfirmDialog = false
-                await confirmDialogAction()
-              }
-            "
+            @click="async () => {
+              showConfirmDialog = false;
+              await confirmDialogAction();
+            }"
           >
             Confirmar
           </v-btn>
@@ -988,10 +937,19 @@ watch(
     </v-dialog>
 
     <!-- Notificación de éxito o error -->
-    <v-snackbar v-model="showNotification" :color="notificationType" :timeout="3000" location="top">
+    <v-snackbar
+      v-model="showNotification"
+      :color="notificationType"
+      :timeout="3000"
+      location="top"
+    >
       {{ notificationMessage }}
       <template v-slot:actions>
-        <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
+        <v-btn
+          variant="text"
+          icon="mdi-close"
+          @click="showNotification = false"
+        ></v-btn>
       </template>
     </v-snackbar>
   </v-container>
