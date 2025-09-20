@@ -20,6 +20,7 @@ const accountStore = useAccountStore()
 const missingPublicationIds = ref<string[]>([])
 const total = ref(0)
 const error = ref<string | null>(null)
+const syncLoading = ref(false)
 
 // Filtros
 const statusFilter = ref<'active' | ''>('active')
@@ -73,8 +74,8 @@ const loadMissingPublications = async () => {
     }
     
     const response = await compareService.getMissingPublications(accountId.value, options)
-    missingPublicationIds.value = response.missing_publication_ids
-    total.value = response.total
+    missingPublicationIds.value = response.missing_publication_ids || []
+    total.value = response.total || 0
   } catch (err) {
     console.error('Error al cargar publicaciones faltantes:', err)
     if (err instanceof Error) {
@@ -98,8 +99,57 @@ const openProductInNewTab = (productId: string) => {
 // Estado para el diálogo de notificación
 const showNotification = ref(false)
 const notificationMessage = ref('')
-const notificationType = ref<'success' | 'error'>('success')
+const notificationType = ref<'success' | 'error' | 'warning'>('success')
 const processingId = ref<string | null>(null)
+
+// Sincronizar IDs de productos desde Mercado Libre
+const syncProductIds = async () => {
+  if (!hasAccount.value) {
+    notificationMessage.value = 'Selecciona una cuenta para sincronizar las publicaciones'
+    notificationType.value = 'error'
+    showNotification.value = true
+    return
+  }
+
+  syncLoading.value = true
+  error.value = null
+
+  try {
+    // Llamar al servicio para sincronizar IDs de productos
+    const result = await migrationService.updateProductIds(
+      accountId.value,
+      statusFilter.value,
+      channelsFilter.value,
+      false // No es modo lectura, queremos almacenar los IDs
+    )
+    
+    // Verificar que la respuesta sea válida
+    if (result && result.success) {
+      notificationMessage.value = result.message || 'Sincronización de IDs iniciada correctamente'
+      notificationType.value = 'success'
+    } else {
+      notificationMessage.value = 'La sincronización se completó pero con un resultado inesperado'
+      notificationType.value = 'warning'
+    }
+    
+    showNotification.value = true
+    
+    // Recargar la lista de publicaciones faltantes después de sincronizar
+    await loadMissingPublications()
+  } catch (err) {
+    console.error('Error al sincronizar IDs de productos:', err)
+    if (err instanceof Error) {
+      notificationMessage.value = `Error al sincronizar IDs de productos: ${err.message}`
+    } else {
+      notificationMessage.value = 'Error al sincronizar IDs de productos'
+    }
+    notificationType.value = 'error'
+    showNotification.value = true
+    emit('error', notificationMessage.value)
+  } finally {
+    syncLoading.value = false
+  }
+}
 
 // Crear publicación
 const createPublication = async (productId: string) => {
@@ -177,16 +227,31 @@ defineExpose({
         <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones Faltantes</h3>
         <p class="text-caption text-grey">Publicaciones que existen en Mercado Libre pero no en la base de datos</p>
       </div>
-      <v-btn 
-        color="primary" 
-        variant="outlined" 
-        @click="loadMissingPublications"
-        :loading="loading"
-        size="small"
-      >
-        <v-icon start>mdi-refresh</v-icon>
-        Actualizar
-      </v-btn>
+      <div class="d-flex gap-2">
+        <v-btn 
+          color="success" 
+          variant="outlined" 
+          @click="syncProductIds"
+          :loading="syncLoading"
+          size="small"
+        >
+          <v-icon start>mdi-sync</v-icon>
+          Sincronizar IDs
+          <v-tooltip activator="parent" location="top">
+            Sincroniza todas las publicaciones de Mercado Libre con la base de datos
+          </v-tooltip>
+        </v-btn>
+        <v-btn 
+          color="primary" 
+          variant="outlined" 
+          @click="loadMissingPublications"
+          :loading="loading"
+          size="small"
+        >
+          <v-icon start>mdi-refresh</v-icon>
+          Actualizar
+        </v-btn>
+      </div>
     </div>
     
     <!-- Filtros -->
@@ -242,10 +307,10 @@ defineExpose({
     
     <v-data-table
       :headers="missingPublicationsHeaders"
-      :items="missingPublicationIds.map(id => ({ 
+      :items="Array.isArray(missingPublicationIds) && missingPublicationIds.length > 0 ? missingPublicationIds.map(id => ({ 
         id, 
         account: accountName 
-      }))"
+      })) : []"
       :loading="loading"
       :items-per-page="100"
       class="elevation-1 rounded-lg"
@@ -298,7 +363,7 @@ defineExpose({
     <!-- Notificación de éxito o error -->
     <v-snackbar
       v-model="showNotification"
-      :color="notificationType === 'success' ? 'success' : 'error'"
+      :color="notificationType"
       :timeout="3000"
       location="top"
     >

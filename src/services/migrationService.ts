@@ -96,6 +96,33 @@ export interface OrphanProductsResponse {
 
 // Servicio de migración
 export const migrationService = {
+  // Actualizar IDs de productos desde Mercado Libre a la base de datos
+  async updateProductIds(
+    accountId: number,
+    status: string = 'active',
+    channels: string = 'marketplace',
+    readMode: boolean = false
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      await apiClient.post('/v1/migration/update/products/ids', {}, {
+        headers: {
+          'account-id': accountId.toString(),
+          'status': status,
+          'channels': channels,
+          'read-mode': readMode.toString()
+        },
+      })
+
+      return {
+        success: true,
+        message: 'Sincronización de IDs iniciada correctamente'
+      }
+    } catch (error) {
+      console.error('Error al actualizar IDs de productos:', error)
+      throw error
+    }
+  },
+
   // Obtener lista de IDs de productos
   async getProductIds(
     accountId: number,
