@@ -23,6 +23,10 @@ const totalProductIds = ref(0)
 const totalOrphans = ref(0)
 const page = ref(1)
 const itemsPerPage = ref(100)
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref<'success' | 'error' | 'warning'>('success')
+const processingPopulateId = ref<string | null>(null)
 
 // Opciones para items por página
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
@@ -211,6 +215,45 @@ const openProductInNewTab = (productId: string) => {
   // Insertar un guion después de los primeros 3 caracteres (MCO-1233526781)
   const formattedId = productId.slice(0, 3) + '-' + productId.slice(3)
   window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
+}
+
+// Actualizar los atributos de población de un producto
+const updateProductPopulate = async (productId: string) => {
+  if (!hasAccount.value) {
+    error.value = 'Selecciona una cuenta para actualizar los atributos'
+    return
+  }
+
+  try {
+    processingPopulateId.value = productId
+    loading.value = true
+    
+    // Llamar al servicio para actualizar los atributos
+    const result = await migrationService.updateProductPopulate(accountId.value, productId)
+    
+    if (result && result.success) {
+      notificationMessage.value = result.message
+      notificationType.value = 'success'
+      
+      // Recargar la lista de IDs de productos para actualizar la vista
+      await loadProductIds()
+    } else {
+      notificationMessage.value = 'Respuesta inesperada al actualizar los atributos'
+      notificationType.value = 'error'
+    }
+  } catch (err) {
+    console.error(`Error al actualizar los atributos del producto ${productId}:`, err)
+    if (err instanceof Error) {
+      notificationMessage.value = `Error al actualizar los atributos: ${err.message}`
+    } else {
+      notificationMessage.value = 'Error al actualizar los atributos'
+    }
+    notificationType.value = 'error'
+  } finally {
+    loading.value = false
+    showNotification.value = true
+    processingPopulateId.value = null
+  }
 }
 
 const handleTabChange = (tabIndex: unknown) => {
@@ -519,9 +562,21 @@ watch(
                     <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
                   </v-btn>
 
-                  <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
+                  <v-btn icon size="small" color="info" class="mr-2" @click="openProductInNewTab(item.ID)">
                     <v-icon>mdi-open-in-new</v-icon>
                     <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
+                  </v-btn>
+
+                  <v-btn
+                    icon
+                    size="small"
+                    color="warning"
+                    @click="updateProductPopulate(item.ID)"
+                    :disabled="loading || processingPopulateId === item.ID"
+                    :loading="processingPopulateId === item.ID"
+                  >
+                    <v-icon v-if="processingPopulateId !== item.ID">mdi-database-import</v-icon>
+                    <v-tooltip activator="parent" location="top">Actualizar atributos</v-tooltip>
                   </v-btn>
                 </template>
 
@@ -785,6 +840,23 @@ watch(
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Notificación de éxito o error -->
+    <v-snackbar
+      v-model="showNotification"
+      :color="notificationType"
+      :timeout="3000"
+      location="top"
+    >
+      {{ notificationMessage }}
+      <template v-slot:actions>
+        <v-btn
+          variant="text"
+          icon="mdi-close"
+          @click="showNotification = false"
+        ></v-btn>
+      </template>
+    </v-snackbar>
   </v-container>
 </template>
 

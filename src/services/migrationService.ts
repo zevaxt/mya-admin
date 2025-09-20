@@ -276,6 +276,25 @@ export const migrationService = {
       throw error
     }
   },
+
+  // Actualizar los atributos de población de un producto
+  async updateProductPopulate(accountId: number, productId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      await apiClient.post(`/v1/migration/update/products/populate/${productId}`, {}, {
+        headers: {
+          'account-id': accountId.toString(),
+        },
+      })
+
+      return {
+        success: true,
+        message: `Atributos del producto ${productId} actualizados correctamente`
+      }
+    } catch (error) {
+      console.error(`Error al actualizar atributos del producto ${productId}:`, error)
+      throw error
+    }
+  },
 }
 
 export default migrationService

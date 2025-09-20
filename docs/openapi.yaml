@@ -19138,19 +19138,24 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /v1/migration/delete/products/{id}:
+  /v1/migration/delete/product/{id}:
     delete:
       tags:
         - migration tag
-      summary: /v1/migration/delete/products
+      summary: /v1/migration/delete/product/{id}
       security:
         - bearerAuth: []
       parameters:
-        - name: authorization
+        - name: account-id
           in: header
           schema:
             type: string
-          example: '{{access_token_mya}}'
+          example: '1'
+        - name: delete-provider
+          in: header
+          schema:
+            type: string
+          example: 'true'
       responses:
         '200':
           description: Successful response
