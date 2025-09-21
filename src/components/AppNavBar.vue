@@ -53,7 +53,11 @@ onMounted(() => {
   <v-app-bar color="primary" dark app>
     <v-app-bar-nav-icon></v-app-bar-nav-icon>
 
-    <v-toolbar-title>MYA Admin</v-toolbar-title>
+    <v-toolbar-title>
+      <v-btn variant="text" color="white" class="pa-0 text-h6" style="text-transform: none;" :to="{ name: 'landing' }">
+        MYA Admin
+      </v-btn>
+    </v-toolbar-title>
 
     <!-- Menú de navegación -->
     <div class="ml-4">

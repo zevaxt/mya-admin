@@ -44,7 +44,7 @@ onMounted(() => {
                 Administra tu catálogo de productos, precios y stock.
               </v-card-text>
               <v-card-actions>
-                <v-btn color="primary" variant="text">
+                <v-btn color="primary" variant="text" to="/products">
                   Ver productos
                 </v-btn>
               </v-card-actions>
@@ -61,7 +61,7 @@ onMounted(() => {
                 Gestiona tus proveedores y sus productos asociados.
               </v-card-text>
               <v-card-actions>
-                <v-btn color="primary" variant="text">
+                <v-btn color="primary" variant="text" to="/providers">
                   Ver proveedores
                 </v-btn>
               </v-card-actions>
@@ -78,7 +78,7 @@ onMounted(() => {
                 Realiza migraciones de productos entre cuentas.
               </v-card-text>
               <v-card-actions>
-                <v-btn color="primary" variant="text">
+                <v-btn color="primary" variant="text" to="/migrations">
                   Ver migraciones
                 </v-btn>
               </v-card-actions>

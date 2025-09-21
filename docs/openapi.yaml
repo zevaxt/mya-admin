@@ -353,7 +353,7 @@ paths:
         - **Headers requeridos:**
           - `account-id`: ID de la cuenta de Mercado Libre a consultar
           - `status` (opcional): Estado de las publicaciones a consultar. Valores permitidos: "active", "inactive", "paused", "deleted", "suspended", "freezed" o vacío.
-          - `channels` (opcional): Canales de venta a consultar. Valores permitidos: "marketplace" (por defecto) o "marketplace,mshops".
+          - `channels` (opcional): Canales de venta a consultar. Valores permitidos: "marketplace" (por defecto), "mshops", o "marketplace,mshops".
         ### Estructura de la respuesta
 
 
@@ -405,13 +405,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           example: 'active'
         - name: channels
           in: header
@@ -420,6 +420,7 @@ paths:
             type: string
             enum:
               - marketplace
+              - mshops
               - marketplace,mshops
           example: 'marketplace'
       responses:
@@ -525,13 +526,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           example: 'active'
         - name: channels
           in: header
@@ -1805,13 +1806,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           example: 'active'
         - name: channels
           in: header
@@ -1891,13 +1892,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           description: active, o vacio
 
         - name: channels
@@ -9751,8 +9752,13 @@ paths:
         - migration tag
       summary: /v1/migration/products/orphans
       description: >-
-        consultar el total de id de publicacionde de la cuenta y almacenar el
-        detalle los productos
+         NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
+         Este handler identifica publicaciones que:
+         1. Pertenecen a una cuenta específica (account-id)
+         2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
+         3. No están activas en el catálogo (catalog_active = false)
+         4. Opcionalmente, filtradas por estado (true/false/all)
+         5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
       security:
         - bearerAuth: []
       parameters:
