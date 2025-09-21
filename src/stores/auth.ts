@@ -40,11 +40,69 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Error en login:', err)
       
       // Manejar el error con tipado seguro
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { data?: { message?: string } } }
-        error.value = axiosError.response?.data?.message || 'Error de autenticación. Verifica tus credenciales.'
+      if (err instanceof Error) {
+        // Si es un error con mensaje específico, usarlo directamente
+        error.value = err.message
+      } else if (err && typeof err === 'object' && 'response' in err) {
+        // Definir una interfaz para la estructura de respuesta del servidor
+        interface ApiErrorResponse {
+          Code?: string;
+          Status?: number;
+          Message?: string;
+          TecnicalDetails?: string;
+          message?: string; // Formato alternativo
+          [key: string]: unknown; // Para otros campos que puedan existir
+        }
+        
+        const axiosError = err as { 
+          response?: { 
+            data?: ApiErrorResponse, 
+            status?: number 
+          } 
+        }
+        
+        // Estructura de respuesta esperada del servidor
+        // {
+        //   "Code": "003",
+        //   "Status": 401,
+        //   "Message": "Sus datos de autenticacion son invalidos por favor intente nuevamente",
+        //   "TecnicalDetails": "credenciales inválidas: contraseña incorrecta"
+        // }
+        
+        // Verificar si la respuesta tiene la estructura esperada
+        if (axiosError.response?.data?.Message) {
+          // Usar el mensaje proporcionado por el servidor
+          error.value = axiosError.response.data.Message
+        } else if (axiosError.response?.data?.message) {
+          // Formato alternativo de mensaje
+          error.value = axiosError.response.data.message
+        } else {
+          // Mensajes personalizados según el código de estado
+          switch (axiosError.response?.status) {
+            case 401:
+            case 403:
+              error.value = 'Credenciales incorrectas. Por favor, verifica tu nombre de usuario y contraseña.'
+              break
+            case 404:
+              error.value = 'El servicio de autenticación no está disponible. Por favor, contacta al administrador.'
+              break
+            case 429:
+              error.value = 'Demasiados intentos fallidos. Por favor, espera unos minutos e intenta nuevamente.'
+              break
+            case 500:
+            case 502:
+            case 503:
+              error.value = 'Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico.'
+              break
+            default:
+              error.value = 'Error de autenticación. Verifica tus credenciales.'
+          }
+        }
+        
+        // Para depuración, registrar la estructura completa del error
+        console.log('Estructura completa del error:', axiosError.response?.data)
       } else {
-        error.value = 'Error de conexión. Intenta más tarde.'
+        error.value = 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.'
       }
       
       return false

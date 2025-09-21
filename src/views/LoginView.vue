@@ -15,6 +15,11 @@ const password = ref('')
 const showPassword = ref(false)
 const formValid = ref(true)
 const rememberMe = ref(false)
+const failedAttempts = ref(0)
+const showForgotPasswordDialog = ref(false)
+const forgotPasswordEmail = ref('')
+const forgotPasswordSubmitted = ref(false)
+const forgotPasswordLoading = ref(false)
 
 // Usar el estado del store para loading y error
 const loading = computed(() => authStore.loading)
@@ -30,10 +35,16 @@ onMounted(() => {
 })
 
 const rules = {
-  username: [(v: string) => !!v || 'El nombre de usuario es requerido'],
+  username: [
+    (v: string) => !!v || 'El nombre de usuario es requerido',
+    (v: string) => (v && v.trim() !== '') || 'El nombre de usuario no puede estar vacío',
+    (v: string) => (v && v.length <= 50) || 'El nombre de usuario no puede exceder los 50 caracteres',
+  ],
   password: [
     (v: string) => !!v || 'La contraseña es requerida',
-    (v: string) => v.length >= 3 || 'La contraseña debe tener al menos 3 caracteres',
+    (v: string) => (v && v.trim() !== '') || 'La contraseña no puede estar vacía',
+    (v: string) => (v && v.length >= 3) || 'La contraseña debe tener al menos 3 caracteres',
+    (v: string) => (v && v.length <= 50) || 'La contraseña no puede exceder los 50 caracteres',
   ],
 }
 
@@ -48,6 +59,9 @@ const login = async () => {
   })
 
   if (success) {
+    // Reiniciar contador de intentos fallidos
+    failedAttempts.value = 0
+    
     // Si la opción de recordarme está activada, guardar preferencia
     if (rememberMe.value) {
       localStorage.setItem('remember_user', username.value)
@@ -57,8 +71,47 @@ const login = async () => {
 
     // Redirigir a la página de landing después del login exitoso
     router.push('/landing')
+  } else {
+    // Incrementar contador de intentos fallidos
+    failedAttempts.value++
   }
   // Si hay error, se muestra automáticamente desde el store
+}
+
+// Reglas de validación para el correo electrónico
+const emailRules = [
+  (v: string) => !!v || 'El correo electrónico es requerido',
+  (v: string) => /.+@.+\..+/.test(v) || 'El correo electrónico debe ser válido',
+]
+
+// Función para manejar la solicitud de recuperación de contraseña
+const handleForgotPassword = async () => {
+  // Validar el correo electrónico
+  if (!forgotPasswordEmail.value || !/.+@.+\..+/.test(forgotPasswordEmail.value)) {
+    return
+  }
+  
+  forgotPasswordLoading.value = true
+  
+  try {
+    // Simular una llamada a la API para solicitar la recuperación de contraseña
+    // En un entorno real, aquí se llamaría a un endpoint de la API
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Marcar como enviado
+    forgotPasswordSubmitted.value = true
+    
+    // Cerrar el diálogo después de un tiempo
+    setTimeout(() => {
+      showForgotPasswordDialog.value = false
+      forgotPasswordSubmitted.value = false
+      forgotPasswordEmail.value = ''
+    }, 3000)
+  } catch (error) {
+    console.error('Error al solicitar recuperación de contraseña:', error)
+  } finally {
+    forgotPasswordLoading.value = false
+  }
 }
 </script>
 
@@ -106,9 +159,29 @@ const login = async () => {
                 type="error"
                 variant="tonal"
                 class="mb-4"
-                density="compact"
+                density="comfortable"
+                closable
+                border="start"
+                icon="mdi-alert-circle"
               >
-                {{ errorMessage }}
+                <div class="d-flex align-center">
+                  <div>
+                    <strong class="text-subtitle-2">Error de inicio de sesión</strong>
+                    <div class="text-body-2">{{ errorMessage }}</div>
+                    <div class="text-caption mt-2" v-if="errorMessage.includes('Credenciales incorrectas') || errorMessage.includes('autenticacion') || errorMessage.includes('inválidos')">
+                      <v-icon size="small" class="me-1">mdi-lightbulb</v-icon>
+                      <span>Sugerencia: Verifica que no tengas activado el bloqueo de mayúsculas y que estés usando las credenciales correctas.</span>
+                    </div>
+                    <div class="text-caption mt-2" v-if="errorMessage.includes('conexión')">
+                      <v-icon size="small" class="me-1">mdi-lightbulb</v-icon>
+                      <span>Sugerencia: Verifica tu conexión a internet o contacta al administrador del sistema.</span>
+                    </div>
+                    <div class="text-caption mt-2" v-if="failedAttempts >= 3">
+                      <v-icon size="small" color="warning" class="me-1">mdi-alert</v-icon>
+                      <span>Has realizado {{ failedAttempts }} intentos fallidos. Si olvidaste tu contraseña, haz clic en "Olvidaste tu contraseña".</span>
+                    </div>
+                  </div>
+                </div>
               </v-alert>
 
               <div class="d-flex justify-space-between align-center mb-4">
@@ -118,7 +191,13 @@ const login = async () => {
                   hide-details
                   density="compact"
                 />
-                <v-btn variant="text" color="primary" class="text-caption" density="compact">
+                <v-btn 
+                  variant="text" 
+                  color="primary" 
+                  class="text-caption" 
+                  density="compact"
+                  @click="showForgotPasswordDialog = true"
+                >
                   ¿Olvidaste tu contraseña?
                 </v-btn>
               </div>
@@ -172,6 +251,67 @@ const login = async () => {
         </div>
       </v-col>
     </v-row>
+    
+    <!-- Diálogo de recuperación de contraseña -->
+    <v-dialog v-model="showForgotPasswordDialog" max-width="500px">
+      <v-card>
+        <v-card-title class="text-h5 pb-2">
+          <v-icon start color="primary" class="me-2">mdi-lock-reset</v-icon>
+          Recuperar contraseña
+        </v-card-title>
+        
+        <v-card-text>
+          <div v-if="!forgotPasswordSubmitted">
+            <p class="text-body-2 mb-4">
+              Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.
+            </p>
+            
+            <v-form @submit.prevent="handleForgotPassword">
+              <v-text-field
+                v-model="forgotPasswordEmail"
+                :rules="emailRules"
+                label="Correo electrónico"
+                prepend-inner-icon="mdi-email"
+                variant="outlined"
+                required
+                autocomplete="email"
+              />
+            </v-form>
+          </div>
+          
+          <div v-else class="text-center py-4">
+            <v-icon color="success" size="large" class="mb-4">mdi-check-circle</v-icon>
+            <h3 class="text-h6 mb-2">Solicitud enviada</h3>
+            <p class="text-body-2">
+              Hemos enviado un correo electrónico con instrucciones para restablecer tu contraseña.
+              Por favor, revisa tu bandeja de entrada.
+            </p>
+          </div>
+        </v-card-text>
+        
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="showForgotPasswordDialog = false"
+            :disabled="forgotPasswordLoading"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            v-if="!forgotPasswordSubmitted"
+            color="primary"
+            variant="elevated"
+            @click="handleForgotPassword"
+            :loading="forgotPasswordLoading"
+            :disabled="!forgotPasswordEmail || !/.+@.+\..+/.test(forgotPasswordEmail)"
+          >
+            Enviar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 

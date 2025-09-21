@@ -26,17 +26,31 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Registrar detalles completos del error para depuración
+    console.error('Error en la solicitud HTTP:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    })
+
     // Capturar errores relacionados con la autenticación
     if (error.response) {
       if (error.response.status === 401 || error.response.status === 403) {
         console.error('Error de autenticación:', error.response.status, error.response.data)
 
-        // Si hay un error de token expirado o inválido, podemos limpiar el localStorage
-        if (
+        // Verificar si es un error de inicio de sesión o un error de token
+        const isLoginError = error.config?.url?.includes('/signin');
+        const isTokenError = 
           error.response.data &&
           (error.response.data.message?.includes('token') ||
-            error.response.data.error?.includes('token'))
-        ) {
+           error.response.data.Message?.includes('token') ||
+           error.response.data.error?.includes('token'));
+
+        // Si es un error de token (no de inicio de sesión), limpiar el localStorage
+        if (!isLoginError && isTokenError) {
           console.warn('Token inválido o expirado, cerrando sesión...')
           localStorage.removeItem('token')
           localStorage.removeItem('user')
@@ -95,7 +109,17 @@ export const authService = {
     try {
       try {
         // Intentar hacer login con la API
+        console.log('Intentando iniciar sesión con:', { username: credentials.username, passwordLength: credentials.password?.length })
         const response = await apiClient.post('/v1/signin', credentials)
+
+        // Registrar la respuesta para depuración (sin datos sensibles)
+        console.log('Respuesta del servidor (login):', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          hasData: !!response.data,
+          hasToken: response.data?.Token ? 'Sí' : 'No'
+        })
 
         // Obtener los datos del usuario y el token de la respuesta
         const userData = response.data as User
@@ -137,12 +161,14 @@ export const authService = {
                 'Credenciales incorrectas. Por favor, verifica tu nombre de usuario y contraseña',
               )
             } else if (status === 404) {
-              throw new Error('El servicio de autenticación no está disponible en esta ruta')
+              throw new Error('El servicio de autenticación no está disponible. Por favor, contacta al administrador del sistema')
+            } else if (status === 429) {
+              throw new Error('Demasiados intentos de inicio de sesión. Por favor, espera unos minutos antes de intentarlo nuevamente')
             } else if (status >= 500) {
-              throw new Error('Error en el servidor. Por favor, intenta más tarde')
+              throw new Error('Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico')
             }
           } else if (axiosError.request) {
-            throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet')
+            throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet o si el servidor está disponible')
           }
         }
 
@@ -160,15 +186,21 @@ export const authService = {
 
         // Personalizar mensaje de error para el usuario
         if (error.message.includes('token')) {
-          throw new Error('Error de autenticación: No se pudo obtener un token válido')
+          throw new Error('Error de autenticación: No se pudo obtener un token válido. Por favor, intenta nuevamente')
         } else if (error.message.includes('401') || error.message.includes('403')) {
           throw new Error(
             'Credenciales incorrectas. Por favor, verifica tu nombre de usuario y contraseña',
           )
+        } else if (error.message.includes('404')) {
+          throw new Error('El servicio de autenticación no está disponible. Por favor, contacta al administrador del sistema')
+        } else if (error.message.includes('429')) {
+          throw new Error('Demasiados intentos de inicio de sesión. Por favor, espera unos minutos antes de intentarlo nuevamente')
         } else if (error.message.includes('500')) {
-          throw new Error('Error en el servidor. Por favor, intenta más tarde')
-        } else if (error.message.includes('timeout') || error.message.includes('network')) {
-          throw new Error('Error de conexión. Verifica tu conexión a internet')
+          throw new Error('Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico')
+        } else if (error.message.includes('timeout')) {
+          throw new Error('La solicitud ha excedido el tiempo de espera. Por favor, verifica tu conexión e intenta nuevamente')
+        } else if (error.message.includes('network')) {
+          throw new Error('Error de conexión. Verifica tu conexión a internet o si el servidor está disponible')
         }
       } else {
         console.error('Error desconocido en login')
