@@ -79,7 +79,7 @@ const loadMissingPublications = async () => {
       offset: (page.value - 1) * itemsPerPage.value,
       limit: itemsPerPage.value
     }
-    
+
     const response = await compareService.getMissingPublications(accountId.value, options)
     missingPublicationIds.value = response.missing_publication_ids || []
     total.value = response.total || 0
@@ -134,7 +134,7 @@ const syncProductIds = async () => {
       channelsFilter.value,
       false // No es modo lectura, queremos almacenar los IDs
     )
-    
+
     // Verificar que la respuesta sea válida
     if (result && result.success) {
       notificationMessage.value = result.message || 'Sincronización de IDs iniciada correctamente'
@@ -143,9 +143,9 @@ const syncProductIds = async () => {
       notificationMessage.value = 'La sincronización se completó pero con un resultado inesperado'
       notificationType.value = 'warning'
     }
-    
+
     showNotification.value = true
-    
+
     // Recargar la lista de publicaciones faltantes después de sincronizar
     await loadMissingPublications()
   } catch (err) {
@@ -175,15 +175,15 @@ const createPublication = async (productId: string) => {
   try {
     processingId.value = productId
     emit('update:loading', true)
-    
+
     // Llamar al servicio para crear la publicación
     const result = await migrationService.createPublication(accountId.value, productId)
-    
+
     // Verificar que la respuesta contiene el ID de la publicación creada
     if (result && result.length > 0 && result.includes(productId)) {
       notificationMessage.value = `Publicación ${productId} creada exitosamente`
       notificationType.value = 'success'
-      
+
       // Recargar la lista de publicaciones faltantes para actualizar la vista
       await loadMissingPublications()
     } else {
@@ -233,42 +233,9 @@ defineExpose({
 
 <template>
   <div>
-    <!-- Header con información y botón de actualizar -->
-    <div class="d-flex justify-space-between align-center mb-4">
-      <div>
-        <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones Faltantes</h3>
-        <p class="text-caption text-grey">Publicaciones que existen en Mercado Libre pero no en la base de datos</p>
-      </div>
-      <div class="d-flex gap-2">
-        <v-btn 
-          color="success" 
-          variant="outlined" 
-          @click="syncProductIds"
-          :loading="syncLoading"
-          size="small"
-        >
-          <v-icon start>mdi-sync</v-icon>
-          Sincronizar IDs
-          <v-tooltip activator="parent" location="top">
-            Sincroniza todas las publicaciones de Mercado Libre con la base de datos
-          </v-tooltip>
-        </v-btn>
-        <v-btn 
-          color="primary" 
-          variant="outlined" 
-          @click="loadMissingPublications"
-          :loading="loading"
-          size="small"
-        >
-          <v-icon start>mdi-refresh</v-icon>
-          Actualizar
-        </v-btn>
-      </div>
-    </div>
-    
-    <!-- Filtros -->
+    <!-- Filtros y botones -->
     <v-row class="mb-4">
-      <v-col cols="12" md="6" lg="4">
+      <v-col cols="12" md="4" lg="3">
         <v-select
           v-model="statusFilter"
           :items="statusOptions"
@@ -287,8 +254,8 @@ defineExpose({
           </template>
         </v-select>
       </v-col>
-      
-      <v-col cols="12" md="6" lg="4">
+
+      <v-col cols="12" md="4" lg="3">
         <v-select
           v-model="channelsFilter"
           :items="channelsOptions"
@@ -307,8 +274,34 @@ defineExpose({
           </template>
         </v-select>
       </v-col>
+
+      <v-col cols="12" md="4" lg="6" class="d-flex align-center justify-end gap-2">
+        <v-btn
+          color="success"
+          variant="outlined"
+          @click="syncProductIds"
+          :loading="syncLoading"
+          size="small"
+        >
+          <v-icon start>mdi-sync</v-icon>
+          Sincronizar IDs
+          <v-tooltip activator="parent" location="top">
+            Sincroniza todas las publicaciones de Mercado Libre con la base de datos
+          </v-tooltip>
+        </v-btn>
+        <v-btn
+          color="info"
+          variant="outlined"
+          @click="loadMissingPublications"
+          :loading="loading"
+          size="small"
+        >
+          <v-icon start>mdi-refresh</v-icon>
+          Refrescar
+        </v-btn>
+      </v-col>
     </v-row>
-    
+
     <!-- Contador de resultados -->
     <div v-if="total > 0" class="mb-2">
       <v-chip color="info" size="small" variant="outlined">
@@ -316,13 +309,13 @@ defineExpose({
         {{ total }} publicaciones faltantes encontradas
       </v-chip>
     </div>
-    
+
     <div class="position-relative">
       <v-data-table
         :headers="missingPublicationsHeaders"
-        :items="Array.isArray(missingPublicationIds) && missingPublicationIds.length > 0 ? missingPublicationIds.map(id => ({ 
-          id, 
-          account: accountName 
+        :items="Array.isArray(missingPublicationIds) && missingPublicationIds.length > 0 ? missingPublicationIds.map(id => ({
+          id,
+          account: accountName
         })) : []"
         :loading="loading"
         :items-per-page="itemsPerPage"
@@ -371,18 +364,18 @@ defineExpose({
           </v-btn>
         </div>
       </template>
-      
+
       <!-- No usamos el slot bottom para poder tener un paginador fijo -->
       <template #bottom>
       </template>
       </v-data-table>
-      
+
       <!-- Paginador fijo -->
       <div class="pagination-fixed">
         <div class="d-flex align-center w-100 px-4 py-2 bg-white">
           <div class="text-caption text-grey me-4">
-            {{ total > 0 ? 
-              `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` : 
+            {{ total > 0 ?
+              `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` :
               '0-0 de 0' }}
           </div>
           <div class="d-flex align-center me-4">
@@ -413,7 +406,7 @@ defineExpose({
         </div>
       </div>
     </div>
-    
+
     <!-- Notificación de éxito o error -->
     <v-snackbar
       v-model="showNotification"

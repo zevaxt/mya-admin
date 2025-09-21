@@ -16,7 +16,7 @@ const systemInfo = ref({
   environment: import.meta.env.MODE || 'development',
   apiUrl: import.meta.env.VITE_API_URL || 'No configurado',
   browser: navigator.userAgent,
-  timestamp: new Date().toISOString()
+  timestamp: new Date().toISOString(),
 })
 
 // Función para cargar cuentas
@@ -39,7 +39,7 @@ const toggleDebugPanel = () => {
 const refreshSystemInfo = () => {
   systemInfo.value = {
     ...systemInfo.value,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   }
 }
 
@@ -52,32 +52,24 @@ onMounted(() => {
 <template>
   <v-app-bar color="primary" dark app>
     <v-app-bar-nav-icon></v-app-bar-nav-icon>
-    
+
     <v-toolbar-title>MYA Admin</v-toolbar-title>
-    
+
     <!-- Menú de navegación -->
     <div class="ml-4">
-      <v-btn
-        variant="text"
-        :to="{ name: 'dashboard' }"
-        color="white"
-      >
+      <v-btn variant="text" :to="{ name: 'dashboard' }" color="white">
         <v-icon start>mdi-view-dashboard</v-icon>
         Dashboard
       </v-btn>
-      
-      <v-btn
-        variant="text"
-        :to="{ name: 'migrations' }"
-        color="white"
-      >
+
+      <v-btn variant="text" :to="{ name: 'migrations' }" color="white">
         <v-icon start>mdi-swap-horizontal</v-icon>
         Migraciones
       </v-btn>
     </div>
-    
+
     <v-spacer></v-spacer>
-    
+
     <!-- Selector de cuentas -->
     <div class="d-flex align-center">
       <v-chip color="warning" class="mr-2" v-if="!authStore.isAuthenticated">
@@ -86,21 +78,26 @@ onMounted(() => {
       </v-chip>
       <AccountSelector v-if="authStore.isAuthenticated" class="mx-2" />
     </div>
-    
+
     <v-btn icon class="mx-1">
       <v-icon>mdi-magnify</v-icon>
     </v-btn>
-    
+
     <v-btn icon class="mx-1">
       <v-icon>mdi-bell</v-icon>
     </v-btn>
-    
+
     <!-- Botón para mostrar/ocultar panel de depuración -->
-    <v-btn icon class="mx-1" @click="toggleDebugPanel" :color="showDebugPanel ? 'error' : 'default'">
+    <v-btn
+      icon
+      class="mx-1"
+      @click="toggleDebugPanel"
+      :color="showDebugPanel ? 'error' : 'default'"
+    >
       <v-icon>mdi-bug</v-icon>
       <v-tooltip activator="parent" location="bottom">Panel de depuración</v-tooltip>
     </v-btn>
-    
+
     <v-menu offset-y v-if="authStore.isAuthenticated">
       <template v-slot:activator="{ props }">
         <v-btn icon v-bind="props" class="mx-1">
@@ -109,29 +106,27 @@ onMounted(() => {
           </v-avatar>
         </v-btn>
       </template>
-      
+
       <v-list>
         <v-list-item>
           <v-list-item-title>
             <strong>{{ authStore.username }}</strong>
           </v-list-item-title>
-          <v-list-item-subtitle>
-            ID: {{ authStore.currentUserId }}
-          </v-list-item-subtitle>
+          <v-list-item-subtitle> ID: {{ authStore.currentUserId }} </v-list-item-subtitle>
         </v-list-item>
-        
+
         <v-divider></v-divider>
-        
+
         <v-list-item @click="router.push('/profile')" prepend-icon="mdi-account-cog">
           <v-list-item-title>Perfil</v-list-item-title>
         </v-list-item>
-        
+
         <v-list-item @click="router.push('/settings')" prepend-icon="mdi-cog">
           <v-list-item-title>Configuración</v-list-item-title>
         </v-list-item>
-        
+
         <v-divider></v-divider>
-        
+
         <v-list-item @click="logout" prepend-icon="mdi-logout">
           <v-list-item-title>Cerrar sesión</v-list-item-title>
         </v-list-item>
@@ -157,9 +152,9 @@ onMounted(() => {
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
-      
+
       <v-divider></v-divider>
-      
+
       <v-card-text>
         <!-- Información del sistema -->
         <h3 class="text-subtitle-1 font-weight-bold mb-2">Información del sistema</h3>
@@ -168,46 +163,48 @@ onMounted(() => {
             <v-list-item-title>Versión</v-list-item-title>
             <v-list-item-subtitle>{{ systemInfo.version }}</v-list-item-subtitle>
           </v-list-item>
-          
+
           <v-list-item>
             <v-list-item-title>Entorno</v-list-item-title>
             <v-list-item-subtitle>{{ systemInfo.environment }}</v-list-item-subtitle>
           </v-list-item>
-          
+
           <v-list-item>
             <v-list-item-title>URL de API</v-list-item-title>
             <v-list-item-subtitle>{{ systemInfo.apiUrl }}</v-list-item-subtitle>
           </v-list-item>
-          
+
           <v-list-item>
             <v-list-item-title>Navegador</v-list-item-title>
-            <v-list-item-subtitle class="text-truncate">{{ systemInfo.browser }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="text-truncate">{{
+              systemInfo.browser
+            }}</v-list-item-subtitle>
           </v-list-item>
-          
+
           <v-list-item>
             <v-list-item-title>Timestamp</v-list-item-title>
             <v-list-item-subtitle>{{ systemInfo.timestamp }}</v-list-item-subtitle>
           </v-list-item>
         </v-list>
-        
+
         <!-- Estado de autenticación -->
         <h3 class="text-subtitle-1 font-weight-bold mb-2">Estado de autenticación</h3>
         <pre>isAuthenticated: {{ authStore.isAuthenticated }}</pre>
         <pre>token: {{ authStore.token ? '✓' : '✗' }}</pre>
         <pre>userId: {{ authStore.userId }}</pre>
         <pre>username: {{ authStore.username }}</pre>
-        
+
         <v-divider class="my-3"></v-divider>
-        
+
         <!-- Estado de cuentas -->
         <h3 class="text-subtitle-1 font-weight-bold mb-2">Estado de cuentas</h3>
         <pre>cuentas cargadas: {{ accountStore.accounts.length }}</pre>
         <pre>cuenta seleccionada: {{ accountStore.selectedAccount?.ID || 'ninguna' }}</pre>
-        
+
         <v-alert v-if="accountStore.error" type="error" class="mt-2">
           {{ accountStore.error }}
         </v-alert>
-        
+
         <v-list v-if="accountStore.accounts.length > 0" class="mt-2 bg-grey-lighten-4">
           <v-list-item v-for="account in accountStore.accounts" :key="account.ID">
             <v-list-item-title>{{ account.Nickname || `Cuenta #${account.ID}` }}</v-list-item-title>
@@ -215,7 +212,7 @@ onMounted(() => {
           </v-list-item>
         </v-list>
       </v-card-text>
-      
+
       <v-card-actions>
         <v-btn color="secondary" @click="loadAccounts" :disabled="!authStore.isAuthenticated">
           Cargar cuentas
@@ -223,7 +220,7 @@ onMounted(() => {
         <v-spacer></v-spacer>
         <v-btn color="primary" @click="refreshSystemInfo">
           <v-icon start>mdi-refresh</v-icon>
-          Actualizar
+          Refrescar
         </v-btn>
       </v-card-actions>
     </v-card>
