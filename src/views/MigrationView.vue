@@ -2,9 +2,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
-import type { ProductId, ProductDetail, OrphanProduct } from '@/services/migrationService'
+import type { ProductId, ProductDetail } from '@/services/migrationService'
 import MissingPublicationsTable from '@/components/migration/MissingPublicationsTable.vue'
 import DeprecatedPublicationsTable from '@/components/migration/DeprecatedPublicationsTable.vue'
+import OrphanPublicationsTable from '@/components/migration/OrphanPublicationsTable.vue'
 
 // Stores
 const accountStore = useAccountStore()
@@ -14,14 +15,14 @@ const activeTab = ref<number>(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const productIds = ref<ProductId[]>([])
-const orphanProducts = ref<OrphanProduct[]>([])
+// orphanProducts ya no se necesita porque se maneja en el componente OrphanPublicationsTable
 const selectedProduct = ref<ProductDetail | null>(null)
 const showProductDetail = ref(false)
 const statusFilter = ref('')
 const syncActiveFilter = ref<string>('')
 const catalogActiveFilter = ref<string>('')
 const totalProductIds = ref(0)
-const totalOrphans = ref(0)
+// totalOrphans ya no se necesita porque se maneja en el componente OrphanPublicationsTable
 const page = ref(1)
 const itemsPerPage = ref(100)
 const showNotification = ref(false)
@@ -70,15 +71,7 @@ const productIdsHeaders = [
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
-// Cabeceras de tabla para productos huérfanos
-const orphanProductsHeaders = [
-  { title: 'ID', key: 'id', sortable: true },
-  { title: 'Título', key: 'title', sortable: true },
-  { title: 'Categoría', key: 'category_id', sortable: true },
-  { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Estado de Sincronización', key: 'sync_status', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false },
-]
+// Las cabeceras para productos huérfanos ahora están en el componente OrphanPublicationsTable
 
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
@@ -172,37 +165,7 @@ const loadProductIds = async () => {
   }
 }
 
-const loadOrphanProducts = async () => {
-  if (!hasAccount.value) {
-    error.value = 'Selecciona una cuenta para ver los productos huérfanos'
-    return
-  }
-
-  loading.value = true
-  error.value = null
-
-  try {
-    const offset = (page.value - 1) * itemsPerPage.value
-    const response = await migrationService.getOrphanProducts(
-      accountId.value,
-      statusFilter.value,
-      offset,
-      itemsPerPage.value,
-    )
-
-    orphanProducts.value = response.products
-    totalOrphans.value = response.total
-  } catch (err) {
-    console.error('Error al cargar productos huérfanos:', err)
-    if (err instanceof Error) {
-      error.value = `Error al cargar productos huérfanos: ${err.message}`
-    } else {
-      error.value = 'Error al cargar productos huérfanos'
-    }
-  } finally {
-    loading.value = false
-  }
-}
+// La función loadOrphanProducts ya no es necesaria porque ahora se maneja dentro del componente OrphanPublicationsTable
 
 const viewProductDetail = async (productId: string) => {
   if (!hasAccount.value) return
@@ -325,36 +288,32 @@ const handleTabChange = (tabIndex: unknown) => {
 
   if (index === 0) {
     loadProductIds()
-  } else if (index === 1) {
-    loadOrphanProducts()
   }
+  // Las pestañas 1, 2 y 3 tienen sus propios componentes que manejan la carga de datos
   // Las pestañas 2 y 3 tienen sus propios componentes que manejan la carga de datos
 }
 
 const handlePageChange = () => {
   if (activeTab.value === 0) {
     loadProductIds()
-  } else if (activeTab.value === 1) {
-    loadOrphanProducts()
   }
+  // Las pestañas 1, 2 y 3 tienen sus propios componentes que manejan la paginación
 }
 
 const handleItemsPerPageChange = () => {
   page.value = 1 // Resetear a la primera página cuando cambia el número de items por página
   if (activeTab.value === 0) {
     loadProductIds()
-  } else if (activeTab.value === 1) {
-    loadOrphanProducts()
   }
+  // Las pestañas 1, 2 y 3 tienen sus propios componentes que manejan los cambios de items por página
 }
 
 const handleStatusFilterChange = () => {
   page.value = 1
   if (activeTab.value === 0) {
     loadProductIds()
-  } else if (activeTab.value === 1) {
-    loadOrphanProducts()
   }
+  // Las pestañas 1, 2 y 3 tienen sus propios componentes que manejan los cambios de filtro
 }
 
 const handleSyncActiveFilterChange = () => {
@@ -420,20 +379,18 @@ const deleteSelectedItems = async () => {
 
 // Inicialización
 onMounted(() => {
-  if (hasAccount.value) {
+  if (hasAccount.value && activeTab.value === 0) {
     loadProductIds()
   }
+  // Las pestañas 1, 2 y 3 tienen sus propios componentes que manejan la carga inicial de datos
 })
 
 // Observar cambios en la cuenta seleccionada
 watch(
   () => accountId.value,
-  () => {
-    page.value = 1
-    if (activeTab.value === 0) {
+  (newAccountId) => {
+    if (newAccountId && activeTab.value === 0) {
       loadProductIds()
-    } else if (activeTab.value === 1) {
-      loadOrphanProducts()
     }
   },
 )
@@ -476,13 +433,6 @@ watch(
               class="font-weight-medium tab-with-border"
             >
               <v-icon start color="warning">mdi-alert-circle-outline</v-icon>
-              <v-badge
-                :content="orphanProducts.length"
-                :model-value="orphanProducts.length > 0"
-                color="warning"
-                inline
-                class="ml-2"
-              ></v-badge>
               Publicaciones Huérfanas
             </v-tab>
             <v-tab
@@ -522,29 +472,10 @@ watch(
               </v-btn>
             </div>
 
-            <div v-if="activeTab === 1" class="d-flex justify-space-between align-center mb-4">
-              <div>
-                <h3 class="text-h6 text-warning font-weight-medium mb-1">
-                  Publicaciones Huérfanas
-                </h3>
-                <p class="text-caption text-grey">
-                  Productos que existen en la base de datos pero no tienen publicación
-                </p>
-              </div>
-              <v-btn
-                color="warning"
-                variant="outlined"
-                @click="loadOrphanProducts"
-                :loading="loading"
-                size="small"
-              >
-                <v-icon start>mdi-refresh</v-icon>
-                Refrescar
-              </v-btn>
-            </div>
+            <!-- El título se muestra dentro del componente OrphanPublicationsTable -->
 
-            <v-row class="mb-4">
-              <v-col cols="12" md="3" v-if="activeTab !== 2 && activeTab !== 3">
+            <v-row class="mb-4" v-if="activeTab === 0">
+              <v-col cols="12" md="3">
                 <v-select
                   v-model="statusFilter"
                   :items="statusOptions"
@@ -632,8 +563,8 @@ watch(
               </v-col>
 
               <v-col
-                :cols="12"
-                :md="activeTab === 0 ? 3 : 9"
+                cols="12"
+                md="3"
                 class="d-flex justify-end align-center gap-2"
               >
                 <v-btn
@@ -829,125 +760,13 @@ watch(
               </div>
             </div>
 
-            <!-- Tabla de productos huérfanos -->
-            <div v-if="activeTab === 1" class="position-relative">
-              <v-data-table
-                :headers="orphanProductsHeaders"
-                :items="orphanProducts"
-                :loading="loading"
-                :items-per-page="itemsPerPage"
-                class="elevation-1 rounded-lg"
-                :no-data-text="
-                  hasAccount
-                    ? 'No hay productos huérfanos disponibles'
-                    : 'Selecciona una cuenta para ver los productos huérfanos'
-                "
-              >
-                <template #[`item.status`]="{ item }">
-                  <v-chip
-                    :color="
-                      item.status === 'active'
-                        ? 'success'
-                        : item.status === 'paused'
-                          ? 'warning'
-                          : 'error'
-                    "
-                    size="small"
-                  >
-                    {{
-                      item.status === 'active'
-                        ? 'Activo'
-                        : item.status === 'paused'
-                          ? 'Pausado'
-                          : 'Finalizado'
-                    }}
-                  </v-chip>
-                </template>
-
-                <template #[`item.sync_status`]="{ item }">
-                  <v-chip
-                    v-if="item.sync_status"
-                    :color="
-                      item.sync_status === 'synced'
-                        ? 'success'
-                        : item.sync_status === 'pending'
-                          ? 'warning'
-                          : 'error'
-                    "
-                    size="small"
-                  >
-                    {{
-                      item.sync_status === 'synced'
-                        ? 'Sincronizado'
-                        : item.sync_status === 'pending'
-                          ? 'Pendiente'
-                          : 'Error'
-                    }}
-                  </v-chip>
-                  <span v-else>No disponible</span>
-                </template>
-
-                <template #[`item.actions`]="{ item }">
-                  <v-btn
-                    icon
-                    size="small"
-                    color="primary"
-                    class="mr-2"
-                    @click="viewProductDetail(item.id)"
-                    :disabled="loading"
-                  >
-                    <v-icon>mdi-eye</v-icon>
-                    <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
-                  </v-btn>
-
-                  <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
-                    <v-icon>mdi-open-in-new</v-icon>
-                    <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
-                  </v-btn>
-                </template>
-
-                <!-- No usamos el slot bottom para poder tener un paginador fijo -->
-                <template #bottom> </template>
-              </v-data-table>
-
-              <!-- Paginador fijo para la tabla de productos huérfanos -->
-              <div class="pagination-fixed">
-                <div class="d-flex align-center w-100 px-4 py-2 bg-white">
-                  <div class="text-caption text-grey me-4">
-                    {{
-                      orphanProducts.length > 0
-                        ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalOrphans)} de ${totalOrphans}`
-                        : '0-0 de 0'
-                    }}
-                  </div>
-                  <div class="d-flex align-center me-4">
-                    <span class="text-caption me-2">Registros por página:</span>
-                    <v-select
-                      v-model="itemsPerPage"
-                      :items="itemsPerPageOptions"
-                      variant="outlined"
-                      density="compact"
-                      class="items-per-page-select"
-                      hide-details
-                      @update:model-value="handleItemsPerPageChange"
-                    ></v-select>
-                  </div>
-                  <v-pagination
-                    v-model="page"
-                    :length="Math.ceil(totalOrphans / itemsPerPage)"
-                    @update:model-value="handlePageChange"
-                    :disabled="loading"
-                    :total-visible="5"
-                    show-first
-                    show-last
-                    class="pagination-centered flex-grow-1"
-                    density="comfortable"
-                    rounded="circle"
-                    active-color="primary"
-                  ></v-pagination>
-                </div>
-              </div>
-            </div>
+            <!-- Componente de publicaciones huérfanas -->
+            <OrphanPublicationsTable
+              v-if="activeTab === 1"
+              :loading="loading"
+              @update:loading="loading = $event"
+              @error="error = $event"
+            />
 
             <!-- Tabla de publicaciones faltantes -->
             <MissingPublicationsTable

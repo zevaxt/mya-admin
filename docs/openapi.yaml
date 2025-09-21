@@ -9873,7 +9873,20 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Cantidad total de publicaciones huérfanas encontradas
+                    example: 476
+                  publication_ids:
+                    type: array
+                    description: Lista de IDs de publicaciones huérfanas
+                    items:
+                      type: string
+                    example: ['MCO1033211161', 'MCO1034750110', 'MCO1034933991']
   /v1/migration/products/orphans/matching-title:
     get:
       tags:

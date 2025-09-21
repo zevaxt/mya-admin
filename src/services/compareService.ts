@@ -12,6 +12,11 @@ export interface DeprecatedPublicationsResponse {
   deprecated_publication_ids: string[]
 }
 
+export interface OrphanPublicationsResponse {
+  count: number
+  publication_ids: string[]
+}
+
 // Opciones para la consulta de publicaciones faltantes
 export interface MissingPublicationsOptions {
   status?: 'active' | 'paused' | 'inactive' | ''
@@ -22,6 +27,14 @@ export interface MissingPublicationsOptions {
 
 // Opciones para la consulta de publicaciones deprecadas
 export interface DeprecatedPublicationsOptions {
+  offset?: number
+  limit?: number
+}
+
+// Opciones para la consulta de publicaciones huérfanas
+export interface OrphanPublicationsOptions {
+  status?: boolean | 'all'
+  withSoldQuantity?: boolean | 'all'
   offset?: number
   limit?: number
 }
@@ -105,6 +118,56 @@ export const compareService = {
       return response.data as DeprecatedPublicationsResponse
     } catch (error) {
       console.error('Error al obtener publicaciones deprecadas:', error)
+      throw error
+    }
+  },
+
+  // Obtener publicaciones huérfanas (no sincronizadas y sin catálogo activo)
+  async getOrphanPublications(
+    accountId: number,
+    options?: OrphanPublicationsOptions,
+  ): Promise<OrphanPublicationsResponse> {
+    try {
+      const headers: Record<string, string> = {
+        'account-id': accountId.toString(),
+      }
+
+      // Añadir encabezados opcionales según la especificación
+      if (options?.status !== undefined) {
+        headers['status'] = options.status.toString()
+      }
+
+      if (options?.withSoldQuantity !== undefined) {
+        headers['with-sold-quantity'] = options.withSoldQuantity.toString()
+      }
+
+      // Parámetros de paginación
+      const url = '/v1/migration/products/orphans'
+      const params: Record<string, string> = {}
+
+      if (options?.offset !== undefined) {
+        params['offset'] = options.offset.toString()
+      }
+
+      if (options?.limit !== undefined) {
+        params['limit'] = options.limit.toString()
+      }
+
+      const response = await apiClient.get(url, {
+        headers,
+        params,
+      })
+
+      // Depurar la respuesta
+      console.log('Respuesta del servidor (publicaciones huérfanas):', response.data)
+
+      // Devolver la respuesta según el formato documentado
+      return {
+        count: response.data.count || 0,
+        publication_ids: response.data.publication_ids || [],
+      } as OrphanPublicationsResponse
+    } catch (error) {
+      console.error('Error al obtener publicaciones huérfanas:', error)
       throw error
     }
   },

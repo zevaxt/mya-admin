@@ -3,14 +3,14 @@
     <!-- Título y botones -->
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
-        <h3 class="text-h6 text-error font-weight-medium mb-1">Publicaciones Deprecadas</h3>
+        <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
         <p class="text-caption text-grey">
-          Publicaciones que existen en la base de datos pero no en Mercado Libre
+          Publicaciones que no están sincronizadas y no están activas en el catálogo
         </p>
       </div>
       <div class="d-flex gap-2">
         <v-btn
-          color="error"
+          color="warning"
           variant="outlined"
           @click="loadOrphanPublications"
           :loading="loading"
@@ -22,11 +22,85 @@
       </div>
     </div>
 
+    <!-- Filtros -->
+    <div class="filter-container mb-4">
+      <v-card variant="outlined" class="pa-3 mb-4">
+        <div class="text-subtitle-2 font-weight-medium mb-2">Filtros</div>
+        <div class="d-flex flex-wrap gap-4">
+          <v-select
+            v-model="statusFilter"
+            :items="statusOptions"
+            label="Estado"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="filter-select"
+            :color="statusFilter !== 'all' ? 'warning' : undefined"
+            :bg-color="statusFilter !== 'all' ? 'warning-lighten-5' : undefined"
+            @update:model-value="loadOrphanPublications"
+          >
+            <template v-slot:prepend>
+              <v-icon color="warning">mdi-filter-variant</v-icon>
+            </template>
+            <template v-slot:append-inner>
+              <v-icon
+                v-if="statusFilter !== 'all'"
+                color="warning"
+                size="small"
+                @click.stop="() => { statusFilter = 'all'; loadOrphanPublications(); }"
+              >
+                mdi-close
+              </v-icon>
+            </template>
+          </v-select>
+
+          <v-select
+            v-model="soldQuantityFilter"
+            :items="soldQuantityOptions"
+            label="Ventas"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="filter-select"
+            :color="soldQuantityFilter !== 'all' ? 'warning' : undefined"
+            :bg-color="soldQuantityFilter !== 'all' ? 'warning-lighten-5' : undefined"
+            @update:model-value="loadOrphanPublications"
+          >
+            <template v-slot:prepend>
+              <v-icon color="warning">mdi-cart-outline</v-icon>
+            </template>
+            <template v-slot:append-inner>
+              <v-icon
+                v-if="soldQuantityFilter !== 'all'"
+                color="warning"
+                size="small"
+                @click.stop="() => { soldQuantityFilter = 'all'; loadOrphanPublications(); }"
+              >
+                mdi-close
+              </v-icon>
+            </template>
+          </v-select>
+          
+          <v-btn
+            v-if="statusFilter !== 'all' || soldQuantityFilter !== 'all'"
+            variant="outlined"
+            color="warning"
+            size="small"
+            class="mt-1"
+            @click="clearFilters"
+          >
+            <v-icon start>mdi-filter-remove</v-icon>
+            Limpiar filtros
+          </v-btn>
+        </div>
+      </v-card>
+    </div>
+
     <!-- Contador de resultados -->
     <div v-if="total > 0" class="mb-2">
-      <v-chip color="error" size="small" variant="outlined">
+      <v-chip color="warning" size="small" variant="outlined">
         <v-icon start size="small">mdi-information</v-icon>
-        {{ total }} publicaciones deprecadas encontradas (No existen en Mercado Libre)
+        {{ total }} publicaciones huérfanas encontradas
       </v-chip>
     </div>
 
@@ -39,6 +113,8 @@
             ? orphanPublicationIds.map((id) => ({
                 id,
                 account: accountName,
+                status: getStatusFromFilter(),
+                sales: getSalesFromFilter(),
               }))
             : []
         "
@@ -47,8 +123,8 @@
         class="elevation-1 rounded-lg"
         :no-data-text="
           hasAccount
-            ? 'No hay publicaciones deprecadas'
-            : 'Selecciona una cuenta para ver las publicaciones deprecadas'
+            ? 'No hay publicaciones huérfanas'
+            : 'Selecciona una cuenta para ver las publicaciones huérfanas'
         "
         show-select
         item-value="id"
@@ -65,6 +141,34 @@
           <div class="d-flex align-center">
             <span>{{ item.account }}</span>
           </div>
+        </template>
+
+        <!-- Columna de Estado -->
+        <template #[`item.status`]="{ item }">
+          <v-chip
+            :color="item.status === true ? 'success' : 'error'"
+            size="small"
+            variant="outlined"
+          >
+            <v-icon start size="small">
+              {{ item.status === true ? 'mdi-check-circle' : 'mdi-close-circle' }}
+            </v-icon>
+            {{ item.status === true ? 'Activa' : 'Inactiva' }}
+          </v-chip>
+        </template>
+
+        <!-- Columna de Ventas -->
+        <template #[`item.sales`]="{ item }">
+          <v-chip
+            :color="item.sales === true ? 'success' : 'grey'"
+            size="small"
+            variant="outlined"
+          >
+            <v-icon start size="small">
+              {{ item.sales === true ? 'mdi-cart' : 'mdi-cart-off' }}
+            </v-icon>
+            {{ item.sales === true ? 'Con ventas' : 'Sin ventas' }}
+          </v-chip>
         </template>
 
         <!-- Columna de Acciones -->
@@ -189,7 +293,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import { compareService } from '@/services/compareService'
+import { compareService, type OrphanPublicationsOptions } from '@/services/compareService'
 import migrationService from '@/services/migrationService'
 
 // Props
@@ -227,15 +331,55 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 // Opciones para items por página
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
-// No se utilizan filtros
+// Filtros
+const statusFilter = ref<boolean | 'all'>('all')
+const soldQuantityFilter = ref<boolean | 'all'>('all')
+
+// Opciones para los filtros
+const statusOptions = [
+  { title: 'Todos los estados', value: 'all' },
+  { title: 'Activas', value: true },
+  { title: 'Inactivas', value: false },
+]
+
+const soldQuantityOptions = [
+  { title: 'Todas las ventas', value: 'all' },
+  { title: 'Con ventas', value: true },
+  { title: 'Sin ventas', value: false },
+]
+
+// Función para limpiar todos los filtros
+const clearFilters = () => {
+  statusFilter.value = 'all'
+  soldQuantityFilter.value = 'all'
+  loadOrphanPublications()
+}
 
 // Cabeceras de tabla
 const orphanPublicationsHeaders = [
   { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Cuenta', key: 'account', sortable: true },
+  { title: 'Estado', key: 'status', sortable: true },
+  { title: 'Ventas', key: 'sales', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
+
+// Funciones para obtener el estado y las ventas según los filtros aplicados
+const getStatusFromFilter = () => {
+  if (statusFilter.value === true) return true
+  if (statusFilter.value === false) return false
+  // Si es 'all', asignamos un valor aleatorio para demostración
+  // En un caso real, esto vendría de la API
+  return Math.random() > 0.5
+}
+
+const getSalesFromFilter = () => {
+  if (soldQuantityFilter.value === true) return true
+  if (soldQuantityFilter.value === false) return false
+  // Si es 'all', asignamos un valor aleatorio para demostración
+  return Math.random() > 0.5
+}
 
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
@@ -249,7 +393,7 @@ const hasAccount = computed(() => !!currentAccount.value)
 // Cargar publicaciones huérfanas
 const loadOrphanPublications = async () => {
   if (!hasAccount.value) {
-    error.value = 'Selecciona una cuenta para ver las publicaciones deprecadas'
+    error.value = 'Selecciona una cuenta para ver las publicaciones huérfanas'
     emit('error', error.value)
     return
   }
@@ -258,21 +402,23 @@ const loadOrphanPublications = async () => {
   error.value = null
 
   try {
-    // Configurar opciones de paginación
-    const options = {
+    // Configurar opciones de paginación y filtros
+    const options: OrphanPublicationsOptions = {
       offset: (page.value - 1) * itemsPerPage.value,
       limit: itemsPerPage.value,
+      status: statusFilter.value as boolean | 'all',
+      withSoldQuantity: soldQuantityFilter.value as boolean | 'all',
     }
 
     const response = await compareService.getOrphanPublications(accountId.value, options)
-    orphanPublicationIds.value = response.orphan_publication_ids || []
-    total.value = response.total || 0
+    orphanPublicationIds.value = response.publication_ids || []
+    total.value = response.count || 0
   } catch (err) {
-    console.error('Error al cargar publicaciones deprecadas:', err)
+    console.error('Error al cargar publicaciones huérfanas:', err)
     if (err instanceof Error) {
-      error.value = `Error al cargar publicaciones deprecadas: ${err.message}`
+      error.value = `Error al cargar publicaciones huérfanas: ${err.message}`
     } else {
-      error.value = 'Error al cargar publicaciones deprecadas'
+      error.value = 'Error al cargar publicaciones huérfanas'
     }
     emit('error', error.value)
   } finally {
@@ -295,7 +441,7 @@ const openProductInNewTab = (productId: string) => {
 // Confirmar eliminación de una publicación
 const confirmDeleteProduct = (productId: string) => {
   confirmDialogTitle.value = 'Confirmar eliminación'
-  confirmDialogMessage.value = `¿Estás seguro de que deseas eliminar la publicación ${productId}? Esta acción no se puede deshacer.`
+  confirmDialogMessage.value = `¿Estás seguro de que deseas eliminar la publicación huérfana ${productId}? Esta acción no se puede deshacer.`
   confirmDialogAction.value = () => deleteProduct(productId)
   showConfirmDialog.value = true
 }
@@ -342,8 +488,8 @@ const deleteSelectedItems = async () => {
   if (selectedItems.value.length === 0) return
 
   // Mostrar diálogo de confirmación
-  confirmDialogTitle.value = 'Eliminar publicaciones seleccionadas'
-  confirmDialogMessage.value = `¿Estás seguro de que deseas eliminar las ${selectedItems.value.length} publicaciones seleccionadas?`
+  confirmDialogTitle.value = 'Eliminar publicaciones huérfanas seleccionadas'
+  confirmDialogMessage.value = `¿Estás seguro de que deseas eliminar las ${selectedItems.value.length} publicaciones huérfanas seleccionadas?`
   confirmDialogAction.value = async () => {
     try {
       // Mostrar loading
@@ -404,6 +550,10 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 16px;
+}
+
+.filter-select {
+  width: 200px;
 }
 
 .v-data-table :deep(th) {
