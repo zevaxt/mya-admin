@@ -233,7 +233,40 @@ defineExpose({
 
 <template>
   <div>
-    <!-- Filtros y botones -->
+    <!-- Título y botones -->
+    <div class="d-flex justify-space-between align-center mb-4">
+      <div>
+        <h3 class="text-h6 text-info font-weight-medium mb-1">Publicaciones Faltantes</h3>
+        <p class="text-caption text-grey">Publicaciones que existen en Mercado Libre pero no en la base de datos</p>
+      </div>
+      <div class="d-flex gap-2">
+        <v-btn
+          color="success"
+          variant="outlined"
+          @click="syncProductIds"
+          :loading="syncLoading"
+          size="small"
+        >
+          <v-icon start>mdi-sync</v-icon>
+          Sincronizar IDs
+          <v-tooltip activator="parent" location="top">
+            Sincroniza todas las publicaciones de Mercado Libre con la base de datos
+          </v-tooltip>
+        </v-btn>
+        <v-btn
+          color="info"
+          variant="outlined"
+          @click="loadMissingPublications"
+          :loading="loading"
+          size="small"
+        >
+          <v-icon start>mdi-refresh</v-icon>
+          Refrescar
+        </v-btn>
+      </div>
+    </div>
+    
+    <!-- Filtros -->
     <v-row class="mb-4">
       <v-col cols="12" md="4" lg="3">
         <v-select
@@ -275,31 +308,6 @@ defineExpose({
         </v-select>
       </v-col>
 
-      <v-col cols="12" md="4" lg="6" class="d-flex align-center justify-end gap-2">
-        <v-btn
-          color="success"
-          variant="outlined"
-          @click="syncProductIds"
-          :loading="syncLoading"
-          size="small"
-        >
-          <v-icon start>mdi-sync</v-icon>
-          Sincronizar IDs
-          <v-tooltip activator="parent" location="top">
-            Sincroniza todas las publicaciones de Mercado Libre con la base de datos
-          </v-tooltip>
-        </v-btn>
-        <v-btn
-          color="info"
-          variant="outlined"
-          @click="loadMissingPublications"
-          :loading="loading"
-          size="small"
-        >
-          <v-icon start>mdi-refresh</v-icon>
-          Refrescar
-        </v-btn>
-      </v-col>
     </v-row>
 
     <!-- Contador de resultados -->

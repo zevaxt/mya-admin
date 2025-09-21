@@ -463,30 +463,42 @@ watch(
 
           <v-card-text>
             <!-- Títulos de las pestañas -->
-            <div v-if="activeTab === 0" class="mb-4">
-              <h3 class="text-h6 text-primary font-weight-medium mb-1">PUBLICACIONES</h3>
-              <p class="text-caption text-grey">Publicaciones registradas en el sistema</p>
+            <div v-if="activeTab === 0" class="d-flex justify-space-between align-center mb-4">
+              <div>
+                <h3 class="text-h6 text-primary font-weight-medium mb-1">PUBLICACIONES</h3>
+                <p class="text-caption text-grey">Publicaciones registradas en el sistema</p>
+              </div>
+              <v-btn
+                color="primary"
+                variant="outlined"
+                @click="loadProductIds"
+                :loading="loading"
+                size="small"
+              >
+                <v-icon start>mdi-refresh</v-icon>
+                Refrescar
+              </v-btn>
             </div>
 
-            <div v-if="activeTab === 1" class="mb-4">
-              <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
-              <p class="text-caption text-grey">
-                Productos que existen en la base de datos pero no tienen publicación
-              </p>
-            </div>
-
-            <div v-if="activeTab === 2" class="mb-4">
-              <h3 class="text-h6 text-info font-weight-medium mb-1">Publicaciones Faltantes</h3>
-              <p class="text-caption text-grey">
-                Publicaciones que existen en Mercado Libre pero no en la base de datos
-              </p>
-            </div>
-
-            <div v-if="activeTab === 3" class="mb-4">
-              <h3 class="text-h6 text-error font-weight-medium mb-1">Publicaciones Deprecadas</h3>
-              <p class="text-caption text-grey">
-                Publicaciones que existen en la base de datos pero no en Mercado Libre
-              </p>
+            <div v-if="activeTab === 1" class="d-flex justify-space-between align-center mb-4">
+              <div>
+                <h3 class="text-h6 text-warning font-weight-medium mb-1">
+                  Publicaciones Huérfanas
+                </h3>
+                <p class="text-caption text-grey">
+                  Productos que existen en la base de datos pero no tienen publicación
+                </p>
+              </div>
+              <v-btn
+                color="warning"
+                variant="outlined"
+                @click="loadOrphanProducts"
+                :loading="loading"
+                size="small"
+              >
+                <v-icon start>mdi-refresh</v-icon>
+                Refrescar
+              </v-btn>
             </div>
 
             <v-row class="mb-4">
@@ -592,32 +604,6 @@ watch(
                 >
                   <v-icon start>mdi-filter-remove</v-icon>
                   Limpiar filtros
-                </v-btn>
-
-                <!-- Botón de actualizar para Publicaciones -->
-                <v-btn
-                  v-if="activeTab === 0"
-                  color="primary"
-                  variant="outlined"
-                  @click="loadProductIds"
-                  :loading="loading"
-                  size="small"
-                >
-                  <v-icon start>mdi-refresh</v-icon>
-                  Refrescar
-                </v-btn>
-
-                <!-- Botón de actualizar para Productos Huérfanos -->
-                <v-btn
-                  v-if="activeTab === 1"
-                  color="warning"
-                  variant="outlined"
-                  @click="loadOrphanProducts"
-                  :loading="loading"
-                  size="small"
-                >
-                  <v-icon start>mdi-refresh</v-icon>
-                  Refrescar
                 </v-btn>
               </v-col>
             </v-row>
