@@ -4,7 +4,7 @@ import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
 import type { ProductId, ProductDetail, OrphanProduct } from '@/services/migrationService'
 import MissingPublicationsTable from '@/components/migration/MissingPublicationsTable.vue'
-import OrphanPublicationsTable from '@/components/migration/OrphanPublicationsTable.vue'
+import DeprecatedPublicationsTable from '@/components/migration/DeprecatedPublicationsTable.vue'
 
 // Stores
 const accountStore = useAccountStore()
@@ -958,7 +958,7 @@ watch(
             />
 
             <!-- Tabla de publicaciones deprecadas -->
-            <OrphanPublicationsTable
+            <DeprecatedPublicationsTable
               v-if="activeTab === 3"
               :loading="loading"
               @update:loading="loading = $event"

@@ -327,17 +327,17 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /v1/provider/publications/orphans:
+  /v1/provider/publications/deprecated:
     get:
       tags:
         - provider tag
-      summary: Encontrar publicaciones huérfanas en DB
+      summary: Encontrar publicaciones deprecadas en DB
       description: >
         ### Descripción
 
 
         Este endpoint identifica las publicaciones almacenadas en la base de datos que ya no existen
-        en Mercado Libre para una cuenta específica. Estas publicaciones son consideradas "huérfanas"
+        en Mercado Libre para una cuenta específica. Estas publicaciones son consideradas "deprecadas"
         ya que existen en la base de datos local pero ya no en el proveedor (Mercado Libre).
 
 
@@ -347,7 +347,7 @@ paths:
         - **Method:** GET
 
 
-        - **Endpoint:** `/v1/provider/publications/orphans`
+        - **Endpoint:** `/v1/provider/publications/deprecated`
 
 
         - **Headers requeridos:**
@@ -405,13 +405,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           example: 'active'
         - name: channels
           in: header
@@ -526,13 +526,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           example: 'active'
         - name: channels
           in: header
@@ -1806,13 +1806,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           example: 'active'
         - name: channels
           in: header
@@ -1892,13 +1892,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           description: active, o vacio
 
         - name: channels
@@ -9752,13 +9752,13 @@ paths:
         - migration tag
       summary: /v1/migration/products/orphans
       description: >-
-         NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
-         Este handler identifica publicaciones que:
-         1. Pertenecen a una cuenta específica (account-id)
-         2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
-         3. No están activas en el catálogo (catalog_active = false)
-         4. Opcionalmente, filtradas por estado (true/false/all)
-         5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
+        NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
+        Este handler identifica publicaciones que:
+        1. Pertenecen a una cuenta específica (account-id)
+        2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
+        3. No están activas en el catálogo (catalog_active = false)
+        4. Opcionalmente, filtradas por estado (true/false/all)
+        5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
       security:
         - bearerAuth: []
       parameters:

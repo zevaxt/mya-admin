@@ -7,9 +7,9 @@ export interface MissingPublicationsResponse {
   missing_publication_ids: string[]
 }
 
-export interface OrphanPublicationsResponse {
+export interface DeprecatedPublicationsResponse {
   total: number
-  orphan_publication_ids: string[]
+  deprecated_publication_ids: string[]
 }
 
 // Opciones para la consulta de publicaciones faltantes
@@ -20,8 +20,8 @@ export interface MissingPublicationsOptions {
   limit?: number
 }
 
-// Opciones para la consulta de publicaciones huérfanas
-export interface OrphanPublicationsOptions {
+// Opciones para la consulta de publicaciones deprecadas
+export interface DeprecatedPublicationsOptions {
   offset?: number
   limit?: number
 }
@@ -71,36 +71,40 @@ export const compareService = {
     }
   },
 
-  // Obtener publicaciones que existen en la base de datos pero no en Mercado Libre (huérfanas)
-  async getOrphanPublications(
+  // Obtener publicaciones que existen en la base de datos pero no en Mercado Libre (deprecadas)
+  async getDeprecatedPublications(
     accountId: number,
-    options?: OrphanPublicationsOptions,
-  ): Promise<OrphanPublicationsResponse> {
+    options?: DeprecatedPublicationsOptions,
+  ): Promise<DeprecatedPublicationsResponse> {
     try {
       const headers: Record<string, string> = {
         'account-id': accountId.toString(),
       }
-      
+
       // Parámetros de paginación
-      const url = '/v1/provider/publications/orphans'
+      const url = '/v1/provider/publications/deprecated'
       const params: Record<string, string> = {}
-      
+
       if (options?.offset !== undefined) {
         params['offset'] = options.offset.toString()
       }
-      
+
       if (options?.limit !== undefined) {
         params['limit'] = options.limit.toString()
       }
-      
+
       const response = await apiClient.get(url, {
         headers,
         params,
       })
 
-      return response.data as OrphanPublicationsResponse
+      // Depurar la respuesta
+      console.log('Respuesta del servidor (publicaciones deprecadas):', response.data)
+
+      // Devolver la respuesta directamente
+      return response.data as DeprecatedPublicationsResponse
     } catch (error) {
-      console.error('Error al obtener publicaciones huérfanas:', error)
+      console.error('Error al obtener publicaciones deprecadas:', error)
       throw error
     }
   },

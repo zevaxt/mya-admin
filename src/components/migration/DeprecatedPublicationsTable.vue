@@ -12,7 +12,7 @@
         <v-btn
           color="error"
           variant="outlined"
-          @click="loadOrphanPublications"
+          @click="loadDeprecatedPublications"
           :loading="loading"
           size="small"
         >
@@ -33,10 +33,10 @@
     <div class="position-relative">
       <v-data-table
         v-model="selectedItems"
-        :headers="orphanPublicationsHeaders"
+        :headers="deprecatedPublicationsHeaders"
         :items="
-          Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0
-            ? orphanPublicationIds.map((id) => ({
+          Array.isArray(deprecatedPublicationIds) && deprecatedPublicationIds.length > 0
+            ? deprecatedPublicationIds.map((id) => ({
                 id,
                 account: accountName,
               }))
@@ -126,7 +126,7 @@
               density="compact"
               class="items-per-page-select"
               hide-details
-              @update:model-value="loadOrphanPublications"
+              @update:model-value="loadDeprecatedPublications"
             ></v-select>
           </div>
           <v-pagination
@@ -205,7 +205,7 @@ const emit = defineEmits(['update:loading', 'error'])
 
 // Estado
 const accountStore = useAccountStore()
-const orphanPublicationIds = ref<string[]>([])
+const deprecatedPublicationIds = ref<string[]>([])
 const total = ref(0)
 const error = ref<string | null>(null)
 const page = ref(1)
@@ -230,7 +230,7 @@ const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 // No se utilizan filtros
 
 // Cabeceras de tabla
-const orphanPublicationsHeaders = [
+const deprecatedPublicationsHeaders = [
   { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Cuenta', key: 'account', sortable: true },
@@ -246,8 +246,8 @@ const accountName = computed(
 )
 const hasAccount = computed(() => !!currentAccount.value)
 
-// Cargar publicaciones huérfanas
-const loadOrphanPublications = async () => {
+// Cargar publicaciones deprecadas
+const loadDeprecatedPublications = async () => {
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver las publicaciones deprecadas'
     emit('error', error.value)
@@ -264,8 +264,10 @@ const loadOrphanPublications = async () => {
       limit: itemsPerPage.value,
     }
 
-    const response = await compareService.getOrphanPublications(accountId.value, options)
-    orphanPublicationIds.value = response.orphan_publication_ids || []
+    const response = await compareService.getDeprecatedPublications(accountId.value, options)
+    console.log('Respuesta recibida en componente:', response)
+    deprecatedPublicationIds.value = response.deprecated_publication_ids || []
+    console.log('IDs de publicaciones deprecadas:', deprecatedPublicationIds.value)
     total.value = response.total || 0
   } catch (err) {
     console.error('Error al cargar publicaciones deprecadas:', err)
@@ -282,7 +284,7 @@ const loadOrphanPublications = async () => {
 
 // Manejar cambio de página
 const handlePageChange = () => {
-  loadOrphanPublications()
+  loadDeprecatedPublications()
 }
 
 // Abrir publicación en Mercado Libre
@@ -318,7 +320,7 @@ const deleteProduct = async (productId: string) => {
       notificationType.value = 'success'
 
       // Recargar la lista de publicaciones para actualizar la vista
-      await loadOrphanPublications()
+      await loadDeprecatedPublications()
     } else {
       notificationMessage.value = 'Respuesta inesperada al eliminar la publicación'
       notificationType.value = 'error'
@@ -361,7 +363,7 @@ const deleteSelectedItems = async () => {
       showNotification.value = true
 
       // Recargar la lista de publicaciones
-      await loadOrphanPublications()
+      await loadDeprecatedPublications()
 
       // Limpiar selección
       selectedItems.value = []
@@ -382,9 +384,9 @@ watch(
   () => accountId.value,
   (newAccountId) => {
     if (newAccountId) {
-      loadOrphanPublications()
+      loadDeprecatedPublications()
     } else {
-      orphanPublicationIds.value = []
+      deprecatedPublicationIds.value = []
       total.value = 0
     }
   },
@@ -393,7 +395,7 @@ watch(
 // Cargar datos al montar el componente
 onMounted(() => {
   if (hasAccount.value) {
-    loadOrphanPublications()
+    loadDeprecatedPublications()
   }
 })
 </script>

@@ -73,19 +73,16 @@ const selectAccount = (account: Account) => {
       color="white"
       variant="outlined"
       class="mb-1 refresh-btn"
-      @click="async () => {
-        loading = true
-        await accountStore.fetchUserAccounts()
-        loading = false
-      }"
+      @click="
+        async () => {
+          loading = true
+          await accountStore.fetchUserAccounts()
+          loading = false
+        }
+      "
     >
       <v-icon>mdi-refresh</v-icon>
-      <v-tooltip
-        activator="parent"
-        location="bottom"
-      >
-        Actualizar cuentas
-      </v-tooltip>
+      <v-tooltip activator="parent" location="bottom"> Actualizar cuentas </v-tooltip>
     </v-btn>
 
     <v-menu v-model="menuOpen" :close-on-content-click="false" location="bottom">
