@@ -28,13 +28,15 @@ const itemsPerPage = ref(100)
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Filtros
-const statusFilter = ref<'active' | ''>('active')
+const statusFilter = ref<'active' | 'paused' | 'inactive' | ''>('')
 const channelsFilter = ref<'marketplace' | 'marketplace,mshops'>('marketplace')
 
 // Opciones para los filtros
 const statusOptions = [
-  { title: 'Activas', value: 'active' },
   { title: 'Todas', value: '' },
+  { title: 'Activas', value: 'active' },
+  { title: 'Pausadas', value: 'paused' },
+  { title: 'Inactivas', value: 'inactive' },
 ]
 
 const channelsOptions = [
@@ -48,10 +50,24 @@ const accountId = computed(() => currentAccount.value?.ID || 0)
 const hasAccount = computed(() => !!currentAccount.value)
 
 // Nombre de la cuenta formateado
-const accountName = computed(() => {
-  if (!currentAccount.value) return 'N/A'
-  return currentAccount.value.Nickname || currentAccount.value.Email || `Cuenta #${accountId.value}`
-})
+const accountName = computed(
+  () =>
+    currentAccount.value?.Nickname || currentAccount.value?.Email || `Cuenta #${accountId.value}`,
+)
+
+// Función para obtener el color según el estado
+const getStatusColor = (status: string): string => {
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'paused':
+      return 'warning'
+    case 'inactive':
+      return 'error'
+    default:
+      return 'primary'
+  }
+}
 
 // Cabeceras de tabla para publicaciones faltantes
 const missingPublicationsHeaders = [
@@ -279,11 +295,11 @@ defineExpose({
           density="comfortable"
           hide-details
           @update:model-value="loadMissingPublications"
-          :color="statusFilter ? 'primary' : undefined"
-          :bg-color="statusFilter ? 'primary-lighten-5' : undefined"
+          :color="statusFilter ? getStatusColor(statusFilter) : undefined"
+          :bg-color="statusFilter ? `${getStatusColor(statusFilter)}-lighten-5` : undefined"
         >
           <template v-slot:append-inner>
-            <v-icon v-if="statusFilter !== ''" color="primary" @click.stop="statusFilter = ''; loadMissingPublications()">mdi-close</v-icon>
+            <v-icon v-if="statusFilter !== ''" :color="getStatusColor(statusFilter)" @click.stop="statusFilter = ''; loadMissingPublications()">mdi-close</v-icon>
           </template>
         </v-select>
       </v-col>

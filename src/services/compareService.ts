@@ -14,7 +14,7 @@ export interface OrphanPublicationsResponse {
 
 // Opciones para la consulta de publicaciones faltantes
 export interface MissingPublicationsOptions {
-  status?: 'active' | ''
+  status?: 'active' | 'paused' | 'inactive' | ''
   channels?: 'marketplace' | 'marketplace,mshops'
   offset?: number
   limit?: number
