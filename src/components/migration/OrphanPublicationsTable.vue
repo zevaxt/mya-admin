@@ -30,6 +30,7 @@
 
     <div class="position-relative">
       <v-data-table
+        v-model="selectedItems"
         :headers="orphanPublicationsHeaders"
         :items="
           Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0
@@ -47,6 +48,8 @@
             ? 'No hay publicaciones deprecadas'
             : 'Selecciona una cuenta para ver las publicaciones deprecadas'
         "
+        show-select
+        item-value="id"
       >
         <!-- Columna de ID -->
         <template #[`item.id`]="{ item }">
@@ -92,12 +95,25 @@
       <!-- Paginador fijo -->
       <div class="pagination-fixed">
         <div class="d-flex align-center w-100 px-4 py-2 bg-white">
-          <div class="text-caption text-grey me-4">
-            {{
-              total > 0
-                ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}`
-                : '0-0 de 0'
-            }}
+          <div class="d-flex align-center">
+            <v-btn
+              color="error"
+              variant="outlined"
+              size="small"
+              :disabled="selectedItems.length === 0"
+              @click="deleteSelectedItems"
+              class="me-4"
+            >
+              <v-icon start>mdi-delete</v-icon>
+              Eliminar {{ selectedItems.length }} seleccionadas
+            </v-btn>
+            <div class="text-caption text-grey me-4">
+              {{
+                total > 0
+                  ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}`
+                  : '0-0 de 0'
+              }}
+            </div>
           </div>
           <div class="d-flex align-center me-4">
             <span class="text-caption me-2">Registros por página:</span>
@@ -193,6 +209,7 @@ const error = ref<string | null>(null)
 const page = ref(1)
 const itemsPerPage = ref(100)
 const processingDeleteId = ref<string | null>(null)
+const selectedItems = ref<string[]>([])
 
 // Estado para el diálogo de notificación
 const showNotification = ref(false)
@@ -212,6 +229,7 @@ const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Cabeceras de tabla
 const orphanPublicationsHeaders = [
+  { title: 'Seleccionar', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Cuenta', key: 'account', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
@@ -315,6 +333,46 @@ const deleteProduct = async (productId: string) => {
     showNotification.value = true
     processingDeleteId.value = null
   }
+}
+
+// Eliminar los elementos seleccionados
+const deleteSelectedItems = async () => {
+  if (selectedItems.value.length === 0) return
+
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = 'Eliminar publicaciones seleccionadas'
+  confirmDialogMessage.value = `¿Estás seguro de que deseas eliminar las ${selectedItems.value.length} publicaciones seleccionadas?`
+  confirmDialogAction.value = async () => {
+    try {
+      // Mostrar loading
+      emit('update:loading', true)
+
+      // Llamar al servicio para eliminar los productos seleccionados
+      const result = await migrationService.deleteMultipleProducts(
+        accountId.value,
+        selectedItems.value
+      )
+
+      // Mostrar notificación de éxito
+      notificationMessage.value = result.message
+      notificationType.value = result.success ? 'success' : 'warning'
+      showNotification.value = true
+
+      // Recargar la lista de publicaciones
+      await loadOrphanPublications()
+
+      // Limpiar selección
+      selectedItems.value = []
+    } catch (err) {
+      console.error('Error al eliminar publicaciones seleccionadas:', err)
+      notificationMessage.value = 'Error al eliminar las publicaciones seleccionadas'
+      notificationType.value = 'error'
+      showNotification.value = true
+    } finally {
+      emit('update:loading', false)
+    }
+  }
+  showConfirmDialog.value = true
 }
 
 // Observar cambios en la cuenta seleccionada

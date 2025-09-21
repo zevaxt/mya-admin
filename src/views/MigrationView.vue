@@ -53,8 +53,12 @@ const booleanFilterOptions = [
   { title: 'No', value: 'false' },
 ]
 
+// Estado para los elementos seleccionados
+const selectedItems = ref([])
+
 // Cabeceras de tabla para IDs de productos
 const productIdsHeaders = [
+  { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'ID', sortable: true },
   { title: 'Cuenta', key: 'AccountName', sortable: true },
   { title: 'Sync Activo', key: 'SyncActive', sortable: true },
@@ -372,8 +376,46 @@ const clearAllFilters = () => {
   statusFilter.value = ''
   syncActiveFilter.value = ''
   catalogActiveFilter.value = ''
-  page.value = 1
-  loadProductIds()
+}
+
+// Eliminar los elementos seleccionados
+const deleteSelectedItems = async () => {
+  if (selectedItems.value.length === 0) return
+
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = 'Eliminar publicaciones seleccionadas'
+  confirmDialogMessage.value = `¿Estás seguro de que deseas eliminar las ${selectedItems.value.length} publicaciones seleccionadas?`
+  confirmDialogAction.value = async () => {
+    try {
+      // Mostrar loading
+      loading.value = true
+
+      // Llamar al servicio para eliminar los productos seleccionados
+      const result = await migrationService.deleteMultipleProducts(
+        accountId.value,
+        selectedItems.value,
+      )
+
+      // Mostrar notificación de éxito
+      notificationMessage.value = result.message
+      notificationType.value = result.success ? 'success' : 'warning'
+      showNotification.value = true
+
+      // Recargar la lista de productos
+      await loadProductIds()
+
+      // Limpiar selección
+      selectedItems.value = []
+    } catch (error) {
+      console.error('Error al eliminar publicaciones seleccionadas:', error)
+      notificationMessage.value = 'Error al eliminar las publicaciones seleccionadas'
+      notificationType.value = 'error'
+      showNotification.value = true
+    } finally {
+      loading.value = false
+    }
+  }
+  showConfirmDialog.value = true
 }
 
 // Inicialización
@@ -630,6 +672,7 @@ watch(
             <!-- Tabla de IDs de productos -->
             <div v-if="activeTab === 0" class="position-relative">
               <v-data-table
+                v-model="selectedItems"
                 :headers="productIdsHeaders"
                 :items="filteredProductIds"
                 :loading="loading"
@@ -640,6 +683,8 @@ watch(
                     ? 'No hay productos disponibles'
                     : 'Selecciona una cuenta para ver los productos'
                 "
+                show-select
+                item-value="ID"
               >
                 <template #[`item.SyncActive`]="{ item }">
                   <v-chip :color="item.SyncActive ? 'success' : 'error'" size="small">
@@ -734,12 +779,25 @@ watch(
               <!-- Paginador fijo para la tabla de IDs de productos -->
               <div class="pagination-fixed">
                 <div class="d-flex align-center w-100 px-4 py-2 bg-white">
-                  <div class="text-caption text-grey me-4">
-                    {{
-                      filteredProductIds.length > 0
-                        ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}`
-                        : '0-0 de 0'
-                    }}
+                  <div class="d-flex align-center">
+                    <v-btn
+                      color="error"
+                      variant="outlined"
+                      size="small"
+                      :disabled="selectedItems.length === 0"
+                      @click="deleteSelectedItems"
+                      class="me-4"
+                    >
+                      <v-icon start>mdi-delete</v-icon>
+                      Eliminar {{ selectedItems.length }} seleccionadas
+                    </v-btn>
+                    <div class="text-caption text-grey me-4">
+                      {{
+                        filteredProductIds.length > 0
+                          ? `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, totalProductIds)} de ${totalProductIds}`
+                          : '0-0 de 0'
+                      }}
+                    </div>
                   </div>
                   <div class="d-flex align-center me-4">
                     <span class="text-caption me-2">Registros por página:</span>
@@ -753,6 +811,7 @@ watch(
                       @update:model-value="handleItemsPerPageChange"
                     ></v-select>
                   </div>
+                  <v-spacer></v-spacer>
                   <v-pagination
                     v-model="page"
                     :length="Math.ceil(totalProductIds / itemsPerPage)"

@@ -315,6 +315,52 @@ export const migrationService = {
       throw error
     }
   },
+
+  // Eliminar múltiples publicaciones
+  async deleteMultipleProducts(accountId: number, productIds: string[]): Promise<{ success: boolean; message: string; results: { id: string; success: boolean; message: string }[] }> {
+    const results: { id: string; success: boolean; message: string }[] = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Procesar cada ID en secuencia
+      for (const productId of productIds) {
+        try {
+          await apiClient.delete(`/v1/migration/delete/product/${productId}`, {
+            headers: {
+              'account-id': accountId.toString(),
+              'delete-provider': 'false',
+            },
+          });
+          
+          results.push({
+            id: productId,
+            success: true,
+            message: `Publicación eliminada correctamente`
+          });
+          successCount++;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Error al eliminar la publicación';
+          results.push({
+            id: productId,
+            success: false,
+            message: errorMessage
+          });
+          errorCount++;
+          console.error(`Error al eliminar la publicación ${productId}:`, error);
+        }
+      }
+
+      return {
+        success: errorCount === 0,
+        message: `${successCount} publicaciones eliminadas correctamente${errorCount > 0 ? `, ${errorCount} con errores` : ''}`,
+        results
+      };
+    } catch (error) {
+      console.error(`Error general al eliminar publicaciones:`, error);
+      throw error;
+    }
+  },
 }
 
 export default migrationService
