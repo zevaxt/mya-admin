@@ -220,6 +220,34 @@ export const authService = {
   isAuthenticated(): boolean {
     return !!localStorage.getItem('token')
   },
+  
+  // Renovar token
+  async refreshToken(): Promise<string | null> {
+    try {
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        throw new Error('No hay token para renovar')
+      }
+      
+      const response = await apiClient.post('/v1/refresh-token', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      
+      if (response.data && response.data.token) {
+        // Guardar el nuevo token
+        localStorage.setItem('token', response.data.token)
+        return response.data.token
+      }
+      
+      return null
+    } catch (error) {
+      console.error('Error al renovar el token:', error)
+      return null
+    }
+  },
 }
 
 export default apiClient

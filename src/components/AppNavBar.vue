@@ -2,7 +2,8 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAccountStore } from '@/stores/account'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { AUTH_CONFIG } from '@/config/auth.config'
 import AccountSelector from './AccountSelector.vue'
 
 const authStore = useAuthStore()
@@ -43,9 +44,63 @@ const refreshSystemInfo = () => {
   }
 }
 
+// Función para obtener el color del estado de la sesión según el tiempo restante
+const getSessionStatusColor = () => {
+  const remainingTime = authStore.tokenRemainingTime
+  const warningThresholdSeconds = AUTH_CONFIG.TOKEN_WARNING_THRESHOLD_MS / 1000 // Convertir a segundos
+  const criticalThresholdSeconds = 600 // 10 minutos en segundos
+  
+  if (remainingTime > warningThresholdSeconds) return 'success' // Más que el umbral de advertencia
+  if (remainingTime > criticalThresholdSeconds) return 'warning' // Más de 10 minutos
+  return 'error' // Menos de 10 minutos
+}
+
+// Función para obtener el icono del estado de la sesión según el tiempo restante
+const getSessionStatusIcon = () => {
+  const remainingTime = authStore.tokenRemainingTime
+  const warningThresholdSeconds = AUTH_CONFIG.TOKEN_WARNING_THRESHOLD_MS / 1000 // Convertir a segundos
+  const criticalThresholdSeconds = 600 // 10 minutos en segundos
+  
+  if (remainingTime > warningThresholdSeconds) return 'mdi-check-circle'
+  if (remainingTime > criticalThresholdSeconds) return 'mdi-clock-outline'
+  return 'mdi-alert-circle'
+}
+
+// Función para formatear el tiempo restante en formato HH:MM:SS
+const getFormattedRemainingTime = () => {
+  const remainingTime = authStore.tokenRemainingTime
+  if (remainingTime <= 0) return '00:00:00'
+
+  const hours = Math.floor(remainingTime / 3600)
+  const minutes = Math.floor((remainingTime % 3600) / 60)
+  const seconds = remainingTime % 60
+
+  return [
+    hours.toString().padStart(2, '0'),
+    minutes.toString().padStart(2, '0'),
+    seconds.toString().padStart(2, '0'),
+  ].join(':')
+}
+
+// Variable para almacenar el ID del intervalo
+const updateInterval = ref<number | null>(null)
+
 // Inicializar el componente
 onMounted(() => {
-  // Cualquier inicialización necesaria puede ir aquí
+  // Configurar un intervalo para actualizar la información cada segundo cuando el panel está abierto
+  updateInterval.value = window.setInterval(() => {
+    if (showDebugPanel.value) {
+      // Forzar una actualización de la vista
+      refreshSystemInfo()
+    }
+  }, 1000)
+})
+
+// Limpiar el intervalo cuando el componente se desmonta
+onUnmounted(() => {
+  if (updateInterval.value !== null) {
+    clearInterval(updateInterval.value)
+  }
 })
 </script>
 
@@ -54,7 +109,13 @@ onMounted(() => {
     <v-app-bar-nav-icon></v-app-bar-nav-icon>
 
     <v-toolbar-title>
-      <v-btn variant="text" color="white" class="pa-0 text-h6" style="text-transform: none;" :to="{ name: 'landing' }">
+      <v-btn
+        variant="text"
+        color="white"
+        class="pa-0 text-h6"
+        style="text-transform: none"
+        :to="{ name: 'landing' }"
+      >
         MYA Admin
       </v-btn>
     </v-toolbar-title>
@@ -193,10 +254,73 @@ onMounted(() => {
 
         <!-- Estado de autenticación -->
         <h3 class="text-subtitle-1 font-weight-bold mb-2">Estado de autenticación</h3>
-        <pre>isAuthenticated: {{ authStore.isAuthenticated }}</pre>
-        <pre>token: {{ authStore.token ? '✓' : '✗' }}</pre>
-        <pre>userId: {{ authStore.userId }}</pre>
-        <pre>username: {{ authStore.username }}</pre>
+
+        <div class="d-flex align-center mb-2">
+          <v-chip
+            :color="authStore.isAuthenticated ? 'success' : 'error'"
+            size="small"
+            class="mr-2"
+          >
+            <v-icon start size="small">{{
+              authStore.isAuthenticated ? 'mdi-check-circle' : 'mdi-alert-circle'
+            }}</v-icon>
+            {{ authStore.isAuthenticated ? 'Autenticado' : 'No autenticado' }}
+          </v-chip>
+
+          <v-chip v-if="authStore.isAuthenticated" :color="getSessionStatusColor()" size="small">
+            <v-icon start size="small">{{ getSessionStatusIcon() }}</v-icon>
+            {{ getFormattedRemainingTime() }}
+          </v-chip>
+        </div>
+
+        <v-list density="compact" class="bg-grey-lighten-4 mb-3">
+          <v-list-item>
+            <v-list-item-title>Estado de sesión</v-list-item-title>
+            <v-list-item-subtitle>{{
+              authStore.sessionActive ? 'Activa' : 'Inactiva'
+            }}</v-list-item-subtitle>
+          </v-list-item>
+
+          <v-list-item v-if="authStore.isAuthenticated">
+            <v-list-item-title>Tiempo restante</v-list-item-title>
+            <v-list-item-subtitle>{{ getFormattedRemainingTime() }}</v-list-item-subtitle>
+          </v-list-item>
+
+          <v-list-item>
+            <v-list-item-title>Token</v-list-item-title>
+            <v-list-item-subtitle>{{
+              authStore.token ? 'Presente' : 'Ausente'
+            }}</v-list-item-subtitle>
+          </v-list-item>
+
+          <v-list-item>
+            <v-list-item-title>Usuario ID</v-list-item-title>
+            <v-list-item-subtitle>{{ authStore.userId || 'No disponible' }}</v-list-item-subtitle>
+          </v-list-item>
+
+          <v-list-item>
+            <v-list-item-title>Nombre de usuario</v-list-item-title>
+            <v-list-item-subtitle>{{ authStore.username || 'No disponible' }}</v-list-item-subtitle>
+          </v-list-item>
+        </v-list>
+
+        <v-alert
+          v-if="authStore.isAuthenticated && authStore.tokenRemainingTime < AUTH_CONFIG.TOKEN_WARNING_THRESHOLD_MS / 1000"
+          type="info"
+          variant="tonal"
+          density="compact"
+          class="mb-3"
+        >
+          <div class="d-flex align-center">
+            <v-icon start>mdi-information</v-icon>
+            <div>
+              <strong>Renovación automática</strong>
+              <div class="text-caption">
+                El token se renovará automáticamente mientras uses la aplicación.
+              </div>
+            </div>
+          </div>
+        </v-alert>
 
         <v-divider class="my-3"></v-divider>
 

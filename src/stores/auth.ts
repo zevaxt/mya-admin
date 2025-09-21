@@ -1,6 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { defineStore } from 'pinia'
 import { authService, type User, type LoginRequest } from '@/services/api'
+import tokenService from '@/services/tokenService'
+import { AUTH_CONFIG } from '@/config/auth.config'
 
 export const useAuthStore = defineStore('auth', () => {
   // Estado
@@ -9,11 +11,14 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const tokenRefreshTimer = ref<number | null>(null)
+  const sessionActive = ref<boolean>(false)
 
   // Getters
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => !!token.value && sessionActive.value)
   const username = computed(() => user.value?.Username || '')
   const currentUserId = computed(() => userId.value)
+  const tokenRemainingTime = computed(() => token.value ? tokenService.getTokenRemainingTime(token.value) : 0)
 
   // Acciones
   async function login(credentials: LoginRequest) {
@@ -31,9 +36,12 @@ export const useAuthStore = defineStore('auth', () => {
       // Guardar en localStorage para persistencia
       if (response.token) {
         localStorage.setItem('token', response.token)
+        // Configurar la renovación automática del token
+        setupTokenRefresh(response.token)
       }
       localStorage.setItem('user', JSON.stringify(response.user))
       localStorage.setItem('userId', String(userId.value))
+      sessionActive.value = true
       
       return true
     } catch (err: unknown) {
@@ -112,9 +120,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    // Cancelar el temporizador de renovación de token
+    if (tokenRefreshTimer.value !== null) {
+      tokenService.clearTokenRefresh(tokenRefreshTimer.value)
+      tokenRefreshTimer.value = null
+    }
+    
     user.value = null
     userId.value = null
     token.value = null
+    sessionActive.value = false
     authService.logout()
     localStorage.removeItem('userId')
   }
@@ -126,7 +141,31 @@ export const useAuthStore = defineStore('auth', () => {
     const storedUserId = localStorage.getItem('userId')
     
     if (storedToken) {
-      token.value = storedToken
+      // Verificar si el token almacenado es válido
+      if (!tokenService.isTokenExpired(storedToken)) {
+        token.value = storedToken
+        sessionActive.value = true
+        
+        // Configurar la renovación automática del token
+        setupTokenRefresh(storedToken)
+      } else {
+        // Si el token está expirado, intentar renovarlo
+        tokenService.refreshToken()
+          .then(newToken => {
+            if (newToken) {
+              token.value = newToken
+              sessionActive.value = true
+              setupTokenRefresh(newToken)
+            } else {
+              // Si no se puede renovar, limpiar la sesión
+              logout()
+            }
+          })
+          .catch(() => {
+            // Error al renovar, limpiar la sesión
+            logout()
+          })
+      }
     }
     
     if (storedUser) {
@@ -146,8 +185,81 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Función para configurar la renovación automática del token
+  function setupTokenRefresh(currentToken: string) {
+    // Cancelar cualquier temporizador existente
+    if (tokenRefreshTimer.value !== null) {
+      tokenService.clearTokenRefresh(tokenRefreshTimer.value)
+    }
+    
+    // Configurar el nuevo temporizador
+    tokenRefreshTimer.value = tokenService.setupTokenRefresh(
+      currentToken,
+      // Callback para cuando la renovación es exitosa
+      (newToken) => {
+        token.value = newToken
+        console.log('Token renovado automáticamente')
+      },
+      // Callback para cuando la renovación falla
+      () => {
+        console.warn('No se pudo renovar el token, cerrando sesión')
+        logout()
+      }
+    )
+  }
+  
+  // Verificar el estado del token periódicamente
+  function setupTokenCheck() {
+    let checkInterval: number | null = null
+    
+    // Función para verificar el token
+    const checkToken = () => {
+      if (token.value && tokenService.isTokenExpired(token.value)) {
+        console.warn('Token expirado detectado durante verificación periódica')
+        logout()
+      }
+    }
+    
+    // Iniciar el intervalo de verificación
+    const startCheckInterval = () => {
+      if (checkInterval === null) {
+        checkInterval = window.setInterval(checkToken, AUTH_CONFIG.TOKEN_CHECK_INTERVAL_MS)
+      }
+    }
+    
+    // Detener el intervalo de verificación
+    const stopCheckInterval = () => {
+      if (checkInterval !== null) {
+        clearInterval(checkInterval)
+        checkInterval = null
+      }
+    }
+    
+    // Registrar eventos de visibilidad de la página para optimizar recursos
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        // Verificar inmediatamente cuando la página vuelve a ser visible
+        checkToken()
+        startCheckInterval()
+      } else {
+        // Pausar verificaciones cuando la página no está visible
+        stopCheckInterval()
+      }
+    })
+    
+    // Iniciar el intervalo de verificación
+    startCheckInterval()
+    
+    // Limpiar eventos e intervalos cuando el componente se desmonte
+    onUnmounted(() => {
+      stopCheckInterval()
+      document.removeEventListener('visibilitychange', () => {})
+    })
+  }
+  
   // Inicializar al crear el store
   init()
+  setupTokenCheck()
 
   return {
     user,
@@ -158,6 +270,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     username,
     currentUserId,
+    tokenRemainingTime,
+    sessionActive,
     login,
     logout
   }

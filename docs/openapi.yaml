@@ -102,6 +102,96 @@ paths:
                 Password: pass
                 Username: admin
                 Accounts: null
+  /v1/refresh-token:
+    post:
+      tags:
+        - session tag
+      summary: Renovar token JWT
+      description: >
+        ### Descripción
+
+
+        Este endpoint permite renovar un token JWT existente y válido sin requerir
+        que el usuario vuelva a autenticarse. El token actual debe ser válido y no
+        haber expirado.
+
+
+        ### Parámetros de la solicitud
+
+
+        - **Method:** POST
+
+
+        - **Headers requeridos:**
+          - `Authorization`: Bearer {token_actual}
+
+
+        - **Cuerpo de la solicitud:** No requiere cuerpo (puede ser un objeto vacío {})
+
+
+        ### Estructura de la respuesta
+
+
+        La respuesta es un objeto JSON con los siguientes campos:
+
+
+        - `token` (string): El nuevo token JWT generado
+
+
+        - `expiresAt` (number): Timestamp Unix en segundos que indica cuándo expira el token
+
+
+        ### Códigos de respuesta
+
+
+        - **200 OK**: Token renovado exitosamente
+
+
+        - **401 Unauthorized**: Token inválido o expirado
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {}
+      responses:
+        '200':
+          description: Token renovado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: El nuevo token JWT generado
+                  expiresAt:
+                    type: integer
+                    description: Timestamp Unix en segundos que indica cuándo expira el token
+                example:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expiresAt: 1632150000
+        '401':
+          description: Token inválido o expirado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Code:
+                    type: string
+                    example: '003'
+                  Status:
+                    type: integer
+                    example: 401
+                  Message:
+                    type: string
+                    example: 'Sus datos de autenticacion son invalidos por favor intente nuevamente'
+                  TecnicalDetails:
+                    type: string
+                    example: 'Token inválido o expirado: el token ha expirado'
   /v1/signin:
     post:
       tags:
