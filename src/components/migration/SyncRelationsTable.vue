@@ -558,21 +558,58 @@
               density="comfortable"
               :rules="[v => !!v || 'Selecciona una cuenta']"
               class="mb-4"
+              :loading="loadingAccountPublications"
+              @update:model-value="loadPublicationsForAccount"
             ></v-select>
 
-            <!-- ID de publicación -->
-            <v-text-field
+            <!-- Selección de ID de publicación -->
+            <v-autocomplete
               v-model="targetPublicationId"
+              :items="accountPublications"
+              :loading="loadingAccountPublications"
               label="ID de publicación"
               variant="outlined"
               density="comfortable"
               :rules="[
                 v => !!v || 'Ingresa un ID de publicación',
-                v => /^[A-Z]{3}\d+$/.test(v) || 'Formato inválido. Ejemplo: MCO123456789'
+                v => typeof v === 'string' ? /^[A-Z]{3}\d+$/.test(v) : true
               ]"
-              placeholder="Ejemplo: MCO123456789"
+              placeholder="Buscar o ingresar ID"
               class="mb-4"
-            ></v-text-field>
+              clearable
+              :filter="customFilter"
+              v-model:search-input="publicationSearchQuery"
+              hide-no-data
+              hide-selected
+              autocomplete="off"
+              return-object
+            >
+              <template #item="{ item, props }">
+                <v-list-item v-bind="props">
+                  <template #prepend>
+                    <v-icon :color="item.raw.status ? 'success' : 'error'" size="small" class="mr-2">
+                      {{ item.raw.status ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                    </v-icon>
+                  </template>
+                  <template #title>
+                    <span>{{ item.raw.id }}</span>
+                  </template>
+                  <template #subtitle>
+                    <span v-if="item.raw.title" class="text-truncate">{{ item.raw.title }}</span>
+                  </template>
+                </v-list-item>
+              </template>
+              
+              <!-- Personalizar cómo se muestra el elemento seleccionado -->
+              <template #selection="{ item }">
+                <div>
+                  <span class="font-weight-medium">{{ item.raw.id }}</span>
+                  <span v-if="item.raw.title" class="text-caption text-grey ml-2">
+                    {{ item.raw.title }}
+                  </span>
+                </div>
+              </template>
+            </v-autocomplete>
 
             <div class="text-caption text-grey mb-4">
               <v-icon size="small" color="info" class="mr-1">mdi-information-outline</v-icon>
@@ -624,10 +661,15 @@ const showAddSyncDialog = ref(false)
 const syncDialogTitle = ref('')
 const syncDialogType = ref<'outgoing' | 'incoming'>('outgoing')
 const sourcePublicationId = ref('')
-const targetPublicationId = ref('')
+const targetPublicationId = ref<{id: string; title?: string; status: boolean} | null>(null)
 const selectedAccountId = ref<number | null>(null)
 const addingSyncRelation = ref(false)
 const syncForm = ref<any>(null)
+
+// Estado para la carga de publicaciones de la cuenta seleccionada
+const loadingAccountPublications = ref(false)
+const accountPublications = ref<Array<{id: string; title?: string; status: boolean}>>([]) 
+const publicationSearchQuery = ref('')
 
 // Filtros
 const searchQuery = ref('')
@@ -831,12 +873,52 @@ const availableAccounts = computed(() => {
     }))
 })
 
+// Función de filtro personalizado para el autocomplete
+const customFilter = (item: {id: string; title?: string; status: boolean}, queryText: string) => {
+  const id = item.id.toLowerCase()
+  const title = (item.title || '').toLowerCase()
+  const query = queryText.toLowerCase()
+  
+  return id.includes(query) || title.includes(query)
+}
+
+// Cargar publicaciones para la cuenta seleccionada
+const loadPublicationsForAccount = async (accountId: number | null) => {
+  if (!accountId) {
+    accountPublications.value = []
+    return
+  }
+  
+  loadingAccountPublications.value = true
+  
+  try {
+    // Usar la API para obtener las publicaciones de la cuenta seleccionada
+    const response = await migrationService.getProductIds(accountId, undefined, 0, 100)
+    
+    // Transformar los datos al formato que necesitamos
+    accountPublications.value = response.products.map(product => ({
+      id: product.ID,
+      title: product.Attributes?.title as string || '',
+      status: product.Status
+    }))
+  } catch (error) {
+    console.error('Error al cargar publicaciones de la cuenta:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al cargar publicaciones de la cuenta'
+    notificationType.value = 'error'
+    accountPublications.value = []
+  } finally {
+    loadingAccountPublications.value = false
+  }
+}
+
 // Abrir el diálogo para agregar sincronización
 const openAddSyncDialog = (publicationId: string, type: 'outgoing' | 'incoming') => {
   syncDialogType.value = type
   sourcePublicationId.value = publicationId
-  targetPublicationId.value = ''
+  targetPublicationId.value = null
   selectedAccountId.value = null
+  accountPublications.value = []
   
   if (type === 'outgoing') {
     syncDialogTitle.value = 'Agregar sincronización saliente'
@@ -859,13 +941,26 @@ const submitAddSync = async () => {
   try {
     let publication_id, to_sync_id
     
+    // Obtener el ID de publicación destino (debe ser un objeto)
+    if (!targetPublicationId.value) {
+      showNotification.value = true
+      notificationMessage.value = 'Selecciona una publicación válida'
+      notificationType.value = 'error'
+      addingSyncRelation.value = false
+      return
+    }
+    
+    const targetId = typeof targetPublicationId.value === 'object'
+      ? targetPublicationId.value.id
+      : ''
+    
     if (syncDialogType.value === 'outgoing') {
       // Sincronización saliente: esta publicación -> publicación destino
       publication_id = sourcePublicationId.value
-      to_sync_id = targetPublicationId.value
+      to_sync_id = targetId
     } else {
       // Sincronización entrante: publicación origen -> esta publicación
-      publication_id = targetPublicationId.value
+      publication_id = targetId
       to_sync_id = sourcePublicationId.value
     }
     
