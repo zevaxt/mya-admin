@@ -82,91 +82,23 @@
       </v-col>
     </v-row>
 
-    <!-- Diálogo de detalles del producto -->
-    <v-dialog v-model="showProductDetail" max-width="800">
-      <v-card v-if="selectedProduct">
-        <v-card-title class="text-h5">
-          Detalles de la publicación {{ selectedProduct.id }}
-        </v-card-title>
-
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" md="6">
-              <v-img
-                v-if="selectedProduct.pictures && selectedProduct.pictures.length > 0"
-                :src="selectedProduct.pictures[0].url"
-                height="300"
-                contain
-                class="bg-grey-lighten-3 rounded"
-              ></v-img>
-              <div v-else class="d-flex justify-center align-center bg-grey-lighten-3 rounded" style="height: 300px">
-                <v-icon size="100" color="grey-lighten-1">mdi-image-off</v-icon>
-              </div>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-list>
-                <v-list-item>
-                  <v-list-item-title>Título</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedProduct.title }}</v-list-item-subtitle>
-                </v-list-item>
-
-                <v-list-item>
-                  <v-list-item-title>Precio</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedProduct.price }}</v-list-item-subtitle>
-                </v-list-item>
-
-                <v-list-item>
-                  <v-list-item-title>Cantidad disponible</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedProduct.available_quantity }}</v-list-item-subtitle>
-                </v-list-item>
-
-                <v-list-item>
-                  <v-list-item-title>Categoría</v-list-item-title>
-                  <v-list-item-subtitle>{{ selectedProduct.category_id }}</v-list-item-subtitle>
-                </v-list-item>
-
-                <v-list-item>
-                  <v-list-item-title>Estado</v-list-item-title>
-                  <v-list-item-subtitle>
-                    <v-chip
-                      :color="
-                        selectedProduct.status === 'active'
-                          ? 'success'
-                          : selectedProduct.status === 'paused'
-                            ? 'warning'
-                            : 'error'
-                      "
-                      size="small"
-                    >
-                      {{
-                        selectedProduct.status === 'active'
-                          ? 'Activo'
-                          : selectedProduct.status === 'paused'
-                            ? 'Pausado'
-                            : 'Finalizado'
-                      }}
-                    </v-chip>
-                  </v-list-item-subtitle>
-                </v-list-item>
-              </v-list>
-
-              <v-btn
-                color="primary"
-                class="mt-4"
-                @click="openProductInNewTab(selectedProduct.id)"
-                prepend-icon="mdi-open-in-new"
-              >
-                Ver en Mercado Libre
-              </v-btn>
-            </v-col>
-          </v-row>
+    <!-- Usar el componente ProductDetailDialog -->
+    <ProductDetailDialog
+      v-if="selectedProduct"
+      v-model="showProductDetail"
+      :product="selectedProduct"
+    />
+    
+    <!-- Diálogo de carga mientras se obtienen los detalles del producto -->
+    <v-dialog :model-value="showProductDetail && !selectedProduct" persistent max-width="300">
+      <v-card>
+        <v-card-text class="text-center pa-4">
+          <v-progress-circular indeterminate color="primary" class="mb-3"></v-progress-circular>
+          <div>Cargando detalles del producto...</div>
         </v-card-text>
-
-        <v-divider></v-divider>
-
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" variant="text" @click="showProductDetail = false"> Cerrar </v-btn>
+          <v-btn color="error" text @click="showProductDetail = false">Cancelar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -176,11 +108,19 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import type { ProductDetail } from '@/services/migrationService'
+import type { ProductDetail as BaseProductDetail } from '@/services/migrationService'
+
+// Extender la interfaz ProductDetail para incluir la propiedad Attributes
+interface ProductDetail extends BaseProductDetail {
+  Attributes?: Record<string, unknown>
+  ID?: string
+  Status?: boolean
+}
 import PublicationsTab from '@/views/migrations/PublicationsTab.vue'
 import OrphanPublicationsTab from '@/views/migrations/OrphanPublicationsTab.vue'
 import MissingPublicationsTab from '@/views/migrations/MissingPublicationsTab.vue'
 import DeprecatedPublicationsTab from '@/views/migrations/DeprecatedPublicationsTab.vue'
+import ProductDetailDialog from '@/components/migration/ProductDetailDialog.vue'
 
 // Stores
 const accountStore = useAccountStore()
@@ -207,17 +147,32 @@ const handleError = (errorMessage: string | null) => {
 }
 
 // Manejar visualización de detalles del producto
-const handleShowProductDetail = (product: ProductDetail) => {
-  selectedProduct.value = product
-  showProductDetail.value = true
+const handleShowProductDetail = (product: ProductDetail | null) => {
+  console.log('handleShowProductDetail called with product:', product)
+  console.log('Tipo de product:', product ? typeof product : 'null')
+  
+  if (product === null) {
+    // Si el producto es null, mostrar el diálogo de carga
+    console.log('Mostrando diálogo de carga (product === null)')
+    selectedProduct.value = null
+    showProductDetail.value = true
+  } else if (!product) {
+    // Si el producto es undefined o falsy, mostrar un mensaje de error
+    console.error('Producto inválido:', product)
+    selectedProduct.value = null
+    showProductDetail.value = false
+    error.value = 'Error: Datos de producto inválidos'
+  } else {
+    // Si el producto tiene datos, mostrar el diálogo con los detalles
+    console.log('Mostrando diálogo con detalles, product:', product)
+    console.log('Propiedades del producto:', Object.keys(product))
+    selectedProduct.value = product
+    showProductDetail.value = true
+    console.log('After setting selectedProduct:', { showProductDetail: showProductDetail.value, selectedProduct: selectedProduct.value })
+  }
 }
 
-// Abrir producto en nueva pestaña
-const openProductInNewTab = (productId: string) => {
-  // Insertar un guion después de los primeros 3 caracteres (MCO-1233526781)
-  const formattedId = productId.slice(0, 3) + '-' + productId.slice(3)
-  window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
-}
+// Esta función se ha movido al componente ProductDetailDialog
 </script>
 
 <style scoped>
