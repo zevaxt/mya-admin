@@ -9887,6 +9887,83 @@ paths:
                     items:
                       type: string
                     example: ['MCO1033211161', 'MCO1034750110', 'MCO1034933991']
+  /v1/migration/products/sync/stats:
+    get:
+      tags:
+        - migration tag
+      summary: /v1/migration/products/sync/stats
+      description: >
+        Obtiene estadísticas de sincronización de publicaciones para una cuenta específica.
+        Este endpoint identifica:
+        1. Las publicaciones de la cuenta
+        2. Las relaciones de sincronización de cada publicación (entrantes y salientes)
+        3. El total de publicaciones
+      parameters:
+        - name: account-id
+          in: header
+          required: true
+          schema:
+            type: integer
+          description: ID de la cuenta para la que se quieren obtener las estadísticas
+          example: 123
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_id:
+                    type: integer
+                    description: ID de la cuenta consultada
+                    example: 123
+                  total_publications:
+                    type: integer
+                    description: Número total de publicaciones de la cuenta
+                    example: 50
+                  publications:
+                    type: array
+                    description: Lista de publicaciones con sus relaciones de sincronización
+                    items:
+                      type: object
+                      properties:
+                        publication_id:
+                          type: string
+                          description: ID de la publicación
+                          example: 'MCO123456789'
+                        account_id:
+                          type: integer
+                          description: ID de la cuenta a la que pertenece la publicación
+                          example: 123
+                        to_syncs:
+                          type: array
+                          description: Publicaciones a las que se ha sincronizado esta publicación
+                          items:
+                            type: object
+                            properties:
+                              to_sync_id:
+                                type: string
+                                description: ID de la publicación sincronizada
+                                example: 'MCO987654321'
+                              to_account_id:
+                                type: integer
+                                description: ID de la cuenta destino
+                                example: 456
+                        from_syncs:
+                          type: array
+                          description: Publicaciones desde las que se ha sincronizado esta publicación
+                          items:
+                            type: object
+                            properties:
+                              from_publication_id:
+                                type: string
+                                description: ID de la publicación origen
+                                example: 'MCO111222333'
+                              from_account_id:
+                                type: integer
+                                description: ID de la cuenta origen
+                                example: 789
   /v1/migration/products/orphans/matching-title:
     get:
       tags:

@@ -5,7 +5,8 @@
       <div>
         <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
         <p class="text-caption text-grey">
-          Publicaciones que no están sincronizadas y no están activas en el catálogo
+          Publicaciones que no están sincronizadas y no están activas en el catálogo, (Es decir no
+          estan como una publicacion destino de sincronizacion)
         </p>
       </div>
       <div class="d-flex gap-2">
@@ -42,7 +43,12 @@
               <v-icon
                 v-if="statusFilter !== 'all'"
                 color="primary"
-                @click.stop="() => { statusFilter = 'all'; loadOrphanPublications(); }"
+                @click.stop="
+                  () => {
+                    statusFilter = 'all'
+                    loadOrphanPublications()
+                  }
+                "
               >
                 mdi-close
               </v-icon>
@@ -67,7 +73,12 @@
               <v-icon
                 v-if="soldQuantityFilter !== 'all'"
                 color="primary"
-                @click.stop="() => { soldQuantityFilter = 'all'; loadOrphanPublications(); }"
+                @click.stop="
+                  () => {
+                    soldQuantityFilter = 'all'
+                    loadOrphanPublications()
+                  }
+                "
               >
                 mdi-close
               </v-icon>
@@ -154,11 +165,7 @@
 
         <!-- Columna de Ventas -->
         <template #[`item.sales`]="{ item }">
-          <v-chip
-            :color="item.sales === true ? 'success' : 'grey'"
-            size="small"
-            variant="outlined"
-          >
+          <v-chip :color="item.sales === true ? 'success' : 'grey'" size="small" variant="outlined">
             <v-icon start size="small">
               {{ item.sales === true ? 'mdi-cart' : 'mdi-cart-off' }}
             </v-icon>
