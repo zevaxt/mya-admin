@@ -613,6 +613,30 @@
         </v-card-title>
 
         <v-card-text class="pt-4">
+          <!-- Mostrar el ID de la publicación de origen -->
+          <div class="d-flex align-center mb-4 pa-2 border rounded">
+            <v-icon size="small" :color="syncDialogType === 'outgoing' ? 'primary' : 'success'" class="mr-2">
+              {{ syncDialogType === 'outgoing' ? 'mdi-arrow-right-bold' : 'mdi-arrow-left-bold' }}
+            </v-icon>
+            <span class="text-subtitle-2">ID de publicación: </span>
+            <span class="font-weight-medium ml-1">{{ sourcePublicationId }}</span>
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="x-small"
+                  icon
+                  variant="text"
+                  color="primary"
+                  class="ml-2"
+                  @click="copyToClipboard(sourcePublicationId)"
+                >
+                  <v-icon size="small">mdi-content-copy</v-icon>
+                </v-btn>
+              </template>
+              <span>Copiar ID</span>
+            </v-tooltip>
+          </div>
           <v-form ref="syncForm" @submit.prevent="submitAddSync">
             <!-- Selección de cuenta -->
             <v-select
@@ -673,22 +697,37 @@
 
               <!-- Personalizar cómo se muestra el elemento seleccionado -->
               <template #selection="{ item }">
-                <div>
+                <div class="d-flex align-center">
                   <span class="font-weight-medium">{{ item.raw.id }}</span>
-                  <span v-if="item.raw.title" class="text-caption text-grey ml-2">
-                    {{ item.raw.title }}
-                  </span>
+                  <v-tooltip location="top">
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        size="x-small"
+                        icon
+                        variant="text"
+                        color="primary"
+                        class="ml-2"
+                        @click.stop="copyToClipboard(item.raw.id)"
+                      >
+                        <v-icon size="small">mdi-content-copy</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Copiar ID</span>
+                  </v-tooltip>
                 </div>
               </template>
             </v-autocomplete>
 
-            <div class="text-caption text-grey mb-4">
+            <div class="text-caption text-grey mb-4 pa-2 bg-grey-lighten-4 rounded">
               <v-icon size="small" color="info" class="mr-1">mdi-information-outline</v-icon>
-              {{
-                syncDialogType === 'outgoing'
-                  ? 'Esta publicación se sincronizará hacia la publicación especificada.'
-                  : 'La publicación especificada se sincronizará hacia esta publicación.'
-              }}
+              <span class="font-weight-medium">
+                {{
+                  syncDialogType === 'outgoing'
+                    ? `La publicación ${sourcePublicationId} se sincronizará HACIA la publicación seleccionada.`
+                    : `La publicación seleccionada se sincronizará HACIA la publicación ${sourcePublicationId}.`
+                }}
+              </span>
             </div>
           </v-form>
         </v-card-text>
