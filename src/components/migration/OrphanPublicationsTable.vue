@@ -24,76 +24,71 @@
 
     <!-- Filtros -->
     <div class="filter-container mb-4">
-      <v-card variant="outlined" class="pa-3 mb-4">
-        <div class="text-subtitle-2 font-weight-medium mb-2">Filtros</div>
-        <div class="d-flex flex-wrap gap-4">
+      <v-row>
+        <v-col cols="12" md="3">
           <v-select
             v-model="statusFilter"
             :items="statusOptions"
-            label="Estado"
-            density="compact"
+            item-title="title"
+            item-value="value"
+            label="Filtrar por estado"
             variant="outlined"
-            hide-details
-            class="filter-select"
-            :color="statusFilter !== 'all' ? 'warning' : undefined"
-            :bg-color="statusFilter !== 'all' ? 'warning-lighten-5' : undefined"
+            density="comfortable"
             @update:model-value="loadOrphanPublications"
+            :color="statusFilter !== 'all' ? 'primary' : undefined"
+            :bg-color="statusFilter !== 'all' ? 'primary-lighten-5' : undefined"
           >
-            <template v-slot:prepend>
-              <v-icon color="warning">mdi-filter-variant</v-icon>
-            </template>
             <template v-slot:append-inner>
               <v-icon
                 v-if="statusFilter !== 'all'"
-                color="warning"
-                size="small"
+                color="primary"
                 @click.stop="() => { statusFilter = 'all'; loadOrphanPublications(); }"
               >
                 mdi-close
               </v-icon>
             </template>
           </v-select>
+        </v-col>
 
+        <v-col cols="12" md="3">
           <v-select
             v-model="soldQuantityFilter"
             :items="soldQuantityOptions"
-            label="Ventas"
-            density="compact"
+            item-title="title"
+            item-value="value"
+            label="Filtrar por ventas"
             variant="outlined"
-            hide-details
-            class="filter-select"
-            :color="soldQuantityFilter !== 'all' ? 'warning' : undefined"
-            :bg-color="soldQuantityFilter !== 'all' ? 'warning-lighten-5' : undefined"
+            density="comfortable"
             @update:model-value="loadOrphanPublications"
+            :color="soldQuantityFilter !== 'all' ? 'primary' : undefined"
+            :bg-color="soldQuantityFilter !== 'all' ? 'primary-lighten-5' : undefined"
           >
-            <template v-slot:prepend>
-              <v-icon color="warning">mdi-cart-outline</v-icon>
-            </template>
             <template v-slot:append-inner>
               <v-icon
                 v-if="soldQuantityFilter !== 'all'"
-                color="warning"
-                size="small"
+                color="primary"
                 @click.stop="() => { soldQuantityFilter = 'all'; loadOrphanPublications(); }"
               >
                 mdi-close
               </v-icon>
             </template>
           </v-select>
-          
+        </v-col>
+
+        <v-col cols="12" md="6" class="d-flex justify-end align-center gap-2">
           <v-btn
             v-if="statusFilter !== 'all' || soldQuantityFilter !== 'all'"
+            color="secondary"
             variant="outlined"
-            color="warning"
-            size="small"
-            class="mt-1"
             @click="clearFilters"
+            class="mr-2"
+            size="small"
           >
             <v-icon start>mdi-filter-remove</v-icon>
             Limpiar filtros
           </v-btn>
-        </div>
-      </v-card>
+        </v-col>
+      </v-row>
     </div>
 
     <!-- Contador de resultados -->
