@@ -1,27 +1,35 @@
 <template>
   <div>
-    <!-- Título y botones -->
-    <div class="d-flex justify-space-between align-center mb-4">
-      <div>
-        <h3 class="text-h6 text-primary font-weight-medium mb-1">
-          Sincronizaciones de Publicaciones
-        </h3>
-        <p class="text-caption text-grey">
-          Relaciones de sincronización entre publicaciones de diferentes cuentas
-        </p>
-      </div>
-      <div class="d-flex gap-2">
-        <v-btn
-          color="primary"
-          variant="outlined"
-          @click="loadSyncRelations"
-          :loading="loading"
-          size="small"
-        >
-          <v-icon start>mdi-refresh</v-icon>
-          Refrescar
-        </v-btn>
-      </div>
+    <!-- Título -->
+    <div class="mb-4">
+      <h2 class="text-h5 font-weight-medium text-primary mb-1">Sincronizaciones</h2>
+      <p class="text-subtitle-2 text-grey">
+        Gestiona las relaciones de sincronización entre publicaciones de diferentes cuentas.
+        <span class="font-weight-medium">{{ totalPublications }}</span> publicaciones disponibles.
+      </p>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="d-flex justify-end mb-4">
+      <v-btn
+        color="success"
+        variant="outlined"
+        prepend-icon="mdi-sync"
+        class="mr-2"
+        :loading="syncingAll"
+        @click="syncAllPublications"
+      >
+        Sincronizar Todo
+      </v-btn>
+      <v-btn
+        color="primary"
+        variant="outlined"
+        prepend-icon="mdi-refresh"
+        :loading="loading"
+        @click="loadSyncRelations"
+      >
+        Actualizar
+      </v-btn>
     </div>
 
     <!-- Filtros -->
@@ -132,17 +140,20 @@
     <v-card variant="outlined">
       <v-data-table
         v-model:expanded="expanded"
+        v-model="selected"
         :headers="headers"
         :items="filteredPublications"
         :loading="loading"
-        :items-per-page="10"
-        :items-per-page-options="[10, 25, 50, 100]"
-        density="compact"
-        hover
+        :items-per-page="itemsPerPage"
         item-value="publication_id"
+        density="comfortable"
+        hover
+        show-select
         class="elevation-0"
-        show-expand
       >
+        <!-- No usamos el slot bottom para poder tener un paginador fijo -->
+        <template #bottom></template>
+
         <template #no-data>
           <div class="text-center py-4">
             <v-icon size="large" color="grey">mdi-database-off</v-icon>
@@ -253,7 +264,7 @@
 
         <!-- Columna de Acciones -->
         <template #[`item.actions`]="slotProps">
-          <div class="d-flex">
+          <div class="d-flex align-center">
             <v-tooltip location="top">
               <template #activator="{ props }">
                 <v-btn
@@ -269,7 +280,7 @@
               </template>
               <span>Ver detalles</span>
             </v-tooltip>
-            
+
             <v-tooltip location="top">
               <template #activator="{ props }">
                 <v-btn
@@ -285,7 +296,7 @@
               </template>
               <span>Agregar sincronización saliente</span>
             </v-tooltip>
-            
+
             <v-tooltip location="top">
               <template #activator="{ props }">
                 <v-btn
@@ -301,7 +312,27 @@
               </template>
               <span>Agregar sincronización entrante</span>
             </v-tooltip>
-            
+
+            <v-divider vertical class="mx-2"></v-divider>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  icon
+                  variant="elevated"
+                  color="warning"
+                  :loading="syncingItem === slotProps.item.publication_id"
+                  @click="syncPublication(slotProps.item.publication_id)"
+                  class="ml-1"
+                >
+                  <v-icon>mdi-sync</v-icon>
+                </v-btn>
+              </template>
+              <span>Actualizar sincronización</span>
+            </v-tooltip>
+
             <v-tooltip location="top">
               <template #activator="{ props }">
                 <v-btn
@@ -556,7 +587,7 @@
               label="Seleccionar cuenta"
               variant="outlined"
               density="comfortable"
-              :rules="[v => !!v || 'Selecciona una cuenta']"
+              :rules="[(v) => !!v || 'Selecciona una cuenta']"
               class="mb-4"
               :loading="loadingAccountPublications"
               @update:model-value="loadPublicationsForAccount"
@@ -571,8 +602,8 @@
               variant="outlined"
               density="comfortable"
               :rules="[
-                v => !!v || 'Ingresa un ID de publicación',
-                v => typeof v === 'string' ? /^[A-Z]{3}\d+$/.test(v) : true
+                (v) => !!v || 'Ingresa un ID de publicación',
+                (v) => (typeof v === 'string' ? /^[A-Z]{3}\d+$/.test(v) : true),
               ]"
               placeholder="Buscar o ingresar ID"
               class="mb-4"
@@ -587,7 +618,11 @@
               <template #item="{ item, props }">
                 <v-list-item v-bind="props">
                   <template #prepend>
-                    <v-icon :color="item.raw.status ? 'success' : 'error'" size="small" class="mr-2">
+                    <v-icon
+                      :color="item.raw.status ? 'success' : 'error'"
+                      size="small"
+                      class="mr-2"
+                    >
                       {{ item.raw.status ? 'mdi-check-circle' : 'mdi-alert-circle' }}
                     </v-icon>
                   </template>
@@ -599,7 +634,7 @@
                   </template>
                 </v-list-item>
               </template>
-              
+
               <!-- Personalizar cómo se muestra el elemento seleccionado -->
               <template #selection="{ item }">
                 <div>
@@ -613,21 +648,21 @@
 
             <div class="text-caption text-grey mb-4">
               <v-icon size="small" color="info" class="mr-1">mdi-information-outline</v-icon>
-              {{ syncDialogType === 'outgoing' ? 
-                'Esta publicación se sincronizará hacia la publicación especificada.' : 
-                'La publicación especificada se sincronizará hacia esta publicación.' }}
+              {{
+                syncDialogType === 'outgoing'
+                  ? 'Esta publicación se sincronizará hacia la publicación especificada.'
+                  : 'La publicación especificada se sincronizará hacia esta publicación.'
+              }}
             </div>
           </v-form>
         </v-card-text>
 
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showAddSyncDialog = false">
-            Cancelar
-          </v-btn>
-          <v-btn 
-            color="primary" 
-            variant="elevated" 
+          <v-btn color="grey" variant="text" @click="showAddSyncDialog = false"> Cancelar </v-btn>
+          <v-btn
+            color="primary"
+            variant="elevated"
             :loading="addingSyncRelation"
             @click="submitAddSync"
           >
@@ -636,6 +671,60 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Paginador fijo -->
+    <div class="pagination-fixed">
+      <div class="d-flex align-center w-100 px-4 py-2 bg-white">
+        <div class="d-flex align-center">
+          <v-btn
+            color="primary"
+            variant="elevated"
+            size="small"
+            prepend-icon="mdi-sync"
+            :disabled="!selected || selected.length === 0"
+            :loading="syncingSelected"
+            @click="syncSelectedPublications"
+            class="me-4"
+          >
+            Sincronizar {{ selected ? selected.length : 0 }} seleccionadas
+          </v-btn>
+          <div class="text-caption text-grey me-4">
+            {{
+              totalPublications > 0
+                ? `${(page - 1) * itemsPerPage + 1}-${Math.min(
+                    page * itemsPerPage,
+                    totalPublications,
+                  )} de ${totalPublications}`
+                : '0-0 de 0'
+            }}
+          </div>
+        </div>
+        <div class="d-flex align-center me-4">
+          <span class="text-caption me-2">Registros por página:</span>
+          <v-select
+            v-model="itemsPerPage"
+            :items="itemsPerPageOptions"
+            variant="outlined"
+            density="compact"
+            class="items-per-page-select"
+            hide-details
+            @update:model-value="handleItemsPerPageChange"
+          ></v-select>
+        </div>
+        <v-pagination
+          v-model="page"
+          :length="Math.ceil(totalPublications / itemsPerPage)"
+          @update:model-value="handlePageChange"
+          :disabled="loading"
+          :total-visible="5"
+          show-first
+          show-last
+          class="pagination-centered flex-grow-1"
+          density="comfortable"
+          rounded="circle"
+        ></v-pagination>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -661,15 +750,26 @@ const showAddSyncDialog = ref(false)
 const syncDialogTitle = ref('')
 const syncDialogType = ref<'outgoing' | 'incoming'>('outgoing')
 const sourcePublicationId = ref('')
-const targetPublicationId = ref<{id: string; title?: string; status: boolean} | null>(null)
+const targetPublicationId = ref<{ id: string; title?: string; status: boolean } | null>(null)
 const selectedAccountId = ref<number | null>(null)
 const addingSyncRelation = ref(false)
 const syncForm = ref<any>(null)
 
 // Estado para la carga de publicaciones de la cuenta seleccionada
 const loadingAccountPublications = ref(false)
-const accountPublications = ref<Array<{id: string; title?: string; status: boolean}>>([]) 
+const accountPublications = ref<Array<{ id: string; title?: string; status: boolean }>>([])
 const publicationSearchQuery = ref('')
+
+// Estado para la sincronización
+const selected = ref<any[]>([])
+const syncingAll = ref(false)
+const syncingSelected = ref(false)
+const syncingItem = ref<string | null>(null)
+
+// Estado para la paginación
+const page = ref(1)
+const itemsPerPage = ref(10)
+const itemsPerPageOptions = [5, 10, 25, 50, 100]
 
 // Filtros
 const searchQuery = ref('')
@@ -866,19 +966,19 @@ const copyToClipboard = (text: string) => {
 const availableAccounts = computed(() => {
   // Filtrar la cuenta actual para no mostrarla en la lista
   return accountStore.accounts
-    .filter(account => account.ID !== accountStore.currentAccount?.ID)
-    .map(account => ({
+    .filter((account) => account.ID !== accountStore.currentAccount?.ID)
+    .map((account) => ({
       title: account.Nickname || account.Email || `Cuenta #${account.ID}`,
-      value: account.ID
+      value: account.ID,
     }))
 })
 
 // Función de filtro personalizado para el autocomplete
-const customFilter = (item: {id: string; title?: string; status: boolean}, queryText: string) => {
+const customFilter = (item: { id: string; title?: string; status: boolean }, queryText: string) => {
   const id = item.id.toLowerCase()
   const title = (item.title || '').toLowerCase()
   const query = queryText.toLowerCase()
-  
+
   return id.includes(query) || title.includes(query)
 }
 
@@ -888,18 +988,18 @@ const loadPublicationsForAccount = async (accountId: number | null) => {
     accountPublications.value = []
     return
   }
-  
+
   loadingAccountPublications.value = true
-  
+
   try {
     // Usar la API para obtener las publicaciones de la cuenta seleccionada
     const response = await migrationService.getProductIds(accountId, undefined, 0, 100)
-    
+
     // Transformar los datos al formato que necesitamos
-    accountPublications.value = response.products.map(product => ({
+    accountPublications.value = response.products.map((product) => ({
       id: product.ID,
-      title: product.Attributes?.title as string || '',
-      status: product.Status
+      title: (product.Attributes?.title as string) || '',
+      status: product.Status,
     }))
   } catch (error) {
     console.error('Error al cargar publicaciones de la cuenta:', error)
@@ -919,13 +1019,13 @@ const openAddSyncDialog = (publicationId: string, type: 'outgoing' | 'incoming')
   targetPublicationId.value = null
   selectedAccountId.value = null
   accountPublications.value = []
-  
+
   if (type === 'outgoing') {
     syncDialogTitle.value = 'Agregar sincronización saliente'
   } else {
     syncDialogTitle.value = 'Agregar sincronización entrante'
   }
-  
+
   showAddSyncDialog.value = true
 }
 
@@ -933,14 +1033,14 @@ const openAddSyncDialog = (publicationId: string, type: 'outgoing' | 'incoming')
 const submitAddSync = async () => {
   // Validar el formulario
   const { valid } = await syncForm.value.validate()
-  
+
   if (!valid) return
-  
+
   addingSyncRelation.value = true
-  
+
   try {
     let publication_id, to_sync_id
-    
+
     // Obtener el ID de publicación destino (debe ser un objeto)
     if (!targetPublicationId.value) {
       showNotification.value = true
@@ -949,11 +1049,10 @@ const submitAddSync = async () => {
       addingSyncRelation.value = false
       return
     }
-    
-    const targetId = typeof targetPublicationId.value === 'object'
-      ? targetPublicationId.value.id
-      : ''
-    
+
+    const targetId =
+      typeof targetPublicationId.value === 'object' ? targetPublicationId.value.id : ''
+
     if (syncDialogType.value === 'outgoing') {
       // Sincronización saliente: esta publicación -> publicación destino
       publication_id = sourcePublicationId.value
@@ -963,23 +1062,23 @@ const submitAddSync = async () => {
       publication_id = targetId
       to_sync_id = sourcePublicationId.value
     }
-    
+
     const response = await migrationService.createSyncRelation({
       sync_relations: [
         {
           publication_id,
           to_sync_id,
-          account_id_to: selectedAccountId.value as number
-        }
-      ]
+          account_id_to: selectedAccountId.value as number,
+        },
+      ],
     })
-    
+
     if (response.success) {
       showNotification.value = true
       notificationMessage.value = 'Sincronización creada exitosamente'
       notificationType.value = 'success'
       showAddSyncDialog.value = false
-      
+
       // Recargar los datos
       loadSyncRelations()
     } else {
@@ -1002,6 +1101,93 @@ onMounted(() => {
   loadSyncRelations()
 })
 
+// Función para sincronizar todas las publicaciones
+const syncAllPublications = async () => {
+  syncingAll.value = true
+
+  try {
+    // Aquí iría la llamada a la API para sincronizar todas las publicaciones
+    // Por ahora solo simulamos un retraso
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    showNotification.value = true
+    notificationMessage.value = 'Sincronización de todas las publicaciones iniciada'
+    notificationType.value = 'success'
+
+    // Recargar los datos después de un tiempo para ver los cambios
+    setTimeout(() => {
+      loadSyncRelations()
+    }, 2000)
+  } catch (error) {
+    console.error('Error al sincronizar todas las publicaciones:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al sincronizar todas las publicaciones'
+    notificationType.value = 'error'
+  } finally {
+    syncingAll.value = false
+  }
+}
+
+// Función para sincronizar las publicaciones seleccionadas
+const syncSelectedPublications = async () => {
+  if (!selected.value || selected.value.length === 0) return
+
+  syncingSelected.value = true
+
+  try {
+    // Obtener los IDs de las publicaciones seleccionadas
+    const selectedIds = selected.value.map((item) => item.publication_id)
+    console.log('IDs de publicaciones seleccionadas:', selectedIds)
+
+    // Aquí iría la llamada a la API para sincronizar las publicaciones seleccionadas
+    // Por ahora solo simulamos un retraso
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    showNotification.value = true
+    notificationMessage.value = `Sincronización de ${selected.value.length} publicaciones iniciada`
+    notificationType.value = 'success'
+
+    // Recargar los datos después de un tiempo para ver los cambios
+    setTimeout(() => {
+      loadSyncRelations()
+    }, 2000)
+  } catch (error) {
+    console.error('Error al sincronizar publicaciones seleccionadas:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al sincronizar publicaciones seleccionadas'
+    notificationType.value = 'error'
+  } finally {
+    syncingSelected.value = false
+  }
+}
+
+// Función para sincronizar una publicación específica
+const syncPublication = async (publicationId: string) => {
+  syncingItem.value = publicationId
+
+  try {
+    // Aquí iría la llamada a la API para sincronizar la publicación específica
+    // Por ahora solo simulamos un retraso
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    showNotification.value = true
+    notificationMessage.value = `Sincronización de la publicación ${publicationId} iniciada`
+    notificationType.value = 'success'
+
+    // Recargar los datos después de un tiempo para ver los cambios
+    setTimeout(() => {
+      loadSyncRelations()
+    }, 1500)
+  } catch (error) {
+    console.error(`Error al sincronizar la publicación ${publicationId}:`, error)
+    showNotification.value = true
+    notificationMessage.value = `Error al sincronizar la publicación ${publicationId}`
+    notificationType.value = 'error'
+  } finally {
+    syncingItem.value = null
+  }
+}
+
 // Watcher para recargar datos cuando cambia la cuenta
 watch(
   () => accountStore.currentAccount?.ID,
@@ -1011,6 +1197,25 @@ watch(
     }
   },
 )
+
+// Watcher para depurar la selección
+watch(
+  selected,
+  (newSelected) => {
+    console.log('Elementos seleccionados:', newSelected)
+  },
+  { deep: true },
+)
+
+// Funciones para manejar la paginación
+const handlePageChange = (newPage: number) => {
+  page.value = newPage
+}
+
+const handleItemsPerPageChange = (newItemsPerPage: number) => {
+  itemsPerPage.value = newItemsPerPage
+  page.value = 1 // Reiniciar a la primera página cuando cambia el número de elementos por página
+}
 </script>
 
 <style scoped>
