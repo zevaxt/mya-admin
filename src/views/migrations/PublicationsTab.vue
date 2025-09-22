@@ -123,23 +123,7 @@
         </v-col>
       </v-row>
 
-      <!-- Barra de búsqueda -->
-      <v-row class="mt-2">
-        <v-col cols="12">
-          <v-text-field
-            v-model="searchQuery"
-            label="Buscar por ID de publicación"
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            append-inner-icon="mdi-magnify"
-            @update:model-value="handleSearchQueryChange"
-            @click:append-inner="handleSearchQueryChange"
-            clearable
-            @click:clear="clearSearchQuery"
-          ></v-text-field>
-        </v-col>
-      </v-row>
+      <!-- La barra de búsqueda ahora está integrada en el encabezado de la columna ID -->
     </div>
 
     <!-- Mensaje de filtrado -->
@@ -164,6 +148,7 @@
     <!-- Tabla de IDs de productos -->
     <div class="position-relative">
       <v-data-table
+        ref="dataTable"
         v-model="selectedItems"
         :headers="productIdsHeaders"
         :items="filteredProductIds"
@@ -178,6 +163,69 @@
         show-select
         item-value="ID"
       >
+        <!-- Template para el encabezado personalizado de la columna ID -->
+        <template #[`header.ID`]="{ column }">
+          <div
+            class="d-flex align-center header-content"
+            style="position: relative; min-width: 150px"
+          >
+            <!-- Contenedor con posición absoluta para evitar cambios en el layout -->
+            <div style="position: absolute; width: 100%; z-index: 1">
+              <v-fade-transition>
+                <div
+                  v-if="!showIdSearch"
+                  class="d-flex align-center sortable-header"
+                  @click="handleSort(column.key || '')"
+                >
+                  <span class="mr-2">{{ column.title }}</span>
+                  <!-- Icono de ordenamiento (similar al que usa Vuetify internamente) -->
+                  <v-icon
+                    v-if="column.sortable"
+                    size="x-small"
+                    :icon="getSortIcon(column)"
+                    class="sort-icon"
+                    :class="{ 'visible-on-hover': !isSorted(column) }"
+                  ></v-icon>
+                  <v-btn
+                    icon="mdi-magnify"
+                    size="x-small"
+                    variant="text"
+                    color="primary"
+                    class="ml-2"
+                    @click.stop="activateSearch"
+                  ></v-btn>
+                </div>
+              </v-fade-transition>
+            </div>
+
+            <!-- Contenedor con posición absoluta para la caja de búsqueda -->
+            <div style="position: absolute; width: 100%; z-index: 2">
+              <v-fade-transition>
+                <v-text-field
+                  v-if="showIdSearch"
+                  v-model="searchQuery"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  placeholder="Buscar ID"
+                  class="search-field"
+                  clearable
+                  ref="searchInput"
+                  @update:model-value="handleSearchQueryChange"
+                  @click:clear="clearSearchQuery"
+                  @blur="handleSearchBlur"
+                  @keydown.esc="deactivateSearch"
+                  @click.stop
+                ></v-text-field>
+              </v-fade-transition>
+            </div>
+
+            <!-- Espacio invisible para mantener el ancho de la columna -->
+            <div style="height: 1px; visibility: hidden">
+              <div style="width: 150px"></div>
+            </div>
+          </div>
+        </template>
         <template #[`item.SyncActive`]="{ item }">
           <v-chip :color="item.SyncActive ? 'success' : 'error'" size="small">
             {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
@@ -191,10 +239,7 @@
         </template>
 
         <template #[`item.Status`]="{ item }">
-          <v-chip
-            :color="item.Status ? 'success' : 'error'"
-            size="small"
-          >
+          <v-chip :color="item.Status ? 'success' : 'error'" size="small">
             {{ item.Status ? 'Activo' : 'Inactivo' }}
           </v-chip>
         </template>
@@ -286,7 +331,7 @@
                 totalProductIds > 0
                   ? `${(page - 1) * itemsPerPage + 1}-${Math.min(
                       page * itemsPerPage,
-                      totalProductIds
+                      totalProductIds,
                     )} de ${totalProductIds}`
                   : '0-0 de 0'
               }}
@@ -420,7 +465,12 @@ const selectedItems = ref([])
 // Cabeceras de tabla para IDs de productos
 const productIdsHeaders = [
   { title: '', key: 'select', sortable: false },
-  { title: 'ID', key: 'ID', sortable: true },
+  {
+    title: 'ID',
+    key: 'ID',
+    sortable: true,
+    filterable: true,
+  },
   { title: 'Cuenta', key: 'AccountName', sortable: true },
   { title: 'Sync Activo', key: 'SyncActive', sortable: true },
   { title: 'Catálogo Activo', key: 'CatalogActive', sortable: true },
@@ -431,6 +481,9 @@ const productIdsHeaders = [
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
+// Estado para el filtro de búsqueda en la tabla
+const showIdSearch = ref(false)
+
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
@@ -438,7 +491,12 @@ const hasAccount = computed(() => !!currentAccount.value)
 
 // Verificar si hay filtros activos
 const hasActiveFilters = computed(() => {
-  return statusFilter.value !== '' || syncActiveFilter.value !== '' || catalogActiveFilter.value !== '' || searchQuery.value !== ''
+  return (
+    statusFilter.value !== '' ||
+    syncActiveFilter.value !== '' ||
+    catalogActiveFilter.value !== '' ||
+    searchQuery.value !== ''
+  )
 })
 
 // Mensaje de resultados filtrados
@@ -525,7 +583,7 @@ const loadProductIds = async () => {
 // Ver detalles del producto
 const viewProductDetail = (productId: string) => {
   if (!hasAccount.value) return
-  
+
   // Redireccionar directamente a la vista de detalles
   window.open(`/product-detail/${productId}`, '_blank')
 }
@@ -678,6 +736,76 @@ const handleCatalogActiveFilterChange = () => {
   loadProductIds()
 }
 
+// Referencias para el campo de búsqueda y la tabla de datos
+const searchInput = ref<HTMLElement | null>(null)
+const dataTable = ref<any>(null)
+
+// Función para manejar el ordenamiento
+const handleSort = (key: string) => {
+  if (dataTable.value) {
+    // Intentar usar el método sort de la tabla si está disponible
+    if (typeof dataTable.value.sort === 'function') {
+      dataTable.value.sort(key)
+    }
+  }
+}
+
+// Función para verificar si una columna está ordenada
+const isSorted = (column: any) => {
+  if (!column.sortable || !column.options || !column.options.sortBy) return false
+  return column.options.sortBy.includes(column.key)
+}
+
+// Función para obtener el icono de ordenamiento
+const getSortIcon = (column: any) => {
+  // Si la columna no está ordenada, mostrar el icono neutral
+  if (!column.sortable) return ''
+
+  // Verificar si la tabla tiene información de ordenamiento
+  if (!column.options || !column.options.sortBy) return 'mdi-arrow-up-down'
+
+  // Determinar la dirección del ordenamiento
+  if (!isSorted(column)) return 'mdi-arrow-up-down'
+
+  // Mostrar el icono según la dirección del ordenamiento
+  return column.options.sortDesc && column.options.sortDesc[0] ? 'mdi-arrow-down' : 'mdi-arrow-up'
+}
+
+// Función para activar la búsqueda
+const activateSearch = () => {
+  showIdSearch.value = true
+  // Enfocar el campo de búsqueda después de que se muestre
+  setTimeout(() => {
+    if (searchInput.value) {
+      const input = searchInput.value.querySelector('input')
+      if (input) input.focus()
+    }
+  }, 100)
+}
+
+// Función para desactivar la búsqueda
+const deactivateSearch = () => {
+  showIdSearch.value = false
+}
+
+// Función para manejar cuando se pierde el foco en el campo de búsqueda
+const handleSearchBlur = () => {
+  // Usar setTimeout para permitir que otros eventos (como click) se procesen primero
+  setTimeout(() => {
+    // Verificar si el campo de búsqueda sigue teniendo el foco
+    const activeElement = document.activeElement
+    const searchField = searchInput.value
+
+    // Si el elemento activo no es el campo de búsqueda o un elemento dentro de él
+    if (searchField && !searchField.contains(activeElement)) {
+      // Solo desactivar si el campo está vacío
+      if (!searchQuery.value) {
+        deactivateSearch()
+      }
+    }
+  }, 100)
+}
+
 // Función para manejar el cambio en la búsqueda
 const handleSearchQueryChange = () => {
   // Reiniciar a la primera página cuando cambia la búsqueda
@@ -688,6 +816,7 @@ const handleSearchQueryChange = () => {
 const clearSearchQuery = () => {
   searchQuery.value = ''
   handleSearchQueryChange()
+  deactivateSearch()
 }
 
 // Limpiar todos los filtros
@@ -752,5 +881,73 @@ onMounted(() => {
 
 .pagination-centered {
   margin: 0 auto;
+}
+
+/* Estilos para la transición del campo de búsqueda */
+.v-slide-x-transition-enter-active,
+.v-slide-x-transition-leave-active {
+  transition: all 0.3s ease;
+  position: absolute;
+  width: 100%;
+}
+
+.search-field {
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+/* Estilo para el campo de búsqueda en el encabezado */
+:deep(.search-field .v-field__input) {
+  padding-top: 0;
+  padding-bottom: 0;
+  min-height: 32px;
+}
+
+:deep(.v-field__field) {
+  height: 32px;
+}
+
+/* Estilos para el encabezado ordenable */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-header:hover {
+  color: var(--v-theme-primary);
+}
+
+.sort-icon {
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.visible-on-hover {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sortable-header:hover .visible-on-hover {
+  opacity: 0.7;
+}
+
+/* Estilos para la transición suave */
+.header-content {
+  min-height: 40px;
+}
+
+.search-field {
+  width: 100%;
+}
+
+/* Ajustes para las transiciones */
+.v-fade-transition-enter-active,
+.v-fade-transition-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.v-fade-transition-enter-from,
+.v-fade-transition-leave-to {
+  opacity: 0;
 }
 </style>
