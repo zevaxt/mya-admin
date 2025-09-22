@@ -255,6 +255,30 @@ export interface SyncStatsResponse {
   publications: PublicationSyncData[]
 }
 
+// Interfaces para crear relaciones de sincronización
+export interface SyncRelationItem {
+  publication_id: string
+  to_sync_id: string
+  account_id_to?: number
+}
+
+export interface CreateSyncRelationRequest {
+  sync_relations: SyncRelationItem[]
+}
+
+export interface CreateSyncRelationError {
+  publication_id: string
+  to_sync_id: string
+  message: string
+}
+
+export interface CreateSyncRelationResponse {
+  success: boolean
+  total_created: number
+  total_failed: number
+  errors?: CreateSyncRelationError[]
+}
+
 // Servicio de migración
 export const migrationService = {
   // Actualizar IDs de productos desde Mercado Libre a la base de datos
@@ -561,6 +585,43 @@ export const migrationService = {
     } catch (error) {
       console.error(`Error general al eliminar publicaciones:`, error)
       throw error
+    }
+  },
+  
+  // Crear relaciones de sincronización entre publicaciones
+  async createSyncRelation(
+    request: CreateSyncRelationRequest,
+  ): Promise<CreateSyncRelationResponse> {
+    try {
+      const response = await apiClient.post(
+        '/v1/migration/products/sync/relations',
+        request,
+      )
+
+      return response.data as CreateSyncRelationResponse
+    } catch (error: unknown) {
+      console.error('Error al crear relación de sincronización:', error)
+      
+      // Si hay un error en la API, intentar devolver una respuesta estructurada
+      if (typeof error === 'object' && error !== null && 'response' in error && 
+          error.response && typeof error.response === 'object' && 
+          'data' in error.response && error.response.data) {
+        return error.response.data as CreateSyncRelationResponse
+      }
+      
+      // Si no hay respuesta estructurada, crear una genérica
+      return {
+        success: false,
+        total_created: 0,
+        total_failed: 1,
+        errors: [
+          {
+            publication_id: request.sync_relations[0]?.publication_id || '',
+            to_sync_id: request.sync_relations[0]?.to_sync_id || '',
+            message: error instanceof Error ? error.message : 'Error desconocido'
+          }
+        ]
+      }
     }
   },
 }

@@ -264,11 +264,44 @@
                   color="primary"
                   @click="viewProductDetails(slotProps.item.publication_id)"
                 >
-                  <v-icon size="small">mdi-eye</v-icon>
+                  <v-icon>mdi-eye</v-icon>
                 </v-btn>
               </template>
               <span>Ver detalles</span>
             </v-tooltip>
+            
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  icon
+                  variant="text"
+                  color="success"
+                  @click="openAddSyncDialog(slotProps.item.publication_id, 'outgoing')"
+                >
+                  <v-icon>mdi-arrow-right-bold-box-outline</v-icon>
+                </v-btn>
+              </template>
+              <span>Agregar sincronización saliente</span>
+            </v-tooltip>
+            
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  icon
+                  variant="text"
+                  color="info"
+                  @click="openAddSyncDialog(slotProps.item.publication_id, 'incoming')"
+                >
+                  <v-icon>mdi-arrow-left-bold-box-outline</v-icon>
+                </v-btn>
+              </template>
+              <span>Agregar sincronización entrante</span>
+            </v-tooltip>
+            
             <v-tooltip location="top">
               <template #activator="{ props }">
                 <v-btn
@@ -504,6 +537,68 @@
         <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
+
+    <!-- Diálogo para agregar sincronización -->
+    <v-dialog v-model="showAddSyncDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 bg-primary text-white">
+          {{ syncDialogTitle }}
+        </v-card-title>
+
+        <v-card-text class="pt-4">
+          <v-form ref="syncForm" @submit.prevent="submitAddSync">
+            <!-- Selección de cuenta -->
+            <v-select
+              v-model="selectedAccountId"
+              :items="availableAccounts"
+              item-title="title"
+              item-value="value"
+              label="Seleccionar cuenta"
+              variant="outlined"
+              density="comfortable"
+              :rules="[v => !!v || 'Selecciona una cuenta']"
+              class="mb-4"
+            ></v-select>
+
+            <!-- ID de publicación -->
+            <v-text-field
+              v-model="targetPublicationId"
+              label="ID de publicación"
+              variant="outlined"
+              density="comfortable"
+              :rules="[
+                v => !!v || 'Ingresa un ID de publicación',
+                v => /^[A-Z]{3}\d+$/.test(v) || 'Formato inválido. Ejemplo: MCO123456789'
+              ]"
+              placeholder="Ejemplo: MCO123456789"
+              class="mb-4"
+            ></v-text-field>
+
+            <div class="text-caption text-grey mb-4">
+              <v-icon size="small" color="info" class="mr-1">mdi-information-outline</v-icon>
+              {{ syncDialogType === 'outgoing' ? 
+                'Esta publicación se sincronizará hacia la publicación especificada.' : 
+                'La publicación especificada se sincronizará hacia esta publicación.' }}
+            </div>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey" variant="text" @click="showAddSyncDialog = false">
+            Cancelar
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            variant="elevated" 
+            :loading="addingSyncRelation"
+            @click="submitAddSync"
+          >
+            Agregar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -523,6 +618,16 @@ const expanded = ref<string[]>([])
 const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
+
+// Estado para el diálogo de agregar sincronización
+const showAddSyncDialog = ref(false)
+const syncDialogTitle = ref('')
+const syncDialogType = ref<'outgoing' | 'incoming'>('outgoing')
+const sourcePublicationId = ref('')
+const targetPublicationId = ref('')
+const selectedAccountId = ref<number | null>(null)
+const addingSyncRelation = ref(false)
+const syncForm = ref<any>(null)
 
 // Filtros
 const searchQuery = ref('')
@@ -713,6 +818,88 @@ const copyToClipboard = (text: string) => {
       notificationMessage.value = 'Error al copiar texto'
       notificationType.value = 'error'
     })
+}
+
+// Lista de cuentas disponibles para el diálogo
+const availableAccounts = computed(() => {
+  // Filtrar la cuenta actual para no mostrarla en la lista
+  return accountStore.accounts
+    .filter(account => account.ID !== accountStore.currentAccount?.ID)
+    .map(account => ({
+      title: account.Nickname || account.Email || `Cuenta #${account.ID}`,
+      value: account.ID
+    }))
+})
+
+// Abrir el diálogo para agregar sincronización
+const openAddSyncDialog = (publicationId: string, type: 'outgoing' | 'incoming') => {
+  syncDialogType.value = type
+  sourcePublicationId.value = publicationId
+  targetPublicationId.value = ''
+  selectedAccountId.value = null
+  
+  if (type === 'outgoing') {
+    syncDialogTitle.value = 'Agregar sincronización saliente'
+  } else {
+    syncDialogTitle.value = 'Agregar sincronización entrante'
+  }
+  
+  showAddSyncDialog.value = true
+}
+
+// Enviar el formulario para agregar sincronización
+const submitAddSync = async () => {
+  // Validar el formulario
+  const { valid } = await syncForm.value.validate()
+  
+  if (!valid) return
+  
+  addingSyncRelation.value = true
+  
+  try {
+    let publication_id, to_sync_id
+    
+    if (syncDialogType.value === 'outgoing') {
+      // Sincronización saliente: esta publicación -> publicación destino
+      publication_id = sourcePublicationId.value
+      to_sync_id = targetPublicationId.value
+    } else {
+      // Sincronización entrante: publicación origen -> esta publicación
+      publication_id = targetPublicationId.value
+      to_sync_id = sourcePublicationId.value
+    }
+    
+    const response = await migrationService.createSyncRelation({
+      sync_relations: [
+        {
+          publication_id,
+          to_sync_id,
+          account_id_to: selectedAccountId.value as number
+        }
+      ]
+    })
+    
+    if (response.success) {
+      showNotification.value = true
+      notificationMessage.value = 'Sincronización creada exitosamente'
+      notificationType.value = 'success'
+      showAddSyncDialog.value = false
+      
+      // Recargar los datos
+      loadSyncRelations()
+    } else {
+      showNotification.value = true
+      notificationMessage.value = `Error: ${response.errors?.[0]?.message || 'No se pudo crear la sincronización'}`
+      notificationType.value = 'error'
+    }
+  } catch (error) {
+    console.error('Error al crear sincronización:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al crear la sincronización'
+    notificationType.value = 'error'
+  } finally {
+    addingSyncRelation.value = false
+  }
 }
 
 // Ciclo de vida
