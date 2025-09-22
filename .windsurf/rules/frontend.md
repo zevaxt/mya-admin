@@ -18,3 +18,4 @@ Cuando respondas sobre desarrollo en Vue.js (código, ejemplos, explicación de 
 5. cuando se pida generar componente visuales usa la lib Vuetify
 6. siempre para los componentes visuales o UI Desarrollar Vistas Responsive
 7. para interaccion con API rest usar axios
+8. Evita siempre usar tipos geneticos tantos en lso componentes (.vue) como en los services (.ts)

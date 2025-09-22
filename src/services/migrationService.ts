@@ -231,6 +231,30 @@ export interface OrphanProductsResponse {
   limit: number
 }
 
+// Interfaces para estadísticas de sincronización
+export interface SyncToItem {
+  to_sync_id: string
+  to_account_id: number
+}
+
+export interface SyncFromItem {
+  from_publication_id: string
+  from_account_id: number
+}
+
+export interface PublicationSyncData {
+  publication_id: string
+  account_id: number
+  to_syncs: SyncToItem[]
+  from_syncs: SyncFromItem[]
+}
+
+export interface SyncStatsResponse {
+  account_id: number
+  total_publications: number
+  publications: PublicationSyncData[]
+}
+
 // Servicio de migración
 export const migrationService = {
   // Actualizar IDs de productos desde Mercado Libre a la base de datos
@@ -397,6 +421,22 @@ export const migrationService = {
       return response.data as OrphanProductsResponse
     } catch (error) {
       console.error('Error al obtener productos huérfanos:', error)
+      throw error
+    }
+  },
+
+  // Obtener estadísticas de sincronización
+  async getSyncStats(accountId: number): Promise<SyncStatsResponse> {
+    try {
+      const response = await apiClient.get(`/v1/migration/products/sync/stats`, {
+        headers: {
+          'account-id': accountId.toString(),
+        },
+      })
+
+      return response.data as SyncStatsResponse
+    } catch (error) {
+      console.error('Error al obtener estadísticas de sincronización:', error)
       throw error
     }
   },

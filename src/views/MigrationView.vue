@@ -47,7 +47,15 @@
             </v-tab>
             <v-tab
               value="3"
-              :color="activeTab === 3 ? 'error' : undefined"
+              :color="activeTab === 3 ? 'primary' : undefined"
+              class="font-weight-medium tab-with-border"
+            >
+              <v-icon start color="primary">mdi-sync</v-icon>
+              SINCRONIZACIONES
+            </v-tab>
+            <v-tab
+              value="4"
+              :color="activeTab === 4 ? 'error' : undefined"
               class="font-weight-medium tab-with-border"
             >
               <v-icon start color="error">mdi-database-remove</v-icon>
@@ -72,8 +80,13 @@
               @error="handleError"
             />
             
-            <DeprecatedPublicationsTab 
+            <SyncRelationsTab 
               v-if="activeTab === 3" 
+              @error="handleError"
+            />
+            
+            <DeprecatedPublicationsTab 
+              v-if="activeTab === 4" 
               @error="handleError"
             />
           </v-card-text>
@@ -91,6 +104,7 @@ import { useAccountStore } from '@/stores/account'
 import PublicationsTab from '@/views/migrations/PublicationsTab.vue'
 import OrphanPublicationsTab from '@/views/migrations/OrphanPublicationsTab.vue'
 import MissingPublicationsTab from '@/views/migrations/MissingPublicationsTab.vue'
+import SyncRelationsTab from '@/views/migrations/SyncRelationsTab.vue'
 import DeprecatedPublicationsTab from '@/views/migrations/DeprecatedPublicationsTab.vue'
 
 // Stores
