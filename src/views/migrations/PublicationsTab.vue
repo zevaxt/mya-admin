@@ -494,10 +494,12 @@ const loadProductIds = async () => {
   }
 }
 
-// Ver detalles del producto (por implementar)
-const viewProductDetail = async (productId: string) => {
-  // Por implementar
-  console.log('Ver detalles del producto:', productId)
+// Ver detalles del producto
+const viewProductDetail = (productId: string) => {
+  if (!hasAccount.value) return
+  
+  // Redireccionar directamente a la vista de detalles
+  window.open(`/product-detail/${productId}`, '_blank')
 }
 
 // Confirmar eliminación de un producto
