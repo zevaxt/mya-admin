@@ -174,84 +174,84 @@
         <!-- Columna de Sincronizaciones Salientes -->
         <template #[`item.outgoing_syncs`]="slotProps">
           <div class="d-flex align-center">
+            <!-- Mostrar el número de sincronizaciones -->
+            <v-chip
+              :color="slotProps.item.to_syncs.length > 0 ? 'primary' : 'grey'"
+              size="small"
+              variant="outlined"
+              class="mr-2"
+            >
+              {{ slotProps.item.to_syncs.length }}
+            </v-chip>
+            
             <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
             <div v-if="slotProps.item.to_syncs.length === 1" class="d-flex align-center">
-              <v-chip color="primary" size="small" variant="outlined" class="mr-2"> 1 </v-chip>
-              <div class="d-flex align-center">
-                <span class="text-caption text-truncate" style="max-width: 180px">
-                  {{ slotProps.item.to_syncs[0].to_sync_id }}
-                </span>
-              </div>
+              <span class="text-caption text-truncate" style="max-width: 150px">
+                {{ slotProps.item.to_syncs[0].to_sync_id }}
+              </span>
             </div>
 
-            <!-- Cuando hay múltiples o ninguna sincronización -->
-            <div v-else>
-              <v-chip
-                :color="slotProps.item.to_syncs.length > 0 ? 'primary' : 'grey'"
-                size="small"
-                variant="outlined"
-                class="mr-2"
-              >
-                {{ slotProps.item.to_syncs.length }}
-              </v-chip>
-              <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    size="x-small"
-                    icon
-                    variant="text"
-                    color="primary"
-                    @click.stop="expanded = [slotProps.item.publication_id]"
-                  >
-                    <v-icon size="small">mdi-eye</v-icon>
-                  </v-btn>
-                </template>
-                <span>Ver sincronizaciones salientes</span>
-              </v-tooltip>
-            </div>
+            <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
+            <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="x-small"
+                  icon
+                  variant="text"
+                  :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'primary'"
+                  @click.stop="toggleExpanded(slotProps.item.publication_id)"
+                  class="ml-2"
+                >
+                  <v-icon size="small">
+                    {{ expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye' }}
+                  </v-icon>
+                </v-btn>
+              </template>
+              <span>{{ expanded.includes(slotProps.item.publication_id) ? 'Ocultar detalles' : 'Ver sincronizaciones salientes' }}</span>
+            </v-tooltip>
           </div>
         </template>
 
         <!-- Columna de Sincronizaciones Entrantes -->
         <template #[`item.incoming_syncs`]="slotProps">
           <div class="d-flex align-center">
+            <!-- Mostrar el número de sincronizaciones -->
+            <v-chip
+              :color="slotProps.item.from_syncs.length > 0 ? 'success' : 'grey'"
+              size="small"
+              variant="outlined"
+              class="mr-2"
+            >
+              {{ slotProps.item.from_syncs.length }}
+            </v-chip>
+            
             <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
             <div v-if="slotProps.item.from_syncs.length === 1" class="d-flex align-center">
-              <v-chip color="success" size="small" variant="outlined" class="mr-2"> 1 </v-chip>
-              <div class="d-flex align-center">
-                <span class="text-caption text-truncate" style="max-width: 180px">
-                  {{ slotProps.item.from_syncs[0].from_publication_id }}
-                </span>
-              </div>
+              <span class="text-caption text-truncate" style="max-width: 150px">
+                {{ slotProps.item.from_syncs[0].from_publication_id }}
+              </span>
             </div>
 
-            <!-- Cuando hay múltiples o ninguna sincronización -->
-            <div v-else>
-              <v-chip
-                :color="slotProps.item.from_syncs.length > 0 ? 'success' : 'grey'"
-                size="small"
-                variant="outlined"
-                class="mr-2"
-              >
-                {{ slotProps.item.from_syncs.length }}
-              </v-chip>
-              <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    size="x-small"
-                    icon
-                    variant="text"
-                    color="success"
-                    @click.stop="expanded = [slotProps.item.publication_id]"
-                  >
-                    <v-icon size="small">mdi-eye</v-icon>
-                  </v-btn>
-                </template>
-                <span>Ver sincronizaciones entrantes</span>
-              </v-tooltip>
-            </div>
+            <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
+            <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="x-small"
+                  icon
+                  variant="text"
+                  :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'success'"
+                  @click.stop="toggleExpanded(slotProps.item.publication_id)"
+                  class="ml-2"
+                >
+                  <v-icon size="small">
+                    {{ expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye' }}
+                  </v-icon>
+                </v-btn>
+              </template>
+              <span>{{ expanded.includes(slotProps.item.publication_id) ? 'Ocultar detalles' : 'Ver sincronizaciones entrantes' }}</span>
+            </v-tooltip>
           </div>
         </template>
 
@@ -369,9 +369,9 @@
                       }}</v-chip>
                     </div>
                     <v-table
-                      v-if="slotProps.item.to_syncs.length > 0"
                       density="compact"
                       class="border rounded"
+                      v-if="slotProps.item.to_syncs.length > 0"
                     >
                       <thead>
                         <tr>
@@ -445,6 +445,24 @@
                                 </template>
                                 <span>Ver en Mercado Libre</span>
                               </v-tooltip>
+                              
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="elevated"
+                                    color="warning"
+                                    class="ml-1"
+                                    :loading="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}`"
+                                    @click="syncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
+                                  >
+                                    <v-icon size="small">mdi-sync</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Sincronizar esta relación</span>
+                              </v-tooltip>
                             </div>
                           </td>
                         </tr>
@@ -465,9 +483,9 @@
                       }}</v-chip>
                     </div>
                     <v-table
-                      v-if="slotProps.item.from_syncs.length > 0"
                       density="compact"
                       class="border rounded"
+                      v-if="slotProps.item.from_syncs.length > 0"
                     >
                       <thead>
                         <tr>
@@ -543,6 +561,24 @@
                                   </v-btn>
                                 </template>
                                 <span>Ver en Mercado Libre</span>
+                              </v-tooltip>
+                              
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="elevated"
+                                    color="warning"
+                                    class="ml-1"
+                                    :loading="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}`"
+                                    @click="syncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
+                                  >
+                                    <v-icon size="small">mdi-sync</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Sincronizar esta relación</span>
                               </v-tooltip>
                             </div>
                           </td>
@@ -946,6 +982,17 @@ const viewProductDetails = (productId: string) => {
 
 // Usando la función importada de mercadoLibreUtils.ts
 
+const toggleExpanded = (publicationId: string) => {
+  const index = expanded.value.indexOf(publicationId)
+  if (index >= 0) {
+    // Si ya está expandido, lo quitamos para contraer
+    expanded.value.splice(index, 1)
+  } else {
+    // Si no está expandido, lo agregamos para expandir
+    expanded.value.push(publicationId)
+  }
+}
+
 const copyToClipboard = (text: string) => {
   navigator.clipboard
     .writeText(text)
@@ -1188,6 +1235,37 @@ const syncPublication = async (publicationId: string) => {
   }
 }
 
+// Función para sincronizar una relación específica
+const syncRelation = async (sourceId: string, targetId: string, direction: 'outgoing' | 'incoming') => {
+  // Creamos un ID único para esta relación
+  const relationId = `${sourceId}-${targetId}`
+  syncingItem.value = relationId
+
+  try {
+    // Aquí iría la llamada a la API para sincronizar la relación específica
+    // Por ahora solo simulamos un retraso
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    showNotification.value = true
+    notificationMessage.value = direction === 'outgoing'
+      ? `Sincronización de ${sourceId} hacia ${targetId} iniciada`
+      : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`
+    notificationType.value = 'success'
+
+    // Recargar los datos después de un tiempo para ver los cambios
+    setTimeout(() => {
+      loadSyncRelations()
+    }, 1500)
+  } catch (error) {
+    console.error(`Error al sincronizar la relación ${sourceId}-${targetId}:`, error)
+    showNotification.value = true
+    notificationMessage.value = `Error al sincronizar la relación`
+    notificationType.value = 'error'
+  } finally {
+    syncingItem.value = null
+  }
+}
+
 // Watcher para recargar datos cuando cambia la cuenta
 watch(
   () => accountStore.currentAccount?.ID,
@@ -1225,5 +1303,35 @@ const handleItemsPerPageChange = (newItemsPerPage: number) => {
 
 .rounded {
   border-radius: 4px;
+}
+
+.pagination-fixed {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.items-per-page-select {
+  width: 80px;
+}
+
+.pagination-centered {
+  display: flex;
+  justify-content: center;
+}
+
+/* Estilos para las filas expandidas */
+.v-data-table__expanded {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Efecto hover para los botones de expandir/contraer */
+.v-btn.v-btn--icon.v-btn--density-default.v-btn--size-x-small:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+  transition: all 0.2s ease;
 }
 </style>
