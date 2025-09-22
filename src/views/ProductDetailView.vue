@@ -8,16 +8,6 @@
               <span class="text-h5">Detalles del Producto</span>
               <div class="text-subtitle-2 text-grey" v-if="product">ID: {{ product.ID }}</div>
             </div>
-            <div class="d-flex justify-end">
-              <v-btn
-                color="secondary"
-                variant="outlined"
-                @click="goBack"
-                prepend-icon="mdi-arrow-left"
-              >
-                Volver
-              </v-btn>
-            </div>
           </v-card-title>
 
           <v-divider></v-divider>
@@ -33,25 +23,90 @@
             <v-row>
               <!-- Carrusel de imágenes -->
               <v-col cols="12" md="6">
-                <v-carousel
+                <div
                   v-if="product.Attributes?.pictures && product.Attributes.pictures.length > 0"
-                  height="400"
-                  hide-delimiters
-                  show-arrows="hover"
+                  class="position-relative"
                 >
-                  <v-carousel-item
-                    v-for="picture in product.Attributes.pictures"
-                    :key="picture.id"
-                    :src="picture.secure_url || picture.url"
-                    cover
-                  ></v-carousel-item>
-                </v-carousel>
+                  <!-- Imagen principal -->
+                  <div
+                    class="d-flex justify-center align-center"
+                    style="min-height: 300px; max-height: 400px;"
+                  >
+                    <v-img
+                      v-if="currentPicture"
+                      :src="currentPicture.secure_url || currentPicture.url"
+                      height="auto"
+                      width="auto"
+                      max-height="400"
+                      max-width="100%"
+                      contain
+                      class="mx-auto image-no-bg"
+                      eager
+                      :alt="`Imagen ${currentImageIndex + 1} del producto ${product.Attributes.title || 'sin título'}`"
+                    >
+                      <template v-slot:placeholder>
+                        <v-row class="fill-height ma-0" align="center" justify="center">
+                          <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                        </v-row>
+                      </template>
+                    </v-img>
+                  </div>
+
+                  <!-- Controles de navegación -->
+                  <div
+                    class="d-flex justify-space-between align-center position-absolute"
+                    style="top: 50%; transform: translateY(-50%); width: 100%"
+                  >
+                    <v-btn
+                      icon="mdi-chevron-left"
+                      variant="text"
+                      size="large"
+                      color="primary"
+                      @click="prevImage"
+                      :disabled="currentImageIndex === 0"
+                    ></v-btn>
+                    <v-btn
+                      icon="mdi-chevron-right"
+                      variant="text"
+                      size="large"
+                      color="primary"
+                      @click="nextImage"
+                      :disabled="currentImageIndex === product.Attributes.pictures.length - 1"
+                    ></v-btn>
+                  </div>
+
+                  <!-- Miniaturas de navegación -->
+                  <div class="d-flex justify-center mt-3 overflow-x-auto" style="max-width: 100%">
+                    <div
+                      v-for="(picture, i) in product.Attributes.pictures"
+                      :key="i"
+                      class="mx-1 thumbnail-container"
+                      :class="{ 'active-thumbnail': currentImageIndex === i }"
+                      @click="selectImage(i)"
+                    >
+                      <v-img
+                        :src="picture.secure_url || picture.url"
+                        width="50"
+                        height="50"
+                        cover
+                        class="rounded"
+                      ></v-img>
+                    </div>
+                  </div>
+
+                  <!-- Contador de imágenes -->
+                  <div class="text-center mt-2 text-caption">
+                    Imagen {{ currentImageIndex + 1 }} de {{ product.Attributes.pictures.length }}
+                  </div>
+                </div>
                 <v-img
                   v-else
                   src="https://via.placeholder.com/400x400?text=Sin+imagen"
-                  height="400"
-                  cover
-                  class="bg-grey-lighten-2"
+                  height="auto"
+                  max-height="400"
+                  max-width="100%"
+                  contain
+                  class="mx-auto image-no-bg"
                 ></v-img>
               </v-col>
 
@@ -382,7 +437,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import migrationService from '@/services/migrationService'
 import { useAccountStore } from '@/stores/account'
@@ -398,10 +453,19 @@ const accountStore = useAccountStore()
 // Estado
 const product = ref<ProductDetail | null>(null)
 const activeTab = ref('attributes')
+const currentImageIndex = ref(0)
 const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
 const loading = ref(false)
+
+// Imagen actual basada en el índice
+const currentPicture = computed(() => {
+  if (!product.value?.Attributes?.pictures || product.value.Attributes.pictures.length === 0) {
+    return null
+  }
+  return product.value.Attributes.pictures[currentImageIndex.value] || null
+})
 
 // Cargar datos del producto directamente desde la API
 onMounted(async () => {
@@ -450,6 +514,32 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(price)
 }
 
+// Funciones para la navegación de imágenes
+const selectImage = (index: number) => {
+  if (
+    product.value?.Attributes?.pictures &&
+    index >= 0 &&
+    index < product.value.Attributes.pictures.length
+  ) {
+    currentImageIndex.value = index
+  }
+}
+
+const prevImage = () => {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--
+  }
+}
+
+const nextImage = () => {
+  if (
+    product.value?.Attributes?.pictures &&
+    currentImageIndex.value < product.value.Attributes.pictures.length - 1
+  ) {
+    currentImageIndex.value++
+  }
+}
+
 const openInMercadoLibre = () => {
   if (product.value?.Attributes?.permalink) {
     window.open(product.value.Attributes.permalink, '_blank')
@@ -478,6 +568,37 @@ const copyToClipboard = (text: string) => {
     })
 }
 </script>
+
+<style scoped>
+.thumbnail-container {
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.thumbnail-container:hover {
+  border-color: #1976d2;
+  transform: scale(1.05);
+}
+
+.active-thumbnail {
+  border-color: #1976d2;
+  box-shadow: 0 0 5px rgba(25, 118, 210, 0.5);
+}
+
+.image-no-bg {
+  background: transparent !important;
+}
+
+.image-no-bg :deep(.v-img__img) {
+  object-fit: contain !important;
+}
+
+.position-relative {
+  background: transparent !important;
+}
+</style>
 
 <style scoped>
 .json-viewer {
