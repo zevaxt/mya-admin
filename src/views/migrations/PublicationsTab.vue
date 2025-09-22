@@ -347,20 +347,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
-import type { ProductId, ProductDetail as BaseProductDetail } from '@/services/migrationService'
-
-// Extender la interfaz ProductDetail para incluir la propiedad Attributes
-interface ProductDetail extends BaseProductDetail {
-  Attributes?: Record<string, unknown>
-  ID?: string
-  Status?: boolean
-}
+import type { ProductId } from '@/services/migrationService'
 
 // Emits
-const emit = defineEmits<{
-  (e: 'show-product-detail', product: ProductDetail | null): void
-  (e: 'error', message: string | null): void
-}>()
+// No hay emisiones de eventos
 
 // Stores
 const accountStore = useAccountStore()
@@ -447,7 +437,7 @@ const filteredProductIds = computed(() => {
 
   // Filtrar por estado
   if (statusFilter.value) {
-    // Convertir el valor del filtro a booleano si es necesario
+    // Convertir el valor booleano a string para la comparación
     const statusValue = statusFilter.value === 'active' ? true : false
     filtered = filtered.filter((item) => item.Status === statusValue)
   }
@@ -504,65 +494,10 @@ const loadProductIds = async () => {
   }
 }
 
-// Ver detalles del producto
+// Ver detalles del producto (por implementar)
 const viewProductDetail = async (productId: string) => {
-  if (!hasAccount.value) return
-
-  loading.value = true
-  error.value = null
-  
-  // Emitir el evento antes de la llamada a la API para mostrar el diálogo de carga
-  emit('show-product-detail', null)
-
-  try {
-    console.log('Llamando a getProductDetail con:', { accountId: accountId.value, productId })
-    const response = await migrationService.getProductDetail(accountId.value, productId)
-    console.log('Respuesta de getProductDetail:', response)
-    
-    // Verificar si la respuesta es el objeto de producto directamente o si contiene una propiedad product
-    const productData = response.product || response
-    
-    // Verificar si tenemos datos válidos
-    if (productData) {
-      // Crear un objeto ProductDetail con la estructura esperada
-      const productDetail = {
-        id: productData.ID || productData.id,
-        title: productData.title || (productData.Attributes && productData.Attributes.title) || 'Sin título',
-        category_id: productData.category_id || (productData.Attributes && productData.Attributes.category_id) || '',
-        price: productData.price || (productData.Attributes && productData.Attributes.price) || 0,
-        available_quantity: productData.available_quantity || 0,
-        status: productData.status || (productData.Status ? 'active' : 'inactive'),
-        permalink: productData.permalink || (productData.Attributes && productData.Attributes.permalink),
-        // Incluir los atributos completos
-        Attributes: productData.Attributes || {}
-      }
-      
-      console.log('Objeto productDetail creado:', productDetail)
-      
-      // Emitir el evento con los detalles del producto
-      console.log('Emitiendo show-product-detail con:', productDetail)
-      emit('show-product-detail', productDetail)
-    } else {
-      console.error('La respuesta no contiene datos de producto válidos:', response)
-      error.value = 'Error: La respuesta no contiene datos de producto válidos'
-      emit('show-product-detail', null)
-    }
-  } catch (err) {
-    console.error(`Error al obtener detalles del producto ${productId}:`, err)
-    if (err instanceof Error) {
-      error.value = `Error al obtener detalles del producto: ${err.message}`
-    } else {
-      error.value = 'Error al obtener detalles del producto'
-    }
-    
-    // Cerrar el diálogo de carga en caso de error
-    emit('show-product-detail', null)
-    showNotification.value = true
-    notificationMessage.value = error.value || 'Error al obtener detalles del producto'
-    notificationType.value = 'error'
-  } finally {
-    loading.value = false
-  }
+  // Por implementar
+  console.log('Ver detalles del producto:', productId)
 }
 
 // Confirmar eliminación de un producto

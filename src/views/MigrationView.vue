@@ -60,7 +60,6 @@
             <PublicationsTab 
               v-if="activeTab === 0" 
               @error="handleError"
-              @show-product-detail="handleShowProductDetail"
             />
             
             <OrphanPublicationsTab 
@@ -82,45 +81,17 @@
       </v-col>
     </v-row>
 
-    <!-- Usar el componente ProductDetailDialog -->
-    <ProductDetailDialog
-      v-if="selectedProduct"
-      v-model="showProductDetail"
-      :product="selectedProduct"
-    />
-    
-    <!-- Diálogo de carga mientras se obtienen los detalles del producto -->
-    <v-dialog :model-value="showProductDetail && !selectedProduct" persistent max-width="300">
-      <v-card>
-        <v-card-text class="text-center pa-4">
-          <v-progress-circular indeterminate color="primary" class="mb-3"></v-progress-circular>
-          <div>Cargando detalles del producto...</div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="error" text @click="showProductDetail = false">Cancelar</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- El diálogo de detalles del producto ha sido eliminado -->
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import type { ProductDetail as BaseProductDetail } from '@/services/migrationService'
-
-// Extender la interfaz ProductDetail para incluir la propiedad Attributes
-interface ProductDetail extends BaseProductDetail {
-  Attributes?: Record<string, unknown>
-  ID?: string
-  Status?: boolean
-}
 import PublicationsTab from '@/views/migrations/PublicationsTab.vue'
 import OrphanPublicationsTab from '@/views/migrations/OrphanPublicationsTab.vue'
 import MissingPublicationsTab from '@/views/migrations/MissingPublicationsTab.vue'
 import DeprecatedPublicationsTab from '@/views/migrations/DeprecatedPublicationsTab.vue'
-import ProductDetailDialog from '@/components/migration/ProductDetailDialog.vue'
 
 // Stores
 const accountStore = useAccountStore()
@@ -128,8 +99,6 @@ const accountStore = useAccountStore()
 // Estado
 const activeTab = ref<number>(0)
 const error = ref<string | null>(null)
-const showProductDetail = ref(false)
-const selectedProduct = ref<ProductDetail | null>(null)
 
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
@@ -145,34 +114,6 @@ const handleTabChange = (tabIndex: unknown) => {
 const handleError = (errorMessage: string | null) => {
   error.value = errorMessage
 }
-
-// Manejar visualización de detalles del producto
-const handleShowProductDetail = (product: ProductDetail | null) => {
-  console.log('handleShowProductDetail called with product:', product)
-  console.log('Tipo de product:', product ? typeof product : 'null')
-  
-  if (product === null) {
-    // Si el producto es null, mostrar el diálogo de carga
-    console.log('Mostrando diálogo de carga (product === null)')
-    selectedProduct.value = null
-    showProductDetail.value = true
-  } else if (!product) {
-    // Si el producto es undefined o falsy, mostrar un mensaje de error
-    console.error('Producto inválido:', product)
-    selectedProduct.value = null
-    showProductDetail.value = false
-    error.value = 'Error: Datos de producto inválidos'
-  } else {
-    // Si el producto tiene datos, mostrar el diálogo con los detalles
-    console.log('Mostrando diálogo con detalles, product:', product)
-    console.log('Propiedades del producto:', Object.keys(product))
-    selectedProduct.value = product
-    showProductDetail.value = true
-    console.log('After setting selectedProduct:', { showProductDetail: showProductDetail.value, selectedProduct: selectedProduct.value })
-  }
-}
-
-// Esta función se ha movido al componente ProductDetailDialog
 </script>
 
 <style scoped>
