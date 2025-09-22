@@ -110,7 +110,7 @@
 
         <v-col cols="12" md="3" class="d-flex justify-end align-center gap-2">
           <v-btn
-            v-if="hasActiveFilters"
+            v-if="hasActiveFilters || searchQuery"
             color="secondary"
             variant="outlined"
             @click="clearAllFilters"
@@ -120,6 +120,24 @@
             <v-icon start>mdi-filter-remove</v-icon>
             Limpiar filtros
           </v-btn>
+        </v-col>
+      </v-row>
+
+      <!-- Barra de búsqueda -->
+      <v-row class="mt-2">
+        <v-col cols="12">
+          <v-text-field
+            v-model="searchQuery"
+            label="Buscar por ID de publicación"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+            append-inner-icon="mdi-magnify"
+            @update:model-value="handleSearchQueryChange"
+            @click:append-inner="handleSearchQueryChange"
+            clearable
+            @click:clear="clearSearchQuery"
+          ></v-text-field>
         </v-col>
       </v-row>
     </div>
@@ -363,6 +381,7 @@ const productIds = ref<ProductId[]>([])
 const statusFilter = ref('')
 const syncActiveFilter = ref<string>('')
 const catalogActiveFilter = ref<string>('')
+const searchQuery = ref('')
 const totalProductIds = ref(0)
 const page = ref(1)
 const itemsPerPage = ref(100)
@@ -419,7 +438,7 @@ const hasAccount = computed(() => !!currentAccount.value)
 
 // Verificar si hay filtros activos
 const hasActiveFilters = computed(() => {
-  return statusFilter.value !== '' || syncActiveFilter.value !== '' || catalogActiveFilter.value !== ''
+  return statusFilter.value !== '' || syncActiveFilter.value !== '' || catalogActiveFilter.value !== '' || searchQuery.value !== ''
 })
 
 // Mensaje de resultados filtrados
@@ -453,6 +472,14 @@ const filteredProductIds = computed(() => {
   if (catalogActiveFilter.value) {
     const isActive = catalogActiveFilter.value === 'true' ? true : false
     filtered = filtered.filter((item) => item.CatalogActive === isActive)
+  }
+
+  // Filtrar por búsqueda
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter((item) => {
+      return item.ID.toLowerCase().includes(query)
+    })
   }
 
   return filtered
@@ -651,13 +678,25 @@ const handleCatalogActiveFilterChange = () => {
   loadProductIds()
 }
 
+// Función para manejar el cambio en la búsqueda
+const handleSearchQueryChange = () => {
+  // Reiniciar a la primera página cuando cambia la búsqueda
+  page.value = 1
+}
+
+// Función para limpiar la búsqueda
+const clearSearchQuery = () => {
+  searchQuery.value = ''
+  handleSearchQueryChange()
+}
+
 // Limpiar todos los filtros
 const clearAllFilters = () => {
   statusFilter.value = ''
   syncActiveFilter.value = ''
   catalogActiveFilter.value = ''
-  page.value = 1
-  loadProductIds()
+  searchQuery.value = ''
+  handleStatusFilterChange()
 }
 
 // Observar cambios en la cuenta seleccionada
