@@ -6,7 +6,7 @@
           <v-card-title class="d-flex justify-space-between align-center">
             <div>
               <span class="text-h5">Detalles del Producto</span>
-              <div class="text-subtitle-2 text-grey" v-if="product">ID: {{ product.id }}</div>
+              <div class="text-subtitle-2 text-grey" v-if="product">ID: {{ product.ID }}</div>
             </div>
             <div class="d-flex justify-end">
               <v-btn
@@ -34,13 +34,13 @@
               <!-- Carrusel de imágenes -->
               <v-col cols="12" md="6">
                 <v-carousel
-                  v-if="product.pictures && product.pictures.length > 0"
+                  v-if="product.Attributes?.pictures && product.Attributes.pictures.length > 0"
                   height="400"
                   hide-delimiters
                   show-arrows="hover"
                 >
                   <v-carousel-item
-                    v-for="picture in product.pictures"
+                    v-for="picture in product.Attributes.pictures"
                     :key="picture.id"
                     :src="picture.secure_url || picture.url"
                     cover
@@ -57,13 +57,13 @@
 
               <!-- Información básica -->
               <v-col cols="12" md="6">
-                <h2 class="text-h4 mb-4">{{ product.title || 'Sin título' }}</h2>
-                
+                <h2 class="text-h4 mb-4">{{ product.Attributes?.title || 'Sin título' }}</h2>
+
                 <v-list density="compact" class="bg-grey-lighten-5 rounded mb-4">
                   <v-list-item>
                     <v-list-item-title>Precio</v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ formatPrice(product.price || 0) }}
+                      {{ formatPrice(product.Attributes?.price || 0) }}
                     </v-list-item-subtitle>
                   </v-list-item>
 
@@ -71,52 +71,52 @@
                     <v-list-item-title>Estado</v-list-item-title>
                     <v-list-item-subtitle>
                       <v-chip
-                        :color="product.status === 'active' ? 'success' : 'error'"
+                        :color="product.Attributes?.status === 'active' ? 'success' : 'error'"
                         size="small"
                       >
-                        {{ product.status === 'active' ? 'Activo' : 'Inactivo' }}
+                        {{ product.Attributes?.status === 'active' ? 'Activo' : 'Inactivo' }}
                       </v-chip>
                     </v-list-item-subtitle>
                   </v-list-item>
 
-                  <v-list-item v-if="product.condition">
+                  <v-list-item v-if="product.Attributes?.condition">
                     <v-list-item-title>Condición</v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ product.condition === 'new' ? 'Nuevo' : 'Usado' }}
+                      {{ product.Attributes?.condition === 'new' ? 'Nuevo' : 'Usado' }}
                     </v-list-item-subtitle>
                   </v-list-item>
 
                   <v-list-item>
                     <v-list-item-title>Cantidad disponible</v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ product.available_quantity || 0 }}
+                      {{ product.Attributes?.available_quantity || 0 }}
                     </v-list-item-subtitle>
                   </v-list-item>
 
-                  <v-list-item v-if="product.sold_quantity !== undefined">
+                  <v-list-item v-if="product.Attributes?.sold_quantity !== undefined">
                     <v-list-item-title>Cantidad vendida</v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ product.sold_quantity || 0 }}
+                      {{ product.Attributes?.sold_quantity || 0 }}
                     </v-list-item-subtitle>
                   </v-list-item>
 
                   <v-list-item>
                     <v-list-item-title>Categoría</v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ product.category_id || '-' }}
+                      {{ product.Attributes?.category_id || '-' }}
                     </v-list-item-subtitle>
                   </v-list-item>
 
-                  <v-list-item v-if="product.warranty">
+                  <v-list-item v-if="product.Attributes?.warranty">
                     <v-list-item-title>Garantía</v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ product.warranty || 'Sin garantía' }}
+                      {{ product.Attributes?.warranty || 'Sin garantía' }}
                     </v-list-item-subtitle>
                   </v-list-item>
                 </v-list>
 
                 <v-btn
-                  v-if="product.permalink"
+                  v-if="product.Attributes?.permalink"
                   color="primary"
                   class="mt-2"
                   @click="openInMercadoLibre"
@@ -131,8 +131,14 @@
             <v-tabs v-model="activeTab" class="mt-6">
               <v-tab value="attributes">Atributos</v-tab>
               <v-tab value="shipping">Envío</v-tab>
-              <v-tab value="description" v-if="product.descriptions && product.descriptions.length > 0">Descripción</v-tab>
-              <v-tab value="location" v-if="product.seller_address">Ubicación</v-tab>
+              <v-tab
+                value="description"
+                v-if="
+                  product.Attributes?.descriptions && product.Attributes.descriptions.length > 0
+                "
+                >Descripción</v-tab
+              >
+              <v-tab value="location" v-if="product.Attributes?.seller_address">Ubicación</v-tab>
               <v-tab value="json">JSON Completo</v-tab>
             </v-tabs>
 
@@ -141,7 +147,11 @@
               <v-window-item value="attributes">
                 <v-card variant="flat">
                   <v-card-text>
-                    <v-table v-if="product.attributes && product.attributes.length > 0">
+                    <v-table
+                      v-if="
+                        product.Attributes?.attributes && product.Attributes.attributes.length > 0
+                      "
+                    >
                       <thead>
                         <tr>
                           <th>ID</th>
@@ -151,7 +161,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="attr in product.attributes" :key="attr.id">
+                        <tr v-for="attr in product.Attributes.attributes" :key="attr.id">
                           <td>{{ attr.id }}</td>
                           <td>{{ attr.name }}</td>
                           <td>
@@ -180,7 +190,7 @@
                       <v-list-item>
                         <v-list-item-title>Modo de envío</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ product.shipping?.mode || 'No especificado' }}
+                          {{ product.Attributes?.shipping?.mode || 'No especificado' }}
                         </v-list-item-subtitle>
                       </v-list-item>
 
@@ -188,10 +198,12 @@
                         <v-list-item-title>Envío gratis</v-list-item-title>
                         <v-list-item-subtitle>
                           <v-chip
-                            :color="product.shipping?.free_shipping ? 'success' : 'error'"
+                            :color="
+                              product.Attributes?.shipping?.free_shipping ? 'success' : 'error'
+                            "
                             size="small"
                           >
-                            {{ product.shipping?.free_shipping ? 'Sí' : 'No' }}
+                            {{ product.Attributes?.shipping?.free_shipping ? 'Sí' : 'No' }}
                           </v-chip>
                         </v-list-item-subtitle>
                       </v-list-item>
@@ -200,10 +212,12 @@
                         <v-list-item-title>Retiro en local</v-list-item-title>
                         <v-list-item-subtitle>
                           <v-chip
-                            :color="product.shipping?.local_pick_up ? 'success' : 'error'"
+                            :color="
+                              product.Attributes?.shipping?.local_pick_up ? 'success' : 'error'
+                            "
                             size="small"
                           >
-                            {{ product.shipping?.local_pick_up ? 'Sí' : 'No' }}
+                            {{ product.Attributes?.shipping?.local_pick_up ? 'Sí' : 'No' }}
                           </v-chip>
                         </v-list-item-subtitle>
                       </v-list-item>
@@ -212,19 +226,31 @@
                         <v-list-item-title>Retiro en tienda</v-list-item-title>
                         <v-list-item-subtitle>
                           <v-chip
-                            :color="product.shipping?.store_pick_up ? 'success' : 'error'"
+                            :color="
+                              product.Attributes?.shipping?.store_pick_up ? 'success' : 'error'
+                            "
                             size="small"
                           >
-                            {{ product.shipping?.store_pick_up ? 'Sí' : 'No' }}
+                            {{ product.Attributes?.shipping?.store_pick_up ? 'Sí' : 'No' }}
                           </v-chip>
                         </v-list-item-subtitle>
                       </v-list-item>
 
-                      <v-list-item v-if="product.shipping?.tags && product.shipping.tags.length > 0">
+                      <v-list-item
+                        v-if="
+                          product.Attributes?.shipping?.tags &&
+                          product.Attributes.shipping.tags.length > 0
+                        "
+                      >
                         <v-list-item-title>Etiquetas</v-list-item-title>
                         <v-list-item-subtitle>
                           <v-chip-group>
-                            <v-chip v-for="(tag, index) in product.shipping.tags" :key="index" size="small" variant="outlined">
+                            <v-chip
+                              v-for="(tag, index) in product.Attributes.shipping.tags"
+                              :key="index"
+                              size="small"
+                              variant="outlined"
+                            >
                               {{ tag }}
                             </v-chip>
                           </v-chip-group>
@@ -239,9 +265,21 @@
               <v-window-item value="description">
                 <v-card variant="flat">
                   <v-card-text>
-                    <div v-if="product.descriptions && product.descriptions.length > 0">
-                      <div v-for="(description, index) in product.descriptions" :key="index" class="mb-4">
-                        <div class="text-body-1 bg-grey-lighten-5 pa-4 rounded" style="white-space: pre-line">
+                    <div
+                      v-if="
+                        product.Attributes?.descriptions &&
+                        product.Attributes.descriptions.length > 0
+                      "
+                    >
+                      <div
+                        v-for="(description, index) in product.Attributes.descriptions"
+                        :key="index"
+                        class="mb-4"
+                      >
+                        <div
+                          class="text-body-1 bg-grey-lighten-5 pa-4 rounded"
+                          style="white-space: pre-line"
+                        >
                           {{ description }}
                         </div>
                       </div>
@@ -258,38 +296,38 @@
                 <v-card variant="flat">
                   <v-card-text>
                     <v-list density="compact" class="bg-grey-lighten-5 rounded">
-                      <v-list-item v-if="product.seller_address?.address_line">
+                      <v-list-item v-if="product.Attributes?.seller_address?.address_line">
                         <v-list-item-title>Dirección</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ product.seller_address.address_line }}
+                          {{ product.Attributes.seller_address.address_line }}
                         </v-list-item-subtitle>
                       </v-list-item>
 
-                      <v-list-item v-if="product.seller_address?.city">
+                      <v-list-item v-if="product.Attributes?.seller_address?.city">
                         <v-list-item-title>Ciudad</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ product.seller_address.city.name }}
+                          {{ product.Attributes.seller_address.city.name }}
                         </v-list-item-subtitle>
                       </v-list-item>
 
-                      <v-list-item v-if="product.seller_address?.state">
+                      <v-list-item v-if="product.Attributes?.seller_address?.state">
                         <v-list-item-title>Estado/Provincia</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ product.seller_address.state.name }}
+                          {{ product.Attributes.seller_address.state.name }}
                         </v-list-item-subtitle>
                       </v-list-item>
 
-                      <v-list-item v-if="product.seller_address?.country">
+                      <v-list-item v-if="product.Attributes?.seller_address?.country">
                         <v-list-item-title>País</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ product.seller_address.country.name }}
+                          {{ product.Attributes.seller_address.country.name }}
                         </v-list-item-subtitle>
                       </v-list-item>
 
-                      <v-list-item v-if="product.seller_address?.zip_code">
+                      <v-list-item v-if="product.Attributes?.seller_address?.zip_code">
                         <v-list-item-title>Código Postal</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ product.seller_address.zip_code }}
+                          {{ product.Attributes.seller_address.zip_code }}
                         </v-list-item-subtitle>
                       </v-list-item>
                     </v-list>
@@ -313,7 +351,9 @@
                       </v-btn>
                     </div>
                     <div class="json-viewer pa-2 bg-grey-lighten-5 rounded">
-                      <pre class="overflow-auto" style="max-height: 400px">{{ JSON.stringify(product, null, 2) }}</pre>
+                      <pre class="overflow-auto" style="max-height: 400px">{{
+                        JSON.stringify(product, null, 2)
+                      }}</pre>
                     </div>
                   </v-card-text>
                 </v-card>
@@ -323,7 +363,8 @@
 
           <v-card-text v-else>
             <v-alert type="warning">
-              No se encontró información del producto. Por favor, vuelve a la lista de productos e intenta nuevamente.
+              No se encontró información del producto. Por favor, vuelve a la lista de productos e
+              intenta nuevamente.
             </v-alert>
           </v-card-text>
         </v-card>
@@ -347,69 +388,15 @@ import migrationService from '@/services/migrationService'
 import { useAccountStore } from '@/stores/account'
 
 // Interfaces
-// Interfaces para el producto
-
-// Interfaz para los atributos del producto
-interface ProductAttribute {
-  id: string
-  name: string
-  value_name?: string
-  value_id?: string
-  value_struct?: Record<string, unknown>
-  values?: Array<{ id?: string; name: string; struct?: Record<string, unknown> }>
-  attribute_group_id?: string
-  attribute_group_name?: string
-}
-
-// Interfaz para las imágenes del producto
-interface ProductPicture {
-  id: string
-  url: string
-  secure_url?: string
-  size?: string
-  max_size?: string
-}
-
-// Interfaz para el producto que recibimos de la API
-interface Product {
-  // Campos básicos
-  id: string
-  title: string
-  category_id: string
-  price: number
-  available_quantity: number
-  status: string
-  permalink?: string
-  
-  // Campos adicionales
-  condition?: string
-  warranty?: string
-  sold_quantity?: number
-  attributes?: ProductAttribute[]
-  pictures?: ProductPicture[]
-  shipping?: {
-    mode?: string
-    free_shipping?: boolean
-    local_pick_up?: boolean
-    store_pick_up?: boolean
-    tags?: string[]
-  }
-  seller_address?: {
-    address_line?: string
-    city?: { id: string; name: string }
-    state?: { id: string; name: string }
-    country?: { id: string; name: string }
-    zip_code?: string
-  }
-  descriptions?: string[]
-}
+// Importar la interfaz del servicio de migración
+import type { ProductDetail } from '@/services/migrationService'
 
 // Obtener el ID del producto de la URL y el store de cuentas
 const route = useRoute()
 const accountStore = useAccountStore()
 
 // Estado
-const product = ref<Product | null>(null)
+const product = ref<ProductDetail | null>(null)
 const activeTab = ref('attributes')
 const showNotification = ref(false)
 const notificationMessage = ref('')
@@ -439,10 +426,10 @@ onMounted(async () => {
   try {
     // Obtener los detalles del producto directamente desde la API
     const response = await migrationService.getProductDetail(accountId, productId)
-    
+
     // Verificar si la respuesta tiene la estructura esperada
-    if (response && response.product) {
-      product.value = response.product as unknown as Product
+    if (response && response.Attributes) {
+      product.value = response as ProductDetail
     } else {
       showNotification.value = true
       notificationMessage.value = 'Error en el formato de la respuesta'
@@ -464,8 +451,8 @@ const formatPrice = (price: number) => {
 }
 
 const openInMercadoLibre = () => {
-  if (product.value?.permalink) {
-    window.open(product.value.permalink, '_blank')
+  if (product.value?.Attributes?.permalink) {
+    window.open(product.value.Attributes.permalink, '_blank')
   }
 }
 
@@ -476,13 +463,14 @@ const goBack = () => {
 }
 
 const copyToClipboard = (text: string) => {
-  navigator.clipboard.writeText(text)
+  navigator.clipboard
+    .writeText(text)
     .then(() => {
       showNotification.value = true
       notificationMessage.value = 'Texto copiado al portapapeles'
       notificationType.value = 'success'
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('Error al copiar texto: ', err)
       showNotification.value = true
       notificationMessage.value = 'Error al copiar texto'
