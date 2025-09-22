@@ -182,16 +182,16 @@ paths:
                 properties:
                   Code:
                     type: string
-                    example: '003'
+                    example: "003"
                   Status:
                     type: integer
                     example: 401
                   Message:
                     type: string
-                    example: 'Sus datos de autenticacion son invalidos por favor intente nuevamente'
+                    example: "Sus datos de autenticacion son invalidos por favor intente nuevamente"
                   TecnicalDetails:
                     type: string
-                    example: 'Token inválido o expirado: el token ha expirado'
+                    example: "Token inválido o expirado: el token ha expirado"
   /v1/signin:
     post:
       tags:
@@ -495,13 +495,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           example: 'active'
         - name: channels
           in: header
@@ -616,13 +616,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           example: 'active'
         - name: channels
           in: header
@@ -1896,13 +1896,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           example: 'active'
         - name: channels
           in: header
@@ -1982,13 +1982,13 @@ paths:
           schema:
             type: string
             enum:
-              - active
-              - inactive
-              - paused
-              - deleted
-              - inactive
-              - closed
-              - ''
+                - active
+                - inactive
+                - paused
+                - deleted
+                - inactive
+                - closed
+                - ''
           description: active, o vacio
 
         - name: channels
@@ -9842,13 +9842,13 @@ paths:
         - migration tag
       summary: /v1/migration/products/orphans
       description: >-
-        NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
-        Este handler identifica publicaciones que:
-        1. Pertenecen a una cuenta específica (account-id)
-        2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
-        3. No están activas en el catálogo (catalog_active = false)
-        4. Opcionalmente, filtradas por estado (true/false/all)
-        5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
+         NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
+         Este handler identifica publicaciones que:
+         1. Pertenecen a una cuenta específica (account-id)
+         2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
+         3. No están activas en el catálogo (catalog_active = false)
+         4. Opcionalmente, filtradas por estado (true/false/all)
+         5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
       security:
         - bearerAuth: []
       parameters:
@@ -9886,18 +9886,18 @@ paths:
                     description: Lista de IDs de publicaciones huérfanas
                     items:
                       type: string
-                    example: ['MCO1033211161', 'MCO1034750110', 'MCO1034933991']
+                    example: ["MCO1033211161", "MCO1034750110", "MCO1034933991"]
   /v1/migration/products/sync/stats:
     get:
       tags:
         - migration tag
       summary: /v1/migration/products/sync/stats
       description: >
-        Obtiene estadísticas de sincronización de publicaciones para una cuenta específica.
-        Este endpoint identifica:
-        1. Las publicaciones de la cuenta
-        2. Las relaciones de sincronización de cada publicación (entrantes y salientes)
-        3. El total de publicaciones
+         Obtiene estadísticas de sincronización de publicaciones para una cuenta específica.
+         Este endpoint identifica:
+         1. Las publicaciones de la cuenta
+         2. Las relaciones de sincronización de cada publicación (entrantes y salientes)
+         3. El total de publicaciones
       parameters:
         - name: account-id
           in: header
@@ -9931,7 +9931,7 @@ paths:
                         publication_id:
                           type: string
                           description: ID de la publicación
-                          example: 'MCO123456789'
+                          example: "MCO123456789"
                         account_id:
                           type: integer
                           description: ID de la cuenta a la que pertenece la publicación
@@ -9945,7 +9945,7 @@ paths:
                               to_sync_id:
                                 type: string
                                 description: ID de la publicación sincronizada
-                                example: 'MCO987654321'
+                                example: "MCO987654321"
                               to_account_id:
                                 type: integer
                                 description: ID de la cuenta destino
@@ -9959,11 +9959,120 @@ paths:
                               from_publication_id:
                                 type: string
                                 description: ID de la publicación origen
-                                example: 'MCO111222333'
+                                example: "MCO111222333"
                               from_account_id:
                                 type: integer
                                 description: ID de la cuenta origen
                                 example: 789
+  /v1/migration/products/sync/relations:
+    post:
+      tags:
+        - migration tag
+      summary: /v1/migration/products/sync/relations
+      description: >
+         Crea relaciones de sincronización entre publicaciones.
+         Este endpoint permite crear una o múltiples relaciones de sincronización entre publicaciones.
+         Cada relación conecta una publicación origen con una publicación destino.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sync_relations:
+                  type: array
+                  description: Lista de relaciones de sincronización a crear
+                  items:
+                    type: object
+                    properties:
+                      publication_id:
+                        type: string
+                        description: ID de la publicación origen
+                        example: "MCO123456789"
+                      to_sync_id:
+                        type: string
+                        description: ID de la publicación destino
+                        example: "MCO987654321"
+                      account_id_to:
+                        type: integer
+                        description: ID de la cuenta destino (opcional, se puede inferir de to_sync_id)
+                        example: 456
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la operación fue exitosa
+                    example: true
+                  total_created:
+                    type: integer
+                    description: Número de relaciones creadas exitosamente
+                    example: 3
+                  total_failed:
+                    type: integer
+                    description: Número de relaciones que fallaron al crearse
+                    example: 0
+                  errors:
+                    type: array
+                    description: Lista de errores ocurridos durante la creación de relaciones
+                    items:
+                      type: object
+                      properties:
+                        publication_id:
+                          type: string
+                          description: ID de la publicación origen que falló
+                          example: "MCO123456789"
+                        to_sync_id:
+                          type: string
+                          description: ID de la publicación destino que falló
+                          example: "MCO987654321"
+                        message:
+                          type: string
+                          description: Mensaje de error
+                          example: "Relation already exists"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la operación fue exitosa
+                    example: false
+                  total_created:
+                    type: integer
+                    description: Número de relaciones creadas exitosamente
+                    example: 0
+                  total_failed:
+                    type: integer
+                    description: Número de relaciones que fallaron al crearse
+                    example: 1
+                  errors:
+                    type: array
+                    description: Lista de errores ocurridos durante la creación de relaciones
+                    items:
+                      type: object
+                      properties:
+                        publication_id:
+                          type: string
+                          description: ID de la publicación origen que falló
+                          example: "MCO123456789"
+                        to_sync_id:
+                          type: string
+                          description: ID de la publicación destino que falló
+                          example: "MCO987654321"
+                        message:
+                          type: string
+                          description: Mensaje de error
+                          example: "Publication origin not found"
   /v1/migration/products/orphans/matching-title:
     get:
       tags:

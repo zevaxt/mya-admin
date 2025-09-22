@@ -433,12 +433,11 @@ const handlePageChange = () => {
   loadOrphanPublications()
 }
 
-// Abrir publicación en Mercado Libre
-const openProductInNewTab = (productId: string) => {
-  // Insertar un guion después de los primeros 3 caracteres (MCO-1233526781)
-  const formattedId = productId.slice(0, 3) + '-' + productId.slice(3)
-  window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
-}
+// Importar la función compartida
+import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
+
+// Alias para mantener compatibilidad con el código existente
+const openProductInNewTab = openInMercadoLibre
 
 // Confirmar eliminación de una publicación
 const confirmDeleteProduct = (productId: string) => {

@@ -139,6 +139,7 @@
         hover
         item-value="publication_id"
         class="elevation-0"
+        show-expand
       >
         <template #no-data>
           <div class="text-center py-4">
@@ -173,24 +174,60 @@
 
         <!-- Columna de Sincronizaciones Salientes -->
         <template #[`item.outgoing_syncs`]="slotProps">
-          <v-chip
-            :color="slotProps.item.to_syncs.length > 0 ? 'primary' : 'grey'"
-            size="small"
-            variant="outlined"
-          >
-            {{ slotProps.item.to_syncs.length }}
-          </v-chip>
+          <div class="d-flex align-center">
+            <v-chip
+              :color="slotProps.item.to_syncs.length > 0 ? 'primary' : 'grey'"
+              size="small"
+              variant="outlined"
+              class="mr-2"
+            >
+              {{ slotProps.item.to_syncs.length }}
+            </v-chip>
+            <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="x-small"
+                  icon
+                  variant="text"
+                  color="primary"
+                  @click.stop="expanded = [slotProps.item.publication_id]"
+                >
+                  <v-icon size="small">mdi-eye</v-icon>
+                </v-btn>
+              </template>
+              <span>Ver sincronizaciones salientes</span>
+            </v-tooltip>
+          </div>
         </template>
 
         <!-- Columna de Sincronizaciones Entrantes -->
         <template #[`item.incoming_syncs`]="slotProps">
-          <v-chip
-            :color="slotProps.item.from_syncs.length > 0 ? 'success' : 'grey'"
-            size="small"
-            variant="outlined"
-          >
-            {{ slotProps.item.from_syncs.length }}
-          </v-chip>
+          <div class="d-flex align-center">
+            <v-chip
+              :color="slotProps.item.from_syncs.length > 0 ? 'success' : 'grey'"
+              size="small"
+              variant="outlined"
+              class="mr-2"
+            >
+              {{ slotProps.item.from_syncs.length }}
+            </v-chip>
+            <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="x-small"
+                  icon
+                  variant="text"
+                  color="success"
+                  @click.stop="expanded = [slotProps.item.publication_id]"
+                >
+                  <v-icon size="small">mdi-eye</v-icon>
+                </v-btn>
+              </template>
+              <span>Ver sincronizaciones entrantes</span>
+            </v-tooltip>
+          </div>
         </template>
 
         <!-- Columna de Estado -->
@@ -247,9 +284,10 @@
                 <v-row>
                   <!-- Sincronizaciones Salientes -->
                   <v-col cols="12" md="6">
-                    <div class="text-subtitle-2 mb-2">
+                    <div class="d-flex align-center mb-2">
                       <v-icon size="small" color="primary" class="mr-1">mdi-arrow-right-bold</v-icon>
-                      Sincroniza hacia ({{ slotProps.item.to_syncs.length }})
+                      <div class="text-subtitle-2 font-weight-medium">Sincroniza hacia</div>
+                      <v-chip size="x-small" color="primary" class="ml-2">{{ slotProps.item.to_syncs.length }}</v-chip>
                     </div>
                     <v-table v-if="slotProps.item.to_syncs.length > 0" density="compact" class="border rounded">
                       <thead>
@@ -261,18 +299,65 @@
                       </thead>
                       <tbody>
                         <tr v-for="sync in slotProps.item.to_syncs" :key="sync.to_sync_id">
-                          <td>{{ sync.to_sync_id }}</td>
-                          <td>{{ getAccountName(sync.to_account_id) }}</td>
                           <td>
-                            <v-btn
-                              size="x-small"
-                              icon
-                              variant="text"
-                              color="primary"
-                              @click="viewProductDetails(sync.to_sync_id)"
-                            >
-                              <v-icon size="small">mdi-eye</v-icon>
-                            </v-btn>
+                            <div class="d-flex align-center">
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="text"
+                                    color="primary"
+                                    class="mr-1"
+                                    @click="copyToClipboard(sync.to_sync_id)"
+                                  >
+                                    <v-icon size="small">mdi-content-copy</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Copiar ID</span>
+                              </v-tooltip>
+                              <span>{{ sync.to_sync_id }}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <v-chip size="small" color="primary" variant="flat" class="font-weight-medium">
+                              {{ getAccountName(sync.to_account_id) }}
+                            </v-chip>
+                          </td>
+                          <td>
+                            <div class="d-flex">
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="text"
+                                    color="primary"
+                                    @click="viewProductDetails(sync.to_sync_id)"
+                                  >
+                                    <v-icon size="small">mdi-eye</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Ver detalles</span>
+                              </v-tooltip>
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="text"
+                                    color="primary"
+                                    @click="openInMercadoLibre(sync.to_sync_id)"
+                                  >
+                                    <v-icon size="small">mdi-open-in-new</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Ver en Mercado Libre</span>
+                              </v-tooltip>
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -284,9 +369,10 @@
 
                   <!-- Sincronizaciones Entrantes -->
                   <v-col cols="12" md="6">
-                    <div class="text-subtitle-2 mb-2">
+                    <div class="d-flex align-center mb-2">
                       <v-icon size="small" color="success" class="mr-1">mdi-arrow-left-bold</v-icon>
-                      Sincronizada desde ({{ slotProps.item.from_syncs.length }})
+                      <div class="text-subtitle-2 font-weight-medium">Sincronizada desde</div>
+                      <v-chip size="x-small" color="success" class="ml-2">{{ slotProps.item.from_syncs.length }}</v-chip>
                     </div>
                     <v-table v-if="slotProps.item.from_syncs.length > 0" density="compact" class="border rounded">
                       <thead>
@@ -298,18 +384,65 @@
                       </thead>
                       <tbody>
                         <tr v-for="sync in slotProps.item.from_syncs" :key="sync.from_publication_id">
-                          <td>{{ sync.from_publication_id }}</td>
-                          <td>{{ getAccountName(sync.from_account_id) }}</td>
                           <td>
-                            <v-btn
-                              size="x-small"
-                              icon
-                              variant="text"
-                              color="primary"
-                              @click="viewProductDetails(sync.from_publication_id)"
-                            >
-                              <v-icon size="small">mdi-eye</v-icon>
-                            </v-btn>
+                            <div class="d-flex align-center">
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="text"
+                                    color="success"
+                                    class="mr-1"
+                                    @click="copyToClipboard(sync.from_publication_id)"
+                                  >
+                                    <v-icon size="small">mdi-content-copy</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Copiar ID</span>
+                              </v-tooltip>
+                              <span>{{ sync.from_publication_id }}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <v-chip size="small" color="success" variant="flat" class="font-weight-medium">
+                              {{ getAccountName(sync.from_account_id) }}
+                            </v-chip>
+                          </td>
+                          <td>
+                            <div class="d-flex">
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="text"
+                                    color="success"
+                                    @click="viewProductDetails(sync.from_publication_id)"
+                                  >
+                                    <v-icon size="small">mdi-eye</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Ver detalles</span>
+                              </v-tooltip>
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="text"
+                                    color="success"
+                                    @click="openInMercadoLibre(sync.from_publication_id)"
+                                  >
+                                    <v-icon size="small">mdi-open-in-new</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Ver en Mercado Libre</span>
+                              </v-tooltip>
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -341,6 +474,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
 import type { PublicationSyncData } from '@/services/migrationService'
+import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 
 // Estado
 const accountStore = useAccountStore()
@@ -528,10 +662,7 @@ const viewProductDetails = (productId: string) => {
   window.open(`/product/${productId}`, '_blank')
 }
 
-const openInMercadoLibre = (productId: string) => {
-  const siteId = productId.substring(0, 3)
-  window.open(`https://${siteId.toLowerCase()}.mercadolibre.com/MLM-${productId.substring(3)}`, '_blank')
-}
+// Usando la función importada de mercadoLibreUtils.ts
 
 const copyToClipboard = (text: string) => {
   navigator.clipboard

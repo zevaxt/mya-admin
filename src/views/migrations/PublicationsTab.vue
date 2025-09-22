@@ -347,6 +347,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
+import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 import type { ProductId } from '@/services/migrationService'
 
 // Emits
@@ -611,12 +612,8 @@ const deleteSelectedItems = async () => {
   showConfirmDialog.value = true
 }
 
-// Abrir producto en nueva pestaña
-const openProductInNewTab = (productId: string) => {
-  // Insertar un guion después de los primeros 3 caracteres (MCO-1233526781)
-  const formattedId = productId.slice(0, 3) + '-' + productId.slice(3)
-  window.open(`https://articulo.mercadolibre.com.co/${formattedId}`, '_blank')
-}
+// Alias para mantener compatibilidad con el código existente
+const openProductInNewTab = openInMercadoLibre
 
 // Formatear fecha
 const formatDate = (dateString: string) => {
