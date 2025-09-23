@@ -16,6 +16,7 @@ export interface ProductId {
   updated_at: string
   Attributes?: Record<string, unknown> // Campo para almacenar los atributos del producto
   Populate?: boolean // Campo para indicar si tiene atributos
+  IsCatalogListing?: boolean // Campo para indicar si es una publicación de catálogo
 }
 
 export interface ProductIdListResponse {
@@ -247,6 +248,7 @@ export interface PublicationSyncData {
   account_id: number
   to_syncs: SyncToItem[]
   from_syncs: SyncFromItem[]
+  is_catalog_listing?: boolean
 }
 
 export interface SyncStatsResponse {
@@ -402,6 +404,13 @@ export const migrationService = {
             product.Attributes !== null &&
             product.Attributes !== undefined &&
             Object.keys(product.Attributes || {}).length > 0
+            
+          // Extraer el valor catalog_listing de los atributos
+          const isCatalogListing = product.Attributes && 
+            typeof product.Attributes === 'object' && 
+            'catalog_listing' in product.Attributes ? 
+            Boolean(product.Attributes.catalog_listing) : 
+            false
 
           return {
             ID: product.ID,
@@ -414,6 +423,7 @@ export const migrationService = {
             updated_at: product.updated_at,
             Attributes: product.Attributes,
             Populate: hasAttributes,
+            IsCatalogListing: isCatalogListing,
           }
         },
       )
@@ -718,8 +728,21 @@ export const migrationService = {
       if (typeof error === 'object' && error !== null && 'response' in error && 
           error.response && typeof error.response === 'object' && 
           'data' in error.response && error.response.data) {
-        const errorData = error.response.data as { message?: string };
-        errorMessage = errorData.message || errorMessage;
+        const errorData = error.response.data as { 
+          message?: string, 
+          Message?: string,
+          Code?: string,
+          Status?: number,
+          TecnicalDetails?: string 
+        };
+        
+        // Manejar el formato de error específico para errores de catálogo
+        if (errorData.Code === '004' && errorData.Status === 409) {
+          errorMessage = `${errorData.Message || 'Error'}: ${errorData.TecnicalDetails || 'ErrorCatalog Listing'}`;
+        } else {
+          // Manejar otros formatos de error
+          errorMessage = errorData.message || errorData.Message || errorMessage;
+        }
       }
       
       return {

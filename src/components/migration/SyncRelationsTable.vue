@@ -88,12 +88,41 @@
                   }
                 "
               >
-                mdi-close
+                mdi-close-circle
               </v-icon>
             </template>
           </v-select>
         </v-col>
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="3">
+          <v-select
+            v-model="catalogFilter"
+            :items="catalogOptions"
+            label="Catálogo"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="loadSyncRelations"
+          >
+            <template v-slot:prepend>
+              <v-icon color="purple">mdi-book-open-variant</v-icon>
+            </template>
+            <template v-slot:append>
+              <v-icon
+                v-if="catalogFilter !== 'all'"
+                color="primary"
+                @click.stop="
+                  () => {
+                    catalogFilter = 'all'
+                    loadSyncRelations()
+                  }
+                "
+              >
+                mdi-close-circle
+              </v-icon>
+            </template>
+          </v-select>
+        </v-col>
+        <v-col cols="12" md="3">
           <!-- Espacio reservado para otros filtros si se necesitan en el futuro -->
         </v-col>
       </v-row>
@@ -102,26 +131,48 @@
     <!-- Estadísticas -->
     <div class="mb-4">
       <v-card variant="outlined">
-        <v-card-text class="d-flex justify-space-around">
-          <div class="text-center">
+        <v-card-text class="d-flex justify-space-around flex-wrap">
+          <div class="text-center px-2">
             <div class="text-h6">{{ totalPublications }}</div>
             <div class="text-caption">Total Publicaciones</div>
           </div>
-          <div class="text-center">
-            <div class="text-h6">{{ originCount }}</div>
-            <div class="text-caption">Origen</div>
+          
+          <!-- Grupo de estado de sincronización -->
+          <div class="d-flex flex-column align-center px-4 border-start">
+            <div class="text-caption text-primary font-weight-medium mb-2">Estado de sincronización</div>
+            <div class="d-flex">
+              <div class="text-center px-3">
+                <div class="text-h6">{{ originCount }}</div>
+                <div class="text-caption">Origen</div>
+              </div>
+              <div class="text-center px-3">
+                <div class="text-h6">{{ destinationCount }}</div>
+                <div class="text-caption">Destino</div>
+              </div>
+              <div class="text-center px-3">
+                <div class="text-h6">{{ bothCount }}</div>
+                <div class="text-caption">Ambos</div>
+              </div>
+              <div class="text-center px-3">
+                <div class="text-h6">{{ noneCount }}</div>
+                <div class="text-caption">Ninguno</div>
+              </div>
+            </div>
           </div>
-          <div class="text-center">
-            <div class="text-h6">{{ destinationCount }}</div>
-            <div class="text-caption">Destino</div>
-          </div>
-          <div class="text-center">
-            <div class="text-h6">{{ bothCount }}</div>
-            <div class="text-caption">Ambos</div>
-          </div>
-          <div class="text-center">
-            <div class="text-h6">{{ noneCount }}</div>
-            <div class="text-caption">Ninguno</div>
+          
+          <!-- Grupo de tipo de publicación -->
+          <div class="d-flex flex-column align-center px-4 border-start">
+            <div class="text-caption text-primary font-weight-medium mb-2">Tipo de publicación</div>
+            <div class="d-flex">
+              <div class="text-center px-3">
+                <div class="text-h6">{{ catalogCount }}</div>
+                <div class="text-caption">Catálogo</div>
+              </div>
+              <div class="text-center px-3">
+                <div class="text-h6">{{ nonCatalogCount }}</div>
+                <div class="text-caption">Estándar</div>
+              </div>
+            </div>
           </div>
         </v-card-text>
       </v-card>
@@ -134,14 +185,18 @@
         v-model:expanded="expanded"
         v-model="publicationsSelected"
         :headers="headers"
-        :items="filteredPublications"
+        :items="publications"
         :loading="loading"
         :items-per-page="itemsPerPage"
+        :page="page"
+        @update:page="handlePageChange"
+        @update:items-per-page="handleItemsPerPageChange"
         item-value="publication_id"
         density="comfortable"
         hover
         show-select
         class="elevation-0"
+        :server-items-length="totalPublications"
       >
         <!-- No usamos el slot bottom para poder tener un paginador fijo -->
         <template #bottom></template>
@@ -324,9 +379,20 @@
         </template>
 
         <!-- Columna de Estado -->
-        <template #[`item.sync_status`]="slotProps">
+        <template #[`item.status`]="slotProps">
           <v-chip :color="getSyncStatusColor(slotProps.item)" size="small">
             {{ getSyncStatusText(slotProps.item) }}
+          </v-chip>
+        </template>
+        
+        <!-- Columna de Catálogo -->
+        <template #[`item.catalog`]="slotProps">
+          <v-chip
+            :color="slotProps.item.is_catalog_listing ? 'purple' : 'grey-lighten-1'"
+            size="small"
+            variant="flat"
+          >
+            {{ slotProps.item.is_catalog_listing ? 'SÍ' : 'NO' }}
           </v-chip>
         </template>
 
@@ -797,68 +863,69 @@
               @update:model-value="loadPublicationsForAccount"
             ></v-select>
 
-            <!-- Selección de ID de publicación -->
-            <div class="position-relative">
-              <v-autocomplete
-                v-model="targetPublicationId"
-                :items="accountPublications"
-                :loading="loadingAccountPublications"
-                label="ID de publicación"
-                variant="outlined"
-                item-title="id"
-                item-value="id"
-                return-object
-                :disabled="!selectedAccountId"
-                :hint="!selectedAccountId ? 'Selecciona una cuenta primero' : ''"
-                persistent-hint
-                class="mb-4"
-                @update:search="publicationSearchQuery = $event"
-              >
-                <template #item="{ item, props }">
-                  <v-list-item v-bind="props">
-                    <template #prepend>
-                      <v-icon
-                        :color="item.raw.status ? 'success' : 'error'"
-                        size="small"
-                        class="mr-2"
-                      >
-                        {{ item.raw.status ? 'mdi-check-circle' : 'mdi-alert-circle' }}
-                      </v-icon>
-                    </template>
-                    <template #title>
-                      <span>{{ item.raw.id }}</span>
-                    </template>
-                    <template #subtitle>
-                      <span>{{ item.raw.title || 'Sin título' }}</span>
-                    </template>
-                  </v-list-item>
-                </template>
-                
-                <!-- Personalizar cómo se muestra el elemento seleccionado -->
-                <template #selection="{ item }">
-                  <div class="d-flex align-center">
-                    <span class="font-weight-medium">{{ item.raw.id }}</span>
-                    <v-tooltip location="top">
-                      <template #activator="{ props }">
-                        <v-btn
-                          v-bind="props"
-                          size="x-small"
-                          icon
-                          variant="text"
-                          color="primary"
-                          class="ml-2"
-                          @click.stop="copyToClipboard(item.raw.id)"
+            <!-- Selección de ID de publicación con botón para crear nueva publicación -->
+            <div class="d-flex align-center mb-4">
+              <div class="flex-grow-1">
+                <v-autocomplete
+                  v-model="targetPublicationId"
+                  :items="accountPublications"
+                  :loading="loadingAccountPublications"
+                  label="ID de publicación"
+                  variant="outlined"
+                  item-title="id"
+                  item-value="id"
+                  return-object
+                  :disabled="!selectedAccountId"
+                  :hint="!selectedAccountId ? 'Selecciona una cuenta primero' : ''"
+                  persistent-hint
+                  @update:search="publicationSearchQuery = $event"
+                >
+                  <template #item="{ item, props }">
+                    <v-list-item v-bind="props">
+                      <template #prepend>
+                        <v-icon
+                          :color="item.raw.status ? 'success' : 'error'"
+                          size="small"
+                          class="mr-2"
                         >
-                          <v-icon size="small">mdi-content-copy</v-icon>
-                        </v-btn>
+                          {{ item.raw.status ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                        </v-icon>
                       </template>
-                      <span>Copiar ID</span>
-                    </v-tooltip>
-                  </div>
-                </template>
-              </v-autocomplete>
+                      <template #title>
+                        <span>{{ item.raw.id }}</span>
+                      </template>
+                      <template #subtitle>
+                        <span>{{ item.raw.title || 'Sin título' }}</span>
+                      </template>
+                    </v-list-item>
+                  </template>
+                  
+                  <!-- Personalizar cómo se muestra el elemento seleccionado -->
+                  <template #selection="{ item }">
+                    <div class="d-flex align-center">
+                      <span class="font-weight-medium">{{ item.raw.id }}</span>
+                      <v-tooltip location="top">
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            size="x-small"
+                            icon
+                            variant="text"
+                            color="primary"
+                            class="ml-2"
+                            @click.stop="copyToClipboard(item.raw.id)"
+                          >
+                            <v-icon size="small">mdi-content-copy</v-icon>
+                          </v-btn>
+                        </template>
+                        <span>Copiar ID</span>
+                      </v-tooltip>
+                    </div>
+                  </template>
+                </v-autocomplete>
+              </div>
               
-              <!-- Botón para crear nueva publicación -->
+              <!-- Botón para crear nueva publicación (fuera de la caja de texto) -->
               <v-tooltip location="top">
                 <template #activator="{ props }">
                   <v-btn
@@ -870,7 +937,7 @@
                     :disabled="!selectedAccountId"
                     :loading="creatingPublication"
                     @click="createNewPublication"
-                    style="position: absolute; right: 40px; top: 10px; z-index: 1"
+                    class="ml-2"
                   >
                     <v-icon>mdi-plus</v-icon>
                   </v-btn>
@@ -1031,6 +1098,7 @@ const itemsPerPageOptions = [5, 10, 25, 50, 100]
 const searchQuery = ref('')
 const syncStatusFilter = ref('all')
 const syncCountFilter = ref('all')
+const catalogFilter = ref('all')
 
 // Estado para el campo de búsqueda
 const showSearchField = ref(false)
@@ -1054,116 +1122,198 @@ const syncCountOptions = [
   { title: 'Más de 10', value: 'many' },
 ]
 
+// Opciones para el filtro de catálogo
+const catalogOptions = [
+  { title: 'Todos', value: 'all' },
+  { title: 'SÍ', value: 'yes' },
+  { title: 'NO', value: 'no' },
+]
+
 // Encabezados de la tabla
 const headers = [
   { title: 'ID', key: 'publication_id', sortable: true },
   { title: 'Sincr. Salientes', key: 'outgoing_syncs', sortable: true },
   { title: 'Sincr. Entrantes', key: 'incoming_syncs', sortable: true },
-  { title: 'Estado', key: 'sync_status', sortable: true },
+  { title: 'Estado', key: 'status', sortable: true },
+  { title: 'Catálogo', key: 'catalog', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
-// Datos filtrados para la tabla
-const filteredPublications = computed(() => {
-  let result = [...publications.value]
+// Ya no necesitamos la función filteredPublications computada
+// porque ahora aplicamos los filtros directamente en loadSyncRelations
 
-  // Filtrar por búsqueda
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter((item) => item.publication_id.toLowerCase().includes(query))
-  }
-
-  // Filtrar por estado de sincronización
-  if (syncStatusFilter.value !== 'all') {
-    result = result.filter((item) => {
-      const hasOutgoing = item.to_syncs.length > 0
-      const hasIncoming = item.from_syncs.length > 0
-
-      switch (syncStatusFilter.value) {
-        case 'origin':
-          return hasOutgoing && !hasIncoming
-        case 'destination':
-          return !hasOutgoing && hasIncoming
-        case 'both':
-          return hasOutgoing && hasIncoming
-        case 'none':
-          return !hasOutgoing && !hasIncoming
-        default:
-          return true
-      }
-    })
-  }
-
-  // Filtrar por cantidad de sincronizaciones
-  if (syncCountFilter.value !== 'all') {
-    result = result.filter((item) => {
-      const totalSyncs = item.to_syncs.length + item.from_syncs.length
-
-      switch (syncCountFilter.value) {
-        case 'none':
-          return totalSyncs === 0
-        case 'few':
-          return totalSyncs >= 1 && totalSyncs <= 5
-        case 'medium':
-          return totalSyncs >= 6 && totalSyncs <= 10
-        case 'many':
-          return totalSyncs > 10
-        default:
-          return true
-      }
-    })
-  }
-
-  return result
-})
-
-// Contadores para estadísticas
+// Contadores para estadísticas (usando allPublications para contar todas las publicaciones)
 const originCount = computed(() => {
-  return publications.value.filter(
+  return allPublications.value.filter(
     (item) => item.to_syncs.length > 0 && item.from_syncs.length === 0,
   ).length
 })
 
 const destinationCount = computed(() => {
-  return publications.value.filter(
+  return allPublications.value.filter(
     (item) => item.to_syncs.length === 0 && item.from_syncs.length > 0,
   ).length
 })
 
 const bothCount = computed(() => {
-  return publications.value.filter((item) => item.to_syncs.length > 0 && item.from_syncs.length > 0)
+  return allPublications.value.filter((item) => item.to_syncs.length > 0 && item.from_syncs.length > 0)
     .length
 })
 
 const noneCount = computed(() => {
-  return publications.value.filter(
+  return allPublications.value.filter(
     (item) => item.to_syncs.length === 0 && item.from_syncs.length === 0,
   ).length
 })
 
+// Contador para publicaciones de catálogo
+const catalogCount = computed(() => {
+  return allPublications.value.filter((item) => item.is_catalog_listing === true).length
+})
+
+// Contador para publicaciones estándar (no catálogo)
+const nonCatalogCount = computed(() => {
+  return allPublications.value.filter((item) => item.is_catalog_listing === false).length
+})
+
 // No se necesitan datos para el gráfico ya que se ha eliminado
+
+// Variable para almacenar todas las publicaciones (para estadísticas)
+const allPublications = ref<PublicationSyncData[]>([])
 
 // Métodos
 const loadSyncRelations = async () => {
   const accountId = accountStore.currentAccount?.ID
   if (!accountId) {
     showNotification.value = true
-    notificationMessage.value = 'Selecciona una cuenta para ver las sincronizaciones'
-    notificationType.value = 'error'
+    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationType.value = 'warning'
     return
   }
 
   loading.value = true
 
   try {
-    const response = await migrationService.getSyncStats(accountId)
-    publications.value = response.publications
-    totalPublications.value = response.total_publications
+    // Primero, obtener las estadísticas de sincronización
+    const syncResponse = await migrationService.getSyncStats(accountId)
+    
+    // Obtener los detalles de todas las publicaciones en una sola llamada
+    const productsResponse = await migrationService.getProductIds(accountId, undefined, 0, syncResponse.publications.length)
+    
+    // Crear un mapa para buscar rápidamente los detalles de cada publicación por ID
+    const productDetailsMap = new Map()
+    productsResponse.products.forEach(product => {
+      // Verificar si es una publicación de catálogo
+      const isCatalogListing = product.Attributes && 
+        typeof product.Attributes === 'object' && 
+        'catalog_listing' in product.Attributes ? 
+        Boolean(product.Attributes.catalog_listing) : 
+        false
+      
+      productDetailsMap.set(product.ID, { 
+        isCatalogListing,
+        status: product.Status,
+        title: (product.Attributes?.title as string) || ''
+      })
+    })
+    
+    // Combinar los datos de sincronización con los detalles de las publicaciones
+    const allPublicationsWithDetails = syncResponse.publications.map(pub => {
+      const details = productDetailsMap.get(pub.publication_id)
+      return {
+        ...pub,
+        is_catalog_listing: details ? details.isCatalogListing : false
+      }
+    })
+    
+    // Guardar todas las publicaciones para estadísticas
+    allPublications.value = allPublicationsWithDetails
+    
+    // Aplicar filtros
+    let filteredPublications = [...allPublicationsWithDetails]
+    
+    // Filtrar por búsqueda
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase()
+      filteredPublications = filteredPublications.filter((item) => {
+        return item.publication_id.toLowerCase().includes(query)
+      })
+    }
+
+    // Filtrar por estado de sincronización
+    if (syncStatusFilter.value !== 'all') {
+      filteredPublications = filteredPublications.filter((item) => {
+        const hasOutgoing = item.to_syncs.length > 0
+        const hasIncoming = item.from_syncs.length > 0
+
+        switch (syncStatusFilter.value) {
+          case 'origin':
+            return hasOutgoing && !hasIncoming
+          case 'destination':
+            return !hasOutgoing && hasIncoming
+          case 'both':
+            return hasOutgoing && hasIncoming
+          case 'none':
+            return !hasOutgoing && !hasIncoming
+          default:
+            return true
+        }
+      })
+    }
+
+    // Filtrar por cantidad de sincronizaciones
+    if (syncCountFilter.value !== 'all') {
+      filteredPublications = filteredPublications.filter((item) => {
+        const totalSyncs = item.to_syncs.length + item.from_syncs.length
+
+        switch (syncCountFilter.value) {
+          case 'none':
+            return totalSyncs === 0
+          case 'few':
+            return totalSyncs >= 1 && totalSyncs <= 5
+          case 'medium':
+            return totalSyncs >= 6 && totalSyncs <= 10
+          case 'many':
+            return totalSyncs > 10
+          default:
+            return true
+        }
+      })
+    }
+    
+    // Filtrar por catálogo
+    if (catalogFilter.value !== 'all') {
+      filteredPublications = filteredPublications.filter((item) => {
+        switch (catalogFilter.value) {
+          case 'yes':
+            return item.is_catalog_listing === true
+          case 'no':
+            return item.is_catalog_listing === false
+          default:
+            return true
+        }
+      })
+    }
+    
+    // Actualizar el total de publicaciones filtradas
+    totalPublications.value = filteredPublications.length
+    
+    // Aplicar paginación
+    const offset = (page.value - 1) * itemsPerPage.value
+    const limit = itemsPerPage.value
+    const paginatedPublications = filteredPublications.slice(offset, offset + limit)
+    
+    // Actualizar el estado
+    publications.value = paginatedPublications
+    
   } catch (error) {
     console.error('Error al cargar las sincronizaciones:', error)
     showNotification.value = true
     notificationMessage.value = 'Error al cargar las sincronizaciones'
     notificationType.value = 'error'
+    publications.value = []
+    allPublications.value = []
+    totalPublications.value = 0
   } finally {
     loading.value = false
   }
@@ -1377,15 +1527,22 @@ const createNewPublication = async () => {
     return
   }
 
+  // Verificar si hay una publicación seleccionada para usar como base
+  const sourceId = sourcePublicationId.value
+  if (!sourceId) {
+    showNotification.value = true
+    notificationMessage.value = 'Error: No se pudo identificar la publicación de origen'
+    notificationType.value = 'error'
+    return
+  }
+
   creatingPublication.value = true
 
   try {
-    // Generar un ID temporal para la nueva publicación (simulando un ID de ML)
-    const tempId = `MLB${Math.floor(Math.random() * 1000000000)}`
-    
+    // Usar el ID de la publicación seleccionada como base para crear la nueva
     // Llamar a la API para publicar el producto
     const response = await migrationService.publishProduct(
-      tempId,
+      sourceId,
       selectedAccountId.value,
     )
 
@@ -1406,7 +1563,18 @@ const createNewPublication = async () => {
       }
     } else {
       showNotification.value = true
-      notificationMessage.value = `Error: ${response.message || 'No se pudo crear la publicación'}`
+      
+      // Manejar específicamente el error de catálogo
+      if (response.message && (
+          response.message.includes('ErrorCatalog Listing') ||
+          response.message.includes('Code: 004') ||
+          response.message.includes('Status: 409')
+        )) {
+        notificationMessage.value = 'No se puede crear una publicación basada en un ítem de catálogo. Por favor, seleccione una publicación que no sea de catálogo.'
+      } else {
+        notificationMessage.value = `Error: ${response.message || 'No se pudo crear la publicación'}`
+      }
+      
       notificationType.value = 'error'
     }
   } catch (error) {
@@ -1696,17 +1864,20 @@ watch(
   { deep: true },
 )
 
-// Funciones para manejar la paginación
+// Función para manejar la paginación
 const handlePageChange = (newPage: number) => {
   page.value = newPage
+  loadSyncRelations() // Recargar los datos para la nueva página
 }
 
+// Función para manejar el cambio en el número de elementos por página
 const handleItemsPerPageChange = (newItemsPerPage: number) => {
   itemsPerPage.value = newItemsPerPage
   page.value = 1 // Reiniciar a la primera página cuando cambia el número de elementos por página
   loadSyncRelations()
 }
 
+// Funciones para manejar la búsqueda
 // Función para activar la búsqueda
 const activateSearch = () => {
   showSearchField.value = true
