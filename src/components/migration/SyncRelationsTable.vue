@@ -94,16 +94,7 @@
           </v-select>
         </v-col>
         <v-col cols="12" md="6">
-          <v-text-field
-            v-model="searchQuery"
-            label="Buscar por ID de publicación"
-            variant="outlined"
-            density="compact"
-            hide-details
-            append-inner-icon="mdi-magnify"
-            @update:model-value="loadSyncRelations"
-            @click:append-inner="loadSyncRelations"
-          ></v-text-field>
+          <!-- Espacio reservado para otros filtros si se necesitan en el futuro -->
         </v-col>
       </v-row>
     </div>
@@ -139,6 +130,7 @@
     <!-- Tabla de publicaciones -->
     <v-card variant="outlined">
       <v-data-table
+        ref="dataTable"
         v-model:expanded="expanded"
         v-model="selected"
         :headers="headers"
@@ -153,6 +145,63 @@
       >
         <!-- No usamos el slot bottom para poder tener un paginador fijo -->
         <template #bottom></template>
+
+        <!-- Template para el encabezado personalizado de la columna ID -->
+        <template #[`header.publication_id`]="{ column }">
+          <div class="d-flex align-center header-content" style="position: relative; min-width: 150px">
+            <!-- Contenedor con posición absoluta para evitar cambios en el layout -->
+            <div style="position: absolute; width: 100%; z-index: 1">
+              <v-fade-transition>
+                <div v-if="!showSearchField" class="d-flex align-center sortable-header" @click="handleSort(column.key || '')">
+                  <span class="mr-2">{{ column.title }}</span>
+                  <!-- Icono de ordenamiento (similar al que usa Vuetify internamente) -->
+                  <v-icon
+                    v-if="column.sortable"
+                    size="x-small"
+                    :icon="getSortIcon()"
+                    class="sort-icon"
+                    :class="{ 'visible-on-hover': !isSorted(column) }"
+                  ></v-icon>
+                  <v-btn
+                    icon="mdi-magnify"
+                    size="x-small"
+                    variant="text"
+                    color="primary"
+                    class="ml-2"
+                    @click.stop="activateSearch"
+                  ></v-btn>
+                </div>
+              </v-fade-transition>
+            </div>
+
+            <!-- Contenedor con posición absoluta para la caja de búsqueda -->
+            <div style="position: absolute; width: 100%; z-index: 2">
+              <v-fade-transition>
+                <v-text-field
+                  v-if="showSearchField"
+                  v-model="searchQuery"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  placeholder="Buscar ID"
+                  class="search-field"
+                  clearable
+                  ref="searchInput"
+                  @update:model-value="handleSearchQueryChange"
+                  @click:clear="clearSearchQuery"
+                  @blur="handleSearchBlur"
+                  @keydown.esc="deactivateSearch"
+                  @click.stop
+                ></v-text-field>
+              </v-fade-transition>
+            </div>
+            
+            <!-- Espacio invisible para mantener el ancho de la columna -->
+            <div style="height: 1px; visibility: hidden">
+              <div style="width: 150px"></div>
+            </div>
+          </div>
+        </template>
 
         <template #no-data>
           <div class="text-center py-4">
@@ -183,7 +232,7 @@
             >
               {{ slotProps.item.to_syncs.length }}
             </v-chip>
-            
+
             <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
             <div v-if="slotProps.item.to_syncs.length === 1" class="d-flex align-center">
               <span class="text-caption text-truncate" style="max-width: 150px">
@@ -204,11 +253,17 @@
                   class="ml-2"
                 >
                   <v-icon size="small">
-                    {{ expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye' }}
+                    {{
+                      expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
+                    }}
                   </v-icon>
                 </v-btn>
               </template>
-              <span>{{ expanded.includes(slotProps.item.publication_id) ? 'Ocultar detalles' : 'Ver sincronizaciones salientes' }}</span>
+              <span>{{
+                expanded.includes(slotProps.item.publication_id)
+                  ? 'Ocultar detalles'
+                  : 'Ver sincronizaciones salientes'
+              }}</span>
             </v-tooltip>
           </div>
         </template>
@@ -225,7 +280,7 @@
             >
               {{ slotProps.item.from_syncs.length }}
             </v-chip>
-            
+
             <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
             <div v-if="slotProps.item.from_syncs.length === 1" class="d-flex align-center">
               <span class="text-caption text-truncate" style="max-width: 150px">
@@ -246,11 +301,17 @@
                   class="ml-2"
                 >
                   <v-icon size="small">
-                    {{ expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye' }}
+                    {{
+                      expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
+                    }}
                   </v-icon>
                 </v-btn>
               </template>
-              <span>{{ expanded.includes(slotProps.item.publication_id) ? 'Ocultar detalles' : 'Ver sincronizaciones entrantes' }}</span>
+              <span>{{
+                expanded.includes(slotProps.item.publication_id)
+                  ? 'Ocultar detalles'
+                  : 'Ver sincronizaciones entrantes'
+              }}</span>
             </v-tooltip>
           </div>
         </template>
@@ -445,7 +506,7 @@
                                 </template>
                                 <span>Ver en Mercado Libre</span>
                               </v-tooltip>
-                              
+
                               <v-tooltip location="top">
                                 <template #activator="{ props }">
                                   <v-btn
@@ -455,8 +516,17 @@
                                     variant="elevated"
                                     color="warning"
                                     class="ml-1"
-                                    :loading="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}`"
-                                    @click="syncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
+                                    :loading="
+                                      syncingItem ===
+                                      `${slotProps.item.publication_id}-${sync.to_sync_id}`
+                                    "
+                                    @click="
+                                      syncRelation(
+                                        slotProps.item.publication_id,
+                                        sync.to_sync_id,
+                                        'outgoing',
+                                      )
+                                    "
                                   >
                                     <v-icon size="small">mdi-sync</v-icon>
                                   </v-btn>
@@ -562,7 +632,7 @@
                                 </template>
                                 <span>Ver en Mercado Libre</span>
                               </v-tooltip>
-                              
+
                               <v-tooltip location="top">
                                 <template #activator="{ props }">
                                   <v-btn
@@ -572,8 +642,17 @@
                                     variant="elevated"
                                     color="warning"
                                     class="ml-1"
-                                    :loading="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}`"
-                                    @click="syncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
+                                    :loading="
+                                      syncingItem ===
+                                      `${sync.from_publication_id}-${slotProps.item.publication_id}`
+                                    "
+                                    @click="
+                                      syncRelation(
+                                        sync.from_publication_id,
+                                        slotProps.item.publication_id,
+                                        'incoming',
+                                      )
+                                    "
                                   >
                                     <v-icon size="small">mdi-sync</v-icon>
                                   </v-btn>
@@ -615,7 +694,11 @@
         <v-card-text class="pt-4">
           <!-- Mostrar el ID de la publicación de origen -->
           <div class="d-flex align-center mb-4 pa-2 border rounded">
-            <v-icon size="small" :color="syncDialogType === 'outgoing' ? 'primary' : 'success'" class="mr-2">
+            <v-icon
+              size="small"
+              :color="syncDialogType === 'outgoing' ? 'primary' : 'success'"
+              class="mr-2"
+            >
               {{ syncDialogType === 'outgoing' ? 'mdi-arrow-right-bold' : 'mdi-arrow-left-bold' }}
             </v-icon>
             <span class="text-subtitle-2">ID de publicación: </span>
@@ -851,6 +934,11 @@ const searchQuery = ref('')
 const syncStatusFilter = ref('all')
 const syncCountFilter = ref('all')
 
+// Estado para el campo de búsqueda
+const showSearchField = ref(false)
+const searchInput = ref<HTMLElement | null>(null)
+const dataTable = ref<any>(null)
+
 // Opciones para los filtros
 const syncStatusOptions = [
   { title: 'Todos', value: 'all' },
@@ -870,7 +958,7 @@ const syncCountOptions = [
 
 // Encabezados de la tabla
 const headers = [
-  { title: 'ID Publicación', key: 'publication_id', sortable: true },
+  { title: 'ID', key: 'publication_id', sortable: true },
   { title: 'Sincr. Salientes', key: 'outgoing_syncs', sortable: true },
   { title: 'Sincr. Entrantes', key: 'incoming_syncs', sortable: true },
   { title: 'Estado', key: 'sync_status', sortable: true },
@@ -1275,7 +1363,11 @@ const syncPublication = async (publicationId: string) => {
 }
 
 // Función para sincronizar una relación específica
-const syncRelation = async (sourceId: string, targetId: string, direction: 'outgoing' | 'incoming') => {
+const syncRelation = async (
+  sourceId: string,
+  targetId: string,
+  direction: 'outgoing' | 'incoming',
+) => {
   // Creamos un ID único para esta relación
   const relationId = `${sourceId}-${targetId}`
   syncingItem.value = relationId
@@ -1286,9 +1378,10 @@ const syncRelation = async (sourceId: string, targetId: string, direction: 'outg
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     showNotification.value = true
-    notificationMessage.value = direction === 'outgoing'
-      ? `Sincronización de ${sourceId} hacia ${targetId} iniciada`
-      : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`
+    notificationMessage.value =
+      direction === 'outgoing'
+        ? `Sincronización de ${sourceId} hacia ${targetId} iniciada`
+        : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`
     notificationType.value = 'success'
 
     // Recargar los datos después de un tiempo para ver los cambios
@@ -1332,6 +1425,78 @@ const handlePageChange = (newPage: number) => {
 const handleItemsPerPageChange = (newItemsPerPage: number) => {
   itemsPerPage.value = newItemsPerPage
   page.value = 1 // Reiniciar a la primera página cuando cambia el número de elementos por página
+  loadSyncRelations()
+}
+
+// Función para activar la búsqueda
+const activateSearch = () => {
+  showSearchField.value = true
+  // Enfocar el campo de búsqueda después de que se muestre
+  setTimeout(() => {
+    if (searchInput.value) {
+      const input = searchInput.value.querySelector('input')
+      if (input) input.focus()
+    }
+  }, 100)
+}
+
+// Función para desactivar la búsqueda
+const deactivateSearch = () => {
+  showSearchField.value = false
+}
+
+// Función para manejar cuando se pierde el foco en el campo de búsqueda
+const handleSearchBlur = () => {
+  // Usar setTimeout para permitir que otros eventos (como click) se procesen primero
+  setTimeout(() => {
+    // Verificar si el campo de búsqueda sigue teniendo el foco
+    const activeElement = document.activeElement
+    const searchField = searchInput.value
+
+    // Si el elemento activo no es el campo de búsqueda o un elemento dentro de él
+    if (searchField && !searchField.contains(activeElement)) {
+      // Solo desactivar si el campo está vacío
+      if (!searchQuery.value) {
+        deactivateSearch()
+      }
+    }
+  }, 100)
+}
+
+// Función para manejar el cambio en la búsqueda
+const handleSearchQueryChange = () => {
+  // Cargar los datos cuando cambia la búsqueda
+  loadSyncRelations()
+}
+
+// Función para limpiar la búsqueda
+const clearSearchQuery = () => {
+  searchQuery.value = ''
+  loadSyncRelations()
+}
+
+// Función para manejar el ordenamiento
+const handleSort = (key: string) => {
+  if (dataTable.value) {
+    // Intentar usar el método sort de la tabla si está disponible
+    if (typeof dataTable.value.sort === 'function') {
+      dataTable.value.sort(key)
+    }
+  }
+}
+
+// Función para verificar si una columna está ordenada
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const isSorted = (column: any) => {
+  // Para simplificar, asumimos que no está ordenada
+  // En una implementación real, esto debería verificar el estado actual de ordenamiento
+  return false
+}
+
+// Función para obtener el icono de ordenamiento
+const getSortIcon = () => {
+  // Usar el icono neutral de Vuetify
+  return 'mdi-arrow-up-down'
 }
 </script>
 
@@ -1352,8 +1517,53 @@ const handleItemsPerPageChange = (newItemsPerPage: number) => {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.items-per-page-select {
-  width: 80px;
+.items-per-page-select :deep(.v-field__field) {
+  min-height: 32px;
+  height: 32px;
+}
+
+/* Estilos para el encabezado ordenable */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-header:hover {
+  color: var(--v-theme-primary);
+}
+
+.sort-icon {
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.visible-on-hover {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sortable-header:hover .visible-on-hover {
+  opacity: 0.7;
+}
+
+/* Estilos para la transición suave */
+.header-content {
+  min-height: 40px;
+}
+
+.search-field {
+  width: 100%;
+}
+
+/* Ajustes para las transiciones */
+.v-fade-transition-enter-active,
+.v-fade-transition-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.v-fade-transition-enter-from,
+.v-fade-transition-leave-to {
+  opacity: 0;
 }
 
 .pagination-centered {
