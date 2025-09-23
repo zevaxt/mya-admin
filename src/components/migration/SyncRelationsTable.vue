@@ -162,10 +162,12 @@
             <div class="text-h6">{{ totalPublications }}</div>
             <div class="text-caption">Total Publicaciones</div>
           </div>
-          
+
           <!-- Grupo de estado de sincronización -->
           <div class="d-flex flex-column align-center px-4 border-start">
-            <div class="text-caption text-primary font-weight-medium mb-2">Estado de sincronización</div>
+            <div class="text-caption text-primary font-weight-medium mb-2">
+              Estado de sincronización
+            </div>
             <div class="d-flex">
               <div class="text-center px-3">
                 <div class="text-h6">{{ originCount }}</div>
@@ -185,7 +187,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Grupo de tipo de publicación -->
           <div class="d-flex flex-column align-center px-4 border-start">
             <div class="text-caption text-primary font-weight-medium mb-2">Tipo de publicación</div>
@@ -200,10 +202,12 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Grupo de estado de publicación -->
           <div class="d-flex flex-column align-center px-4 border-start">
-            <div class="text-caption text-primary font-weight-medium mb-2">Estado de publicación</div>
+            <div class="text-caption text-primary font-weight-medium mb-2">
+              Estado de publicación
+            </div>
             <div class="d-flex">
               <div class="text-center px-2">
                 <div class="text-h6 text-success">{{ activeCount }}</div>
@@ -433,18 +437,14 @@
             {{ getSyncStatusText(slotProps.item) }}
           </v-chip>
         </template>
-        
+
         <!-- Columna de Estado de la Publicación -->
         <template #[`item.status`]="slotProps">
-          <v-chip
-            :color="getStatusColor(slotProps.item.status)"
-            size="small"
-            variant="flat"
-          >
+          <v-chip :color="getStatusColor(slotProps.item.status)" size="small" variant="flat">
             {{ getStatusText(slotProps.item.status) }}
           </v-chip>
         </template>
-        
+
         <!-- Columna de Catálogo -->
         <template #[`item.catalog`]="slotProps">
           <v-chip
@@ -959,7 +959,7 @@
                       </template>
                     </v-list-item>
                   </template>
-                  
+
                   <!-- Personalizar cómo se muestra el elemento seleccionado -->
                   <template #selection="{ item }">
                     <div class="d-flex align-center">
@@ -984,7 +984,7 @@
                   </template>
                 </v-autocomplete>
               </div>
-              
+
               <!-- Botón para crear nueva publicación (fuera de la caja de texto) -->
               <v-tooltip location="top">
                 <template #activator="{ props }">
@@ -1036,38 +1036,46 @@
 
     <!-- Paginador fijo -->
     <div class="pagination-fixed">
-      <div class="d-flex align-center w-100 px-4 py-2 bg-white">
+      <div class="d-flex align-center justify-space-between w-100 px-4 py-2 bg-white elevation-1">
+        <!-- Grupo de botones de acciones -->
         <div class="d-flex align-center">
-          <v-btn
-            color="primary"
-            variant="elevated"
-            size="small"
-            prepend-icon="mdi-sync"
-            :disabled="!publicationsSelected || publicationsSelected.length === 0"
-            :loading="syncingSelected"
-            @click="syncSelectedPublications"
-            class="me-2"
-          >
-            Sincronizar {{ publicationsSelected ? publicationsSelected.length : 0 }} seleccionadas
-          </v-btn>
+          <div class="d-flex align-center border rounded pa-1 bg-grey-lighten-5">
+            <v-btn
+              color="primary"
+              variant="tonal"
+              size="small"
+              :disabled="!publicationsSelected || publicationsSelected.length === 0"
+              :loading="syncingSelected"
+              @click="syncSelectedPublications"
+              class="me-1"
+            >
+              <v-icon class="me-1">mdi-sync</v-icon>
+              <span class="font-weight-medium">Sincronizar {{ publicationsSelected ? publicationsSelected.length : 0 }}</span>
+            </v-btn>
 
-          <v-btn
-            color="error"
-            variant="elevated"
-            size="small"
-            prepend-icon="mdi-link-variant-remove"
-            :disabled="
-              !publicationsSelected ||
-              publicationsSelected.length === 0 ||
-              getTotalSyncRelations() === 0
-            "
-            :loading="deletingSelected"
-            @click="deleteSelectedSyncRelations"
-            class="me-4"
-          >
-            Eliminar {{ getTotalSyncRelations() }} sincronizaciones
-          </v-btn>
-          <div class="text-caption text-grey me-4">
+            <v-divider vertical class="mx-1"></v-divider>
+
+            <v-btn
+              color="error"
+              variant="tonal"
+              size="small"
+              :disabled="
+                !publicationsSelected ||
+                publicationsSelected.length === 0 ||
+                getTotalSyncRelations() === 0
+              "
+              :loading="deletingSelected"
+              @click="deleteSelectedSyncRelations"
+            >
+              <v-icon class="me-1">mdi-link-variant-remove</v-icon>
+              <span class="font-weight-medium">Eliminar {{ getTotalSyncRelations() }}</span>
+            </v-btn>
+          </div>
+        </div>
+        
+        <!-- Controles de paginación -->
+        <div class="d-flex align-center">
+          <div class="text-body-2 text-grey-darken-1 font-weight-medium me-4">
             {{
               totalPublications > 0
                 ? `${(page - 1) * itemsPerPage + 1}-${Math.min(
@@ -1077,31 +1085,33 @@
                 : '0-0 de 0'
             }}
           </div>
+          
+          <div class="d-flex align-center me-4">
+            <span class="text-caption me-2">Registros por página:</span>
+            <v-select
+              v-model="itemsPerPage"
+              :items="itemsPerPageOptions"
+              variant="outlined"
+              density="compact"
+              class="items-per-page-select"
+              hide-details
+              @update:model-value="handleItemsPerPageChange"
+            ></v-select>
+          </div>
+          
+          <v-pagination
+            v-model="page"
+            :length="Math.ceil(totalPublications / itemsPerPage)"
+            @update:model-value="handlePageChange"
+            :disabled="loading"
+            :total-visible="5"
+            show-first
+            show-last
+            class="pagination-centered flex-grow-1"
+            density="comfortable"
+            rounded="circle"
+          ></v-pagination>
         </div>
-        <div class="d-flex align-center me-4">
-          <span class="text-caption me-2">Registros por página:</span>
-          <v-select
-            v-model="itemsPerPage"
-            :items="itemsPerPageOptions"
-            variant="outlined"
-            density="compact"
-            class="items-per-page-select"
-            hide-details
-            @update:model-value="handleItemsPerPageChange"
-          ></v-select>
-        </div>
-        <v-pagination
-          v-model="page"
-          :length="Math.ceil(totalPublications / itemsPerPage)"
-          @update:model-value="handlePageChange"
-          :disabled="loading"
-          :total-visible="5"
-          show-first
-          show-last
-          class="pagination-centered flex-grow-1"
-          density="comfortable"
-          rounded="circle"
-        ></v-pagination>
       </div>
     </div>
   </div>
@@ -1123,6 +1133,9 @@ const expanded = ref<string[]>([])
 const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
+
+// Estado para indicar qué publicación está actualizando sus sincronizaciones
+const updatingSyncItem = ref<string | null>(null)
 
 // Estado para el diálogo de agregar sincronización
 const showAddSyncDialog = ref(false)
@@ -1227,8 +1240,9 @@ const destinationCount = computed(() => {
 })
 
 const bothCount = computed(() => {
-  return allPublications.value.filter((item) => item.to_syncs.length > 0 && item.from_syncs.length > 0)
-    .length
+  return allPublications.value.filter(
+    (item) => item.to_syncs.length > 0 && item.from_syncs.length > 0,
+  ).length
 })
 
 const noneCount = computed(() => {
@@ -1262,9 +1276,7 @@ const closedCount = computed(() => {
 
 const otherStatusCount = computed(() => {
   return allPublications.value.filter(
-    (item) => 
-      item.status && 
-      !['active', 'paused', 'closed'].includes(item.status.toLowerCase())
+    (item) => item.status && !['active', 'paused', 'closed'].includes(item.status.toLowerCase()),
   ).length
 })
 
@@ -1288,51 +1300,58 @@ const loadSyncRelations = async () => {
   try {
     // Primero, obtener las estadísticas de sincronización
     const syncResponse = await migrationService.getSyncStats(accountId)
-    
+
     // Obtener los detalles de todas las publicaciones en una sola llamada
-    const productsResponse = await migrationService.getProductIds(accountId, undefined, 0, syncResponse.publications.length)
-    
+    const productsResponse = await migrationService.getProductIds(
+      accountId,
+      undefined,
+      0,
+      syncResponse.publications.length,
+    )
+
     // Crear un mapa para buscar rápidamente los detalles de cada publicación por ID
     const productDetailsMap = new Map()
-    productsResponse.products.forEach(product => {
+    productsResponse.products.forEach((product) => {
       // Verificar si es una publicación de catálogo
-      const isCatalogListing = product.Attributes && 
-        typeof product.Attributes === 'object' && 
-        'catalog_listing' in product.Attributes ? 
-        Boolean(product.Attributes.catalog_listing) : 
-        false
-      
+      const isCatalogListing =
+        product.Attributes &&
+        typeof product.Attributes === 'object' &&
+        'catalog_listing' in product.Attributes
+          ? Boolean(product.Attributes.catalog_listing)
+          : false
+
       // Extraer el status de los atributos
-      const publicationStatus = product.Attributes && 
-        typeof product.Attributes === 'object' && 
-        'status' in product.Attributes ? 
-        String(product.Attributes.status) : 
-        'unknown'
-      
-      productDetailsMap.set(product.ID, { 
+      const publicationStatus =
+        product.Attributes &&
+        typeof product.Attributes === 'object' &&
+        'status' in product.Attributes
+          ? String(product.Attributes.status)
+          : 'unknown'
+
+      productDetailsMap.set(product.ID, {
         isCatalogListing,
         status: product.Status, // Estado booleano (activo/inactivo)
         publicationStatus: publicationStatus, // Status de la publicación (active, paused, etc.)
-        title: (product.Attributes?.title as string) || ''
+        title: (product.Attributes?.title as string) || '',
       })
     })
-    
+
     // Combinar los datos de sincronización con los detalles de las publicaciones
-    const allPublicationsWithDetails = syncResponse.publications.map(pub => {
+    const allPublicationsWithDetails = syncResponse.publications.map((pub) => {
       const details = productDetailsMap.get(pub.publication_id)
       return {
         ...pub,
         is_catalog_listing: details ? details.isCatalogListing : false,
-        status: details ? details.publicationStatus : 'unknown'
+        status: details ? details.publicationStatus : 'unknown',
       }
     })
-    
+
     // Guardar todas las publicaciones para estadísticas
     allPublications.value = allPublicationsWithDetails
-    
+
     // Aplicar filtros
     let filteredPublications = [...allPublicationsWithDetails]
-    
+
     // Filtrar por búsqueda
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase()
@@ -1381,7 +1400,7 @@ const loadSyncRelations = async () => {
         }
       })
     }
-    
+
     // Filtrar por catálogo
     if (catalogFilter.value !== 'all') {
       filteredPublications = filteredPublications.filter((item) => {
@@ -1395,14 +1414,14 @@ const loadSyncRelations = async () => {
         }
       })
     }
-    
+
     // Filtrar por status de la publicación
     if (statusFilter.value !== 'all') {
       filteredPublications = filteredPublications.filter((item) => {
         if (!item.status) return false
-        
+
         const status = item.status.toLowerCase()
-        
+
         switch (statusFilter.value) {
           case 'active':
             return status === 'active'
@@ -1417,18 +1436,17 @@ const loadSyncRelations = async () => {
         }
       })
     }
-    
+
     // Actualizar el total de publicaciones filtradas
     totalPublications.value = filteredPublications.length
-    
+
     // Aplicar paginación
     const offset = (page.value - 1) * itemsPerPage.value
     const limit = itemsPerPage.value
     const paginatedPublications = filteredPublications.slice(offset, offset + limit)
-    
+
     // Actualizar el estado
     publications.value = paginatedPublications
-    
   } catch (error) {
     console.error('Error al cargar las sincronizaciones:', error)
     showNotification.value = true
@@ -1465,10 +1483,10 @@ const getSyncStatusColor = (item: PublicationSyncData) => {
 // Función para obtener el color según el status de la publicación
 const getStatusColor = (status: string | undefined) => {
   if (!status) return 'grey'
-  
+
   // Convertir a minúsculas para la comparación
   const statusLower = status.toLowerCase()
-  
+
   switch (statusLower) {
     case 'active':
       return 'success'
@@ -1487,10 +1505,10 @@ const getStatusColor = (status: string | undefined) => {
 // Función para obtener el texto según el status de la publicación
 const getStatusText = (status: string | undefined) => {
   if (!status) return 'Desconocido'
-  
+
   // Convertir a minúsculas para la comparación
   const statusLower = status.toLowerCase()
-  
+
   switch (statusLower) {
     case 'active':
       return 'Activo'
@@ -1708,40 +1726,41 @@ const createNewPublication = async () => {
   try {
     // Usar el ID de la publicación seleccionada como base para crear la nueva
     // Llamar a la API para publicar el producto
-    const response = await migrationService.publishProduct(
-      sourceId,
-      selectedAccountId.value,
-    )
+    const response = await migrationService.publishProduct(sourceId, selectedAccountId.value)
 
     if (response.success) {
       showNotification.value = true
       notificationMessage.value = 'Publicación creada exitosamente'
       notificationType.value = 'success'
-      
+
       // Recargar las publicaciones de la cuenta
       await loadPublicationsForAccount(selectedAccountId.value)
-      
+
       // Si se devuelve un ID de producto, seleccionarlo
-      if (response.productId) {
-        const newPublication = accountPublications.value.find(p => p.id === response.productId)
+      if (response.publication_id) {
+        const newPublication = accountPublications.value.find(
+          (p) => p.id === response.publication_id,
+        )
         if (newPublication) {
           targetPublicationId.value = newPublication
         }
       }
     } else {
       showNotification.value = true
-      
+
       // Manejar específicamente el error de catálogo
-      if (response.message && (
-          response.message.includes('ErrorCatalog Listing') ||
+      if (
+        response.message &&
+        (response.message.includes('ErrorCatalog Listing') ||
           response.message.includes('Code: 004') ||
-          response.message.includes('Status: 409')
-        )) {
-        notificationMessage.value = 'No se puede crear una publicación basada en un ítem de catálogo. Por favor, seleccione una publicación que no sea de catálogo.'
+          response.message.includes('Status: 409'))
+      ) {
+        notificationMessage.value =
+          'No se puede crear una publicación basada en un ítem de catálogo. Por favor, seleccione una publicación que no sea de catálogo.'
       } else {
         notificationMessage.value = `Error: ${response.message || 'No se pudo crear la publicación'}`
       }
-      
+
       notificationType.value = 'error'
     }
   } catch (error) {
@@ -1813,21 +1832,27 @@ const syncSelectedPublications = async () => {
 
 // Función para sincronizar una publicación específica
 const syncPublication = async (publicationId: string) => {
+  const accountId = accountStore.currentAccount?.ID
+  if (!accountId) {
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationType.value = 'warning'
+    return
+  }
+
   syncingItem.value = publicationId
 
   try {
-    // Aquí iría la llamada a la API para sincronizar la publicación específica
-    // Por ahora solo simulamos un retraso
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Llamar al endpoint para actualizar la publicación y sus sincronizaciones
+    const response = await migrationService.updateProduct(accountId, publicationId)
 
     showNotification.value = true
-    notificationMessage.value = `Sincronización de la publicación ${publicationId} iniciada`
+    notificationMessage.value =
+      response.message || `Sincronización de la publicación ${publicationId} iniciada`
     notificationType.value = 'success'
 
-    // Recargar los datos después de un tiempo para ver los cambios
-    setTimeout(() => {
-      loadSyncRelations()
-    }, 1500)
+    // Recargar los datos para ver los cambios
+    await loadSyncRelations()
   } catch (error) {
     console.error(`Error al sincronizar la publicación ${publicationId}:`, error)
     showNotification.value = true
@@ -1871,6 +1896,43 @@ const syncRelation = async (
     notificationType.value = 'error'
   } finally {
     syncingItem.value = null
+  }
+}
+
+// Función para actualizar todas las sincronizaciones de una publicación
+const updateSyncRelations = async (item: PublicationSyncData) => {
+  const accountId = accountStore.currentAccount?.ID
+  if (!accountId) {
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationType.value = 'warning'
+    return
+  }
+
+  // Marcar la publicación como actualizando
+  updatingSyncItem.value = item.publication_id
+
+  try {
+    // Llamar al servicio para actualizar la publicación y sus sincronizaciones
+    // Usamos la API /v1/provider/migration/update/products/one como se indicó
+    const response = await migrationService.updateProduct(accountId, item.publication_id)
+
+    // Mostrar notificación de éxito
+    showNotification.value = true
+    notificationMessage.value = response.message || 'Sincronizaciones actualizadas correctamente'
+    notificationType.value = 'success'
+
+    // Recargar los datos para mostrar las sincronizaciones actualizadas
+    await loadSyncRelations()
+  } catch (error) {
+    // Mostrar notificación de error
+    showNotification.value = true
+    notificationMessage.value = 'Error al actualizar las sincronizaciones'
+    notificationType.value = 'error'
+    console.error('Error al actualizar sincronizaciones:', error)
+  } finally {
+    // Desmarcar la publicación como actualizando
+    updatingSyncItem.value = null
   }
 }
 

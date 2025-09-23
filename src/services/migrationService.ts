@@ -283,9 +283,19 @@ export interface DeleteSyncRelationError {
 
 export interface DeleteSyncRelationResponse {
   success: boolean
-  total_deleted: number
-  total_failed: number
-  errors?: DeleteSyncRelationError[]
+  message: string
+  deleted_relations?: number
+}
+
+export interface PublishProductResponse {
+  success: boolean
+  message: string
+  publication_id?: string
+}
+
+export interface UpdateProductResponse {
+  success: boolean
+  message: string
 }
 
 export interface CreateSyncRelationRequest {
@@ -405,13 +415,14 @@ export const migrationService = {
             product.Attributes !== null &&
             product.Attributes !== undefined &&
             Object.keys(product.Attributes || {}).length > 0
-            
+
           // Extraer el valor catalog_listing de los atributos
-          const isCatalogListing = product.Attributes && 
-            typeof product.Attributes === 'object' && 
-            'catalog_listing' in product.Attributes ? 
-            Boolean(product.Attributes.catalog_listing) : 
-            false
+          const isCatalogListing =
+            product.Attributes &&
+            typeof product.Attributes === 'object' &&
+            'catalog_listing' in product.Attributes
+              ? Boolean(product.Attributes.catalog_listing)
+              : false
 
           return {
             ID: product.ID,
@@ -519,6 +530,62 @@ export const migrationService = {
     }
   },
 
+  // Publicar un producto
+  async publishProduct(sourceId: string, targetAccountId: number): Promise<PublishProductResponse> {
+    try {
+      const response = await apiClient.post(
+        '/v1/migration/products/publish',
+        {},
+        {
+          headers: {
+            'account-id': targetAccountId.toString(),
+            'publication-id': sourceId,
+          },
+        },
+      )
+      return response.data
+    } catch (error) {
+      console.error('Error al publicar el producto:', error)
+      throw error
+    }
+  },
+
+  // Actualizar un producto y sus sincronizaciones
+  async updateProduct(
+    accountId: number,
+    publicationId: string,
+    targetAccountId?: number,
+    targetPublicationId?: string,
+  ): Promise<UpdateProductResponse> {
+    try {
+      const headers: Record<string, string> = {
+        'account-id': accountId.toString(),
+        'publication-id': publicationId,
+      }
+
+      // Agregar headers opcionales si se proporcionan
+      if (targetAccountId) {
+        headers['account-id-to'] = targetAccountId.toString()
+      }
+
+      if (targetPublicationId) {
+        headers['publication-id-to'] = targetPublicationId
+      }
+
+      const response = await apiClient.post(
+        '/v1/provider/migration/update/products/one',
+        {},
+        { headers },
+      )
+      return response.data
+    } catch (error) {
+      console.error('Error al actualizar el producto:', error)
+      throw error
+    }
+  },
+
+  // Función eliminada - No existe esta API
+
   // Actualizar los atributos de población de un producto
   async updateProductPopulate(
     accountId: number,
@@ -621,28 +688,46 @@ export const migrationService = {
       throw error
     }
   },
-  
+
+  // Eliminar relaciones de sincronización
+  async deleteSyncRelation(
+    request: DeleteSyncRelationRequest,
+  ): Promise<DeleteSyncRelationResponse> {
+    try {
+      const response = await apiClient.post('/v1/migration/sync-relations/delete', request)
+      return response.data
+    } catch (error) {
+      console.error('Error al eliminar relaciones de sincronización:', error)
+      throw error
+    }
+  },
+
+  // Función eliminada
+
   // Crear relaciones de sincronización entre publicaciones
   async createSyncRelation(
     request: CreateSyncRelationRequest,
   ): Promise<CreateSyncRelationResponse> {
     try {
-      const response = await apiClient.post(
-        '/v1/migration/products/sync/relations',
-        request,
-      )
+      const response = await apiClient.post('/v1/migration/products/sync/relations', request)
 
       return response.data as CreateSyncRelationResponse
     } catch (error: unknown) {
       console.error('Error al crear relación de sincronización:', error)
-      
+
       // Si hay un error en la API, intentar devolver una respuesta estructurada
-      if (typeof error === 'object' && error !== null && 'response' in error && 
-          error.response && typeof error.response === 'object' && 
-          'data' in error.response && error.response.data) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data
+      ) {
         return error.response.data as CreateSyncRelationResponse
       }
-      
+
       // Si no hay respuesta estructurada, crear una genérica
       return {
         success: false,
@@ -652,36 +737,39 @@ export const migrationService = {
           {
             publication_id: request.sync_relations[0]?.publication_id || '',
             to_sync_id: request.sync_relations[0]?.to_sync_id || '',
-            message: error instanceof Error ? error.message : 'Error desconocido'
-          }
-        ]
+            message: error instanceof Error ? error.message : 'Error desconocido',
+          },
+        ],
       }
     }
   },
-  
+
   // Eliminar relaciones de sincronización entre publicaciones
   async deleteSyncRelation(
     request: DeleteSyncRelationRequest,
   ): Promise<DeleteSyncRelationResponse> {
     try {
-      const response = await apiClient.delete(
-        '/v1/migration/products/sync/relations',
-        {
-          data: request,
-        },
-      )
+      const response = await apiClient.delete('/v1/migration/products/sync/relations', {
+        data: request,
+      })
 
       return response.data as DeleteSyncRelationResponse
     } catch (error: unknown) {
       console.error('Error al eliminar relación de sincronización:', error)
-      
+
       // Si hay un error en la API, intentar devolver una respuesta estructurada
-      if (typeof error === 'object' && error !== null && 'response' in error && 
-          error.response && typeof error.response === 'object' && 
-          'data' in error.response && error.response.data) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data
+      ) {
         return error.response.data as DeleteSyncRelationResponse
       }
-      
+
       // Si no hay respuesta estructurada, crear una genérica
       return {
         success: false,
@@ -691,67 +779,11 @@ export const migrationService = {
           {
             publication_id: request.sync_relations[0]?.publication_id || '',
             to_sync_id: request.sync_relations[0]?.to_sync_id || '',
-            message: error instanceof Error ? error.message : 'Error desconocido'
-          }
-        ]
-      }
-    }
-  },
-  
-  // Publicar un producto en una cuenta destino
-  async publishProduct(
-    productId: string,
-    accountIdTo: number,
-    formData?: FormData
-  ): Promise<{ success: boolean; message: string; productId?: string }> {
-    try {
-      const response = await apiClient.post(
-        `/v1/migration/publish/products/${productId}`,
-        formData || {},
-        {
-          headers: {
-            'account-id-to': accountIdTo.toString(),
-            'Content-Type': formData ? 'multipart/form-data' : 'application/json',
+            message: error instanceof Error ? error.message : 'Error desconocido',
           },
-        },
-      )
-
-      return {
-        success: true,
-        message: 'Producto publicado correctamente',
-        productId: response.data?.id || '',
-      }
-    } catch (error: unknown) {
-      console.error(`Error al publicar producto ${productId}:`, error)
-      
-      let errorMessage = 'Error al publicar el producto';
-      
-      if (typeof error === 'object' && error !== null && 'response' in error && 
-          error.response && typeof error.response === 'object' && 
-          'data' in error.response && error.response.data) {
-        const errorData = error.response.data as { 
-          message?: string, 
-          Message?: string,
-          Code?: string,
-          Status?: number,
-          TecnicalDetails?: string 
-        };
-        
-        // Manejar el formato de error específico para errores de catálogo
-        if (errorData.Code === '004' && errorData.Status === 409) {
-          errorMessage = `${errorData.Message || 'Error'}: ${errorData.TecnicalDetails || 'ErrorCatalog Listing'}`;
-        } else {
-          // Manejar otros formatos de error
-          errorMessage = errorData.message || errorData.Message || errorMessage;
-        }
-      }
-      
-      return {
-        success: false,
-        message: errorMessage,
+        ],
       }
     }
   },
 }
-
 export default migrationService
