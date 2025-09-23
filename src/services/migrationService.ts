@@ -686,6 +686,48 @@ export const migrationService = {
       }
     }
   },
+  
+  // Publicar un producto en una cuenta destino
+  async publishProduct(
+    productId: string,
+    accountIdTo: number,
+    formData?: FormData
+  ): Promise<{ success: boolean; message: string; productId?: string }> {
+    try {
+      const response = await apiClient.post(
+        `/v1/migration/publish/products/${productId}`,
+        formData || {},
+        {
+          headers: {
+            'account-id-to': accountIdTo.toString(),
+            'Content-Type': formData ? 'multipart/form-data' : 'application/json',
+          },
+        },
+      )
+
+      return {
+        success: true,
+        message: 'Producto publicado correctamente',
+        productId: response.data?.id || '',
+      }
+    } catch (error: unknown) {
+      console.error(`Error al publicar producto ${productId}:`, error)
+      
+      let errorMessage = 'Error al publicar el producto';
+      
+      if (typeof error === 'object' && error !== null && 'response' in error && 
+          error.response && typeof error.response === 'object' && 
+          'data' in error.response && error.response.data) {
+        const errorData = error.response.data as { message?: string };
+        errorMessage = errorData.message || errorMessage;
+      }
+      
+      return {
+        success: false,
+        message: errorMessage,
+      }
+    }
+  },
 }
 
 export default migrationService

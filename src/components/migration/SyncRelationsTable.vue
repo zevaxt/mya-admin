@@ -798,70 +798,86 @@
             ></v-select>
 
             <!-- Selección de ID de publicación -->
-            <v-autocomplete
-              v-model="targetPublicationId"
-              :items="accountPublications"
-              :loading="loadingAccountPublications"
-              label="ID de publicación"
-              variant="outlined"
-              density="comfortable"
-              :rules="[
-                (v) => !!v || 'Ingresa un ID de publicación',
-                (v) => (typeof v === 'string' ? /^[A-Z]{3}\d+$/.test(v) : true),
-              ]"
-              placeholder="Buscar o ingresar ID"
-              class="mb-4"
-              clearable
-              :filter="customFilter"
-              v-model:search-input="publicationSearchQuery"
-              hide-no-data
-              hide-selected
-              autocomplete="off"
-              return-object
-            >
-              <template #item="{ item, props }">
-                <v-list-item v-bind="props">
-                  <template #prepend>
-                    <v-icon
-                      :color="item.raw.status ? 'success' : 'error'"
-                      size="small"
-                      class="mr-2"
-                    >
-                      {{ item.raw.status ? 'mdi-check-circle' : 'mdi-alert-circle' }}
-                    </v-icon>
-                  </template>
-                  <template #title>
-                    <span>{{ item.raw.id }}</span>
-                  </template>
-                  <template #subtitle>
-                    <span v-if="item.raw.title" class="text-truncate">{{ item.raw.title }}</span>
-                  </template>
-                </v-list-item>
-              </template>
-
-              <!-- Personalizar cómo se muestra el elemento seleccionado -->
-              <template #selection="{ item }">
-                <div class="d-flex align-center">
-                  <span class="font-weight-medium">{{ item.raw.id }}</span>
-                  <v-tooltip location="top">
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        size="x-small"
-                        icon
-                        variant="text"
-                        color="primary"
-                        class="ml-2"
-                        @click.stop="copyToClipboard(item.raw.id)"
+            <div class="position-relative">
+              <v-autocomplete
+                v-model="targetPublicationId"
+                :items="accountPublications"
+                :loading="loadingAccountPublications"
+                label="ID de publicación"
+                variant="outlined"
+                item-title="id"
+                item-value="id"
+                return-object
+                :disabled="!selectedAccountId"
+                :hint="!selectedAccountId ? 'Selecciona una cuenta primero' : ''"
+                persistent-hint
+                class="mb-4"
+                @update:search="publicationSearchQuery = $event"
+              >
+                <template #item="{ item, props }">
+                  <v-list-item v-bind="props">
+                    <template #prepend>
+                      <v-icon
+                        :color="item.raw.status ? 'success' : 'error'"
+                        size="small"
+                        class="mr-2"
                       >
-                        <v-icon size="small">mdi-content-copy</v-icon>
-                      </v-btn>
+                        {{ item.raw.status ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                      </v-icon>
                     </template>
-                    <span>Copiar ID</span>
-                  </v-tooltip>
-                </div>
-              </template>
-            </v-autocomplete>
+                    <template #title>
+                      <span>{{ item.raw.id }}</span>
+                    </template>
+                    <template #subtitle>
+                      <span>{{ item.raw.title || 'Sin título' }}</span>
+                    </template>
+                  </v-list-item>
+                </template>
+                
+                <!-- Personalizar cómo se muestra el elemento seleccionado -->
+                <template #selection="{ item }">
+                  <div class="d-flex align-center">
+                    <span class="font-weight-medium">{{ item.raw.id }}</span>
+                    <v-tooltip location="top">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          size="x-small"
+                          icon
+                          variant="text"
+                          color="primary"
+                          class="ml-2"
+                          @click.stop="copyToClipboard(item.raw.id)"
+                        >
+                          <v-icon size="small">mdi-content-copy</v-icon>
+                        </v-btn>
+                      </template>
+                      <span>Copiar ID</span>
+                    </v-tooltip>
+                  </div>
+                </template>
+              </v-autocomplete>
+              
+              <!-- Botón para crear nueva publicación -->
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    icon
+                    size="small"
+                    color="primary"
+                    variant="elevated"
+                    :disabled="!selectedAccountId"
+                    :loading="creatingPublication"
+                    @click="createNewPublication"
+                    style="position: absolute; right: 40px; top: 10px; z-index: 1"
+                  >
+                    <v-icon>mdi-plus</v-icon>
+                  </v-btn>
+                </template>
+                <span>Crear nueva publicación</span>
+              </v-tooltip>
+            </div>
 
             <div class="text-caption text-grey mb-4 pa-2 bg-grey-lighten-4 rounded">
               <v-icon size="small" color="info" class="mr-1">mdi-information-outline</v-icon>
@@ -989,6 +1005,7 @@ const sourcePublicationId = ref('')
 const targetPublicationId = ref<{ id: string; title?: string; status: boolean } | null>(null)
 const selectedAccountId = ref<number | null>(null)
 const addingSyncRelation = ref(false)
+const creatingPublication = ref(false)
 const syncForm = ref<any>(null)
 
 // Estado para la carga de publicaciones de la cuenta seleccionada
@@ -1348,6 +1365,57 @@ const submitAddSync = async () => {
     notificationType.value = 'error'
   } finally {
     addingSyncRelation.value = false
+  }
+}
+
+// Función para crear una nueva publicación
+const createNewPublication = async () => {
+  if (!selectedAccountId.value) {
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationType.value = 'warning'
+    return
+  }
+
+  creatingPublication.value = true
+
+  try {
+    // Generar un ID temporal para la nueva publicación (simulando un ID de ML)
+    const tempId = `MLB${Math.floor(Math.random() * 1000000000)}`
+    
+    // Llamar a la API para publicar el producto
+    const response = await migrationService.publishProduct(
+      tempId,
+      selectedAccountId.value,
+    )
+
+    if (response.success) {
+      showNotification.value = true
+      notificationMessage.value = 'Publicación creada exitosamente'
+      notificationType.value = 'success'
+      
+      // Recargar las publicaciones de la cuenta
+      await loadPublicationsForAccount(selectedAccountId.value)
+      
+      // Si se devuelve un ID de producto, seleccionarlo
+      if (response.productId) {
+        const newPublication = accountPublications.value.find(p => p.id === response.productId)
+        if (newPublication) {
+          targetPublicationId.value = newPublication
+        }
+      }
+    } else {
+      showNotification.value = true
+      notificationMessage.value = `Error: ${response.message || 'No se pudo crear la publicación'}`
+      notificationType.value = 'error'
+    }
+  } catch (error) {
+    console.error('Error al crear publicación:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al crear la publicación'
+    notificationType.value = 'error'
+  } finally {
+    creatingPublication.value = false
   }
 }
 
