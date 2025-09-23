@@ -262,6 +262,29 @@ export interface SyncRelationItem {
   account_id_to?: number
 }
 
+// Interfaces para eliminar relaciones de sincronización
+export interface DeleteSyncRelationItem {
+  publication_id: string
+  to_sync_id: string
+}
+
+export interface DeleteSyncRelationRequest {
+  sync_relations: DeleteSyncRelationItem[]
+}
+
+export interface DeleteSyncRelationError {
+  publication_id: string
+  to_sync_id: string
+  message: string
+}
+
+export interface DeleteSyncRelationResponse {
+  success: boolean
+  total_deleted: number
+  total_failed: number
+  errors?: DeleteSyncRelationError[]
+}
+
 export interface CreateSyncRelationRequest {
   sync_relations: SyncRelationItem[]
 }
@@ -613,6 +636,45 @@ export const migrationService = {
       return {
         success: false,
         total_created: 0,
+        total_failed: 1,
+        errors: [
+          {
+            publication_id: request.sync_relations[0]?.publication_id || '',
+            to_sync_id: request.sync_relations[0]?.to_sync_id || '',
+            message: error instanceof Error ? error.message : 'Error desconocido'
+          }
+        ]
+      }
+    }
+  },
+  
+  // Eliminar relaciones de sincronización entre publicaciones
+  async deleteSyncRelation(
+    request: DeleteSyncRelationRequest,
+  ): Promise<DeleteSyncRelationResponse> {
+    try {
+      const response = await apiClient.delete(
+        '/v1/migration/products/sync/relations',
+        {
+          data: request,
+        },
+      )
+
+      return response.data as DeleteSyncRelationResponse
+    } catch (error: unknown) {
+      console.error('Error al eliminar relación de sincronización:', error)
+      
+      // Si hay un error en la API, intentar devolver una respuesta estructurada
+      if (typeof error === 'object' && error !== null && 'response' in error && 
+          error.response && typeof error.response === 'object' && 
+          'data' in error.response && error.response.data) {
+        return error.response.data as DeleteSyncRelationResponse
+      }
+      
+      // Si no hay respuesta estructurada, crear una genérica
+      return {
+        success: false,
+        total_deleted: 0,
         total_failed: 1,
         errors: [
           {

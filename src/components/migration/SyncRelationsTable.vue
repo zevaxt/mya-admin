@@ -533,6 +533,33 @@
                                 </template>
                                 <span>Sincronizar esta relación</span>
                               </v-tooltip>
+                              
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="elevated"
+                                    color="error"
+                                    class="ml-1"
+                                    :loading="
+                                      deletingItem ===
+                                      `${slotProps.item.publication_id}-${sync.to_sync_id}`
+                                    "
+                                    @click="
+                                      deleteSyncRelation(
+                                        slotProps.item.publication_id,
+                                        sync.to_sync_id,
+                                        'outgoing',
+                                      )
+                                    "
+                                  >
+                                    <v-icon size="small">mdi-link-variant-remove</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Eliminar esta relación</span>
+                              </v-tooltip>
                             </div>
                           </td>
                         </tr>
@@ -658,6 +685,33 @@
                                   </v-btn>
                                 </template>
                                 <span>Sincronizar esta relación</span>
+                              </v-tooltip>
+                              
+                              <v-tooltip location="top">
+                                <template #activator="{ props }">
+                                  <v-btn
+                                    v-bind="props"
+                                    size="x-small"
+                                    icon
+                                    variant="elevated"
+                                    color="error"
+                                    class="ml-1"
+                                    :loading="
+                                      deletingItem ===
+                                      `${sync.from_publication_id}-${slotProps.item.publication_id}`
+                                    "
+                                    @click="
+                                      deleteSyncRelation(
+                                        sync.from_publication_id,
+                                        slotProps.item.publication_id,
+                                        'incoming',
+                                      )
+                                    "
+                                  >
+                                    <v-icon size="small">mdi-link-variant-remove</v-icon>
+                                  </v-btn>
+                                </template>
+                                <span>Eliminar esta relación</span>
                               </v-tooltip>
                             </div>
                           </td>
@@ -842,9 +896,22 @@
             :disabled="!selected || selected.length === 0"
             :loading="syncingSelected"
             @click="syncSelectedPublications"
-            class="me-4"
+            class="me-2"
           >
             Sincronizar {{ selected ? selected.length : 0 }} seleccionadas
+          </v-btn>
+          
+          <v-btn
+            color="error"
+            variant="elevated"
+            size="small"
+            prepend-icon="mdi-link-variant-remove"
+            :disabled="!selected || selected.length === 0 || getTotalSyncRelations() === 0"
+            :loading="deletingSelected"
+            @click="deleteSelectedSyncRelations"
+            class="me-4"
+          >
+            Eliminar {{ getTotalSyncRelations() }} sincronizaciones
           </v-btn>
           <div class="text-caption text-grey me-4">
             {{
@@ -923,6 +990,10 @@ const selected = ref<any[]>([])
 const syncingAll = ref(false)
 const syncingSelected = ref(false)
 const syncingItem = ref<string | null>(null)
+// Reutilizamos syncingItem para las operaciones de eliminación
+const deletingItem = syncingItem
+// Usamos una variable separada para el estado de eliminación múltiple
+const deletingSelected = ref(false)
 
 // Estado para la paginación
 const page = ref(1)
@@ -1395,6 +1466,140 @@ const syncRelation = async (
     notificationType.value = 'error'
   } finally {
     syncingItem.value = null
+  }
+}
+
+// Función para eliminar una relación específica
+const deleteSyncRelation = async (
+  sourceId: string,
+  targetId: string,
+  direction: 'outgoing' | 'incoming',
+) => {
+  // Creamos un ID único para esta relación
+  const relationId = `${sourceId}-${targetId}`
+  deletingItem.value = relationId
+
+  try {
+    // Llamada a la API para eliminar la relación
+    const request = {
+      sync_relations: [
+        {
+          publication_id: direction === 'outgoing' ? sourceId : targetId,
+          to_sync_id: direction === 'outgoing' ? targetId : sourceId,
+        },
+      ],
+    }
+    
+    const response = await migrationService.deleteSyncRelation(request)
+
+    if (response.success) {
+      showNotification.value = true
+      notificationMessage.value = `Relación de sincronización eliminada correctamente`
+      notificationType.value = 'success'
+      
+      // Recargar los datos para ver los cambios
+      loadSyncRelations()
+    } else {
+      showNotification.value = true
+      notificationMessage.value = `Error al eliminar la relación: ${response.errors?.[0]?.message || 'Error desconocido'}`
+      notificationType.value = 'error'
+    }
+  } catch (error) {
+    console.error(`Error al eliminar la relación ${sourceId}-${targetId}:`, error)
+    showNotification.value = true
+    notificationMessage.value = `Error al eliminar la relación`
+    notificationType.value = 'error'
+  } finally {
+    deletingItem.value = null
+  }
+}
+
+// Función para calcular el total de relaciones de sincronización de las publicaciones seleccionadas
+const getTotalSyncRelations = (): number => {
+  if (!selected.value || selected.value.length === 0) {
+    return 0
+  }
+  
+  let totalRelations = 0
+  
+  // Contar todas las relaciones de sincronización (salientes y entrantes)
+  selected.value.forEach((publicationId) => {
+    const publication = publications.value.find(p => p.publication_id === publicationId)
+    if (publication) {
+      // Contar relaciones salientes
+      totalRelations += publication.to_syncs.length
+      
+      // Contar relaciones entrantes
+      totalRelations += publication.from_syncs.length
+    }
+  })
+  
+  return totalRelations
+}
+
+// Función para eliminar todas las relaciones de sincronización seleccionadas
+const deleteSelectedSyncRelations = async () => {
+  const totalRelations = getTotalSyncRelations()
+  
+  if (!selected.value || selected.value.length === 0 || totalRelations === 0) {
+    showNotification.value = true
+    notificationMessage.value = 'No hay relaciones de sincronización para eliminar'
+    notificationType.value = 'warning'
+    return
+  }
+
+  deletingSelected.value = true
+
+  try {
+    // Obtener todas las relaciones de sincronización de las publicaciones seleccionadas
+    const syncRelations: Array<{ publication_id: string; to_sync_id: string }> = []
+    
+    // Recopilar todas las relaciones de sincronización (salientes y entrantes)
+    selected.value.forEach((publicationId) => {
+      const publication = publications.value.find(p => p.publication_id === publicationId)
+      if (publication) {
+        // Agregar relaciones salientes
+        publication.to_syncs.forEach(sync => {
+          syncRelations.push({
+            publication_id: publication.publication_id,
+            to_sync_id: sync.to_sync_id
+          })
+        })
+        
+        // Agregar relaciones entrantes
+        publication.from_syncs.forEach(sync => {
+          syncRelations.push({
+            publication_id: sync.from_publication_id,
+            to_sync_id: publication.publication_id
+          })
+        })
+      }
+    })
+    
+    // Ya verificamos que hay relaciones para eliminar con getTotalSyncRelations()
+    
+    // Llamada a la API para eliminar todas las relaciones
+    const request = { sync_relations: syncRelations }
+    const response = await migrationService.deleteSyncRelation(request)
+    
+    showNotification.value = true
+    if (response.success) {
+      notificationMessage.value = `${response.total_deleted} relaciones de sincronización eliminadas correctamente`
+      notificationType.value = 'success'
+    } else {
+      notificationMessage.value = `${response.total_deleted} relaciones eliminadas, ${response.total_failed} con errores`
+      notificationType.value = response.total_deleted > 0 ? 'warning' : 'error'
+    }
+    
+    // Recargar los datos para ver los cambios
+    loadSyncRelations()
+  } catch (error) {
+    console.error('Error al eliminar las relaciones de sincronización:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al eliminar las relaciones de sincronización'
+    notificationType.value = 'error'
+  } finally {
+    deletingSelected.value = false
   }
 }
 
