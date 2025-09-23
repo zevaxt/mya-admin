@@ -1072,7 +1072,7 @@
             </v-btn>
           </div>
         </div>
-        
+
         <!-- Controles de paginación -->
         <div class="d-flex align-center">
           <div class="text-body-2 text-grey-darken-1 font-weight-medium me-4">
@@ -1085,7 +1085,7 @@
                 : '0-0 de 0'
             }}
           </div>
-          
+
           <div class="d-flex align-center me-4">
             <span class="text-caption me-2">Registros por página:</span>
             <v-select
@@ -1098,7 +1098,7 @@
               @update:model-value="handleItemsPerPageChange"
             ></v-select>
           </div>
-          
+
           <v-pagination
             v-model="page"
             :length="Math.ceil(totalPublications / itemsPerPage)"
@@ -1783,22 +1783,29 @@ const syncAllPublications = async () => {
   syncingAll.value = true
 
   try {
-    // Aquí iría la llamada a la API para sincronizar todas las publicaciones
-    // Por ahora solo simulamos un retraso
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    const accountId = accountStore.currentAccount?.ID
+    if (!accountId) {
+      showNotification.value = true
+      notificationMessage.value = 'Selecciona una cuenta primero'
+      notificationType.value = 'warning'
+      return
+    }
+
+    // Llamar a la API para sincronizar todas las publicaciones
+    const result = await migrationService.syncAllPublications(accountId)
 
     showNotification.value = true
-    notificationMessage.value = 'Sincronización de todas las publicaciones iniciada'
+    notificationMessage.value = result.message || 'Sincronización de todas las publicaciones iniciada'
     notificationType.value = 'success'
 
     // Recargar los datos después de un tiempo para ver los cambios
     setTimeout(() => {
       loadSyncRelations()
-    }, 2000)
+    }, 3000)
   } catch (error) {
     console.error('Error al sincronizar todas las publicaciones:', error)
     showNotification.value = true
-    notificationMessage.value = 'Error al sincronizar todas las publicaciones'
+    notificationMessage.value = error instanceof Error ? error.message : 'Error al sincronizar todas las publicaciones'
     notificationType.value = 'error'
   } finally {
     syncingAll.value = false

@@ -785,5 +785,37 @@ export const migrationService = {
       }
     }
   },
+
+  // Sincronizar todas las publicaciones de una cuenta origen a una cuenta destino
+  async syncAllPublications(
+    sourceAccountId: number,
+    targetAccountId?: number,
+  ): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const headers: Record<string, string> = {
+        'account-id': sourceAccountId.toString(),
+      }
+
+      // Agregar el header de cuenta destino si se proporciona
+      if (targetAccountId) {
+        headers['account-id-to'] = targetAccountId.toString()
+      }
+
+      const response = await apiClient.post(
+        '/v1/migration/update/products/data/provider',
+        {},
+        { headers },
+      )
+
+      return {
+        success: true,
+        message: 'Sincronización de todas las publicaciones iniciada correctamente',
+        data: response.data,
+      }
+    } catch (error) {
+      console.error('Error al sincronizar todas las publicaciones:', error)
+      throw error
+    }
+  },
 }
 export default migrationService
