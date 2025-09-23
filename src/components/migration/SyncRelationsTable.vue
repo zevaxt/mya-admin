@@ -1120,8 +1120,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import migrationService from '@/services/migrationService'
-import type { PublicationSyncData } from '@/services/migrationService'
+import migrationService, { type PublicationSyncData, type SyncAllPublicationsResponse } from '@/services/migrationService'
 import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 
 // Estado
@@ -1791,19 +1790,40 @@ const syncAllPublications = async () => {
       return
     }
 
-    // Llamar a la API para sincronizar todas las publicaciones
-    const result = await migrationService.syncAllPublications(accountId)
+    // Iniciar el proceso de sincronización sin esperar a que termine
+    // Usamos Promise.race con un timeout para evitar esperar demasiado tiempo
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, message: 'Sincronización iniciada. Este proceso puede tardar varios minutos.' })
+      }, 5000) // Esperamos máximo 5 segundos por una respuesta inicial
+    })
+
+    // Iniciamos la sincronización pero no esperamos a que termine completamente
+    const syncPromise = migrationService.syncAllPublications(accountId)
+    
+    // Esperamos solo la confirmación de inicio o el timeout, lo que ocurra primero
+    const result = await Promise.race([syncPromise, timeoutPromise]) as { success: boolean; message: string; data?: SyncAllPublicationsResponse }
 
     showNotification.value = true
     notificationMessage.value = result.message || 'Sincronización de todas las publicaciones iniciada'
     notificationType.value = 'success'
 
-    // Recargar los datos después de un tiempo para ver los cambios
+    // Recargar los datos después de un tiempo para ver los cambios iniciales
     setTimeout(() => {
       loadSyncRelations()
+      
+      // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
+      showNotification.value = true
+      notificationMessage.value = 'La sincronización continuará en segundo plano. Puedes seguir usando la aplicación.'
+      notificationType.value = 'success' // Usamos success en lugar de info que no es un tipo válido
     }, 3000)
+    
+    // Continuamos con la promesa original en segundo plano
+    syncPromise.catch((error: unknown) => {
+      console.error('Error en la sincronización en segundo plano:', error)
+    })
   } catch (error) {
-    console.error('Error al sincronizar todas las publicaciones:', error)
+    console.error('Error al iniciar la sincronización de publicaciones:', error)
     showNotification.value = true
     notificationMessage.value = error instanceof Error ? error.message : 'Error al sincronizar todas las publicaciones'
     notificationType.value = 'error'
@@ -2062,11 +2082,11 @@ const deleteSelectedSyncRelations = async () => {
 
     showNotification.value = true
     if (response.success) {
-      notificationMessage.value = `${response.total_deleted} relaciones de sincronización eliminadas correctamente`
+      notificationMessage.value = `${response.total_deleted || response.deleted_relations || 0} relaciones de sincronización eliminadas correctamente`
       notificationType.value = 'success'
     } else {
-      notificationMessage.value = `${response.total_deleted} relaciones eliminadas, ${response.total_failed} con errores`
-      notificationType.value = response.total_deleted > 0 ? 'warning' : 'error'
+      notificationMessage.value = `${response.total_deleted || response.deleted_relations || 0} relaciones eliminadas, ${response.total_failed || 0} con errores`
+      notificationType.value = (response.total_deleted || response.deleted_relations || 0) > 0 ? 'warning' : 'error'
     }
 
     // Recargar los datos para ver los cambios

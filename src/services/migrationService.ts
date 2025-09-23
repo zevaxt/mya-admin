@@ -285,6 +285,13 @@ export interface DeleteSyncRelationResponse {
   success: boolean
   message: string
   deleted_relations?: number
+  total_deleted?: number
+  total_failed?: number
+  errors?: Array<{
+    publication_id: string
+    to_sync_id: string
+    message: string
+  }>
 }
 
 export interface PublishProductResponse {
@@ -296,6 +303,14 @@ export interface PublishProductResponse {
 export interface UpdateProductResponse {
   success: boolean
   message: string
+}
+
+// Interfaz para la respuesta de sincronización de todas las publicaciones
+export interface SyncAllPublicationsResponse {
+  count_successful: number;
+  count_error: number;
+  publications: Array<{ publication_id: string; to_sync_id: string }>;
+  errors?: Array<{ publication_id: string; to_sync_id: string; details: string }>;
 }
 
 export interface CreateSyncRelationRequest {
@@ -689,18 +704,7 @@ export const migrationService = {
     }
   },
 
-  // Eliminar relaciones de sincronización
-  async deleteSyncRelation(
-    request: DeleteSyncRelationRequest,
-  ): Promise<DeleteSyncRelationResponse> {
-    try {
-      const response = await apiClient.post('/v1/migration/sync-relations/delete', request)
-      return response.data
-    } catch (error) {
-      console.error('Error al eliminar relaciones de sincronización:', error)
-      throw error
-    }
-  },
+  // Esta función se eliminó porque estaba duplicada
 
   // Función eliminada
 
@@ -773,6 +777,7 @@ export const migrationService = {
       // Si no hay respuesta estructurada, crear una genérica
       return {
         success: false,
+        message: 'Error al eliminar relaciones de sincronización',
         total_deleted: 0,
         total_failed: 1,
         errors: [
@@ -790,7 +795,7 @@ export const migrationService = {
   async syncAllPublications(
     sourceAccountId: number,
     targetAccountId?: number,
-  ): Promise<{ success: boolean; message: string; data?: any }> {
+  ): Promise<{ success: boolean; message: string; data?: SyncAllPublicationsResponse }> {
     try {
       const headers: Record<string, string> = {
         'account-id': sourceAccountId.toString(),
