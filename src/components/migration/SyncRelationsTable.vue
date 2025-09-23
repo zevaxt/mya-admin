@@ -132,7 +132,7 @@
       <v-data-table
         ref="dataTable"
         v-model:expanded="expanded"
-        v-model="selected"
+        v-model="publicationsSelected"
         :headers="headers"
         :items="filteredPublications"
         :loading="loading"
@@ -148,11 +148,18 @@
 
         <!-- Template para el encabezado personalizado de la columna ID -->
         <template #[`header.publication_id`]="{ column }">
-          <div class="d-flex align-center header-content" style="position: relative; min-width: 150px">
+          <div
+            class="d-flex align-center header-content"
+            style="position: relative; min-width: 150px"
+          >
             <!-- Contenedor con posición absoluta para evitar cambios en el layout -->
             <div style="position: absolute; width: 100%; z-index: 1">
               <v-fade-transition>
-                <div v-if="!showSearchField" class="d-flex align-center sortable-header" @click="handleSort(column.key || '')">
+                <div
+                  v-if="!showSearchField"
+                  class="d-flex align-center sortable-header"
+                  @click="handleSort(column.key || '')"
+                >
                   <span class="mr-2">{{ column.title }}</span>
                   <!-- Icono de ordenamiento (similar al que usa Vuetify internamente) -->
                   <v-icon
@@ -195,7 +202,7 @@
                 ></v-text-field>
               </v-fade-transition>
             </div>
-            
+
             <!-- Espacio invisible para mantener el ancho de la columna -->
             <div style="height: 1px; visibility: hidden">
               <div style="width: 150px"></div>
@@ -533,7 +540,7 @@
                                 </template>
                                 <span>Sincronizar esta relación</span>
                               </v-tooltip>
-                              
+
                               <v-tooltip location="top">
                                 <template #activator="{ props }">
                                   <v-btn
@@ -544,8 +551,8 @@
                                     color="error"
                                     class="ml-1"
                                     :loading="
-                                      deletingItem ===
-                                      `${slotProps.item.publication_id}-${sync.to_sync_id}`
+                                      syncingItem ===
+                                      `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`
                                     "
                                     @click="
                                       deleteSyncRelation(
@@ -686,7 +693,7 @@
                                 </template>
                                 <span>Sincronizar esta relación</span>
                               </v-tooltip>
-                              
+
                               <v-tooltip location="top">
                                 <template #activator="{ props }">
                                   <v-btn
@@ -697,8 +704,8 @@
                                     color="error"
                                     class="ml-1"
                                     :loading="
-                                      deletingItem ===
-                                      `${sync.from_publication_id}-${slotProps.item.publication_id}`
+                                      syncingItem ===
+                                      `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`
                                     "
                                     @click="
                                       deleteSyncRelation(
@@ -893,20 +900,24 @@
             variant="elevated"
             size="small"
             prepend-icon="mdi-sync"
-            :disabled="!selected || selected.length === 0"
+            :disabled="!publicationsSelected || publicationsSelected.length === 0"
             :loading="syncingSelected"
             @click="syncSelectedPublications"
             class="me-2"
           >
-            Sincronizar {{ selected ? selected.length : 0 }} seleccionadas
+            Sincronizar {{ publicationsSelected ? publicationsSelected.length : 0 }} seleccionadas
           </v-btn>
-          
+
           <v-btn
             color="error"
             variant="elevated"
             size="small"
             prepend-icon="mdi-link-variant-remove"
-            :disabled="!selected || selected.length === 0 || getTotalSyncRelations() === 0"
+            :disabled="
+              !publicationsSelected ||
+              publicationsSelected.length === 0 ||
+              getTotalSyncRelations() === 0
+            "
             :loading="deletingSelected"
             @click="deleteSelectedSyncRelations"
             class="me-4"
@@ -986,13 +997,12 @@ const accountPublications = ref<Array<{ id: string; title?: string; status: bool
 const publicationSearchQuery = ref('')
 
 // Estado para la sincronización
-const selected = ref<any[]>([])
+const publicationsSelected = ref<any[]>([])
 const syncingAll = ref(false)
 const syncingSelected = ref(false)
+// Variable compartida para operaciones de sincronización y eliminación individual
 const syncingItem = ref<string | null>(null)
-// Reutilizamos syncingItem para las operaciones de eliminación
-const deletingItem = syncingItem
-// Usamos una variable separada para el estado de eliminación múltiple
+// Variable para el estado de eliminación múltiple
 const deletingSelected = ref(false)
 
 // Estado para la paginación
@@ -1375,27 +1385,19 @@ const syncAllPublications = async () => {
 
 // Función para sincronizar las publicaciones seleccionadas
 const syncSelectedPublications = async () => {
-  if (!selected.value || selected.value.length === 0) return
+  if (!publicationsSelected.value || publicationsSelected.value.length === 0) return
 
   syncingSelected.value = true
 
   try {
-    // Obtener los IDs de las publicaciones seleccionadas
-    const selectedIds = selected.value.map((item) => item.publication_id)
-    console.log('IDs de publicaciones seleccionadas:', selectedIds)
-
-    // Aquí iría la llamada a la API para sincronizar las publicaciones seleccionadas
-    // Por ahora solo simulamos un retraso
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Sincronizar cada publicación seleccionada
+    for (const publicationId of publicationsSelected.value) {
+      await syncPublication(publicationId)
+    }
 
     showNotification.value = true
-    notificationMessage.value = `Sincronización de ${selected.value.length} publicaciones iniciada`
+    notificationMessage.value = `${publicationsSelected.value.length} publicaciones sincronizadas correctamente`
     notificationType.value = 'success'
-
-    // Recargar los datos después de un tiempo para ver los cambios
-    setTimeout(() => {
-      loadSyncRelations()
-    }, 2000)
   } catch (error) {
     console.error('Error al sincronizar publicaciones seleccionadas:', error)
     showNotification.value = true
@@ -1475,9 +1477,9 @@ const deleteSyncRelation = async (
   targetId: string,
   direction: 'outgoing' | 'incoming',
 ) => {
-  // Creamos un ID único para esta relación
-  const relationId = `${sourceId}-${targetId}`
-  deletingItem.value = relationId
+  // Creamos un ID único para esta relación con sufijo para diferenciar de sincronización
+  const relationId = `${sourceId}-${targetId}-delete`
+  syncingItem.value = relationId
 
   try {
     // Llamada a la API para eliminar la relación
@@ -1489,14 +1491,14 @@ const deleteSyncRelation = async (
         },
       ],
     }
-    
+
     const response = await migrationService.deleteSyncRelation(request)
 
     if (response.success) {
       showNotification.value = true
       notificationMessage.value = `Relación de sincronización eliminada correctamente`
       notificationType.value = 'success'
-      
+
       // Recargar los datos para ver los cambios
       loadSyncRelations()
     } else {
@@ -1510,38 +1512,42 @@ const deleteSyncRelation = async (
     notificationMessage.value = `Error al eliminar la relación`
     notificationType.value = 'error'
   } finally {
-    deletingItem.value = null
+    syncingItem.value = null
   }
 }
 
 // Función para calcular el total de relaciones de sincronización de las publicaciones seleccionadas
 const getTotalSyncRelations = (): number => {
-  if (!selected.value || selected.value.length === 0) {
+  if (!publicationsSelected.value || publicationsSelected.value.length === 0) {
     return 0
   }
-  
+
   let totalRelations = 0
-  
+
   // Contar todas las relaciones de sincronización (salientes y entrantes)
-  selected.value.forEach((publicationId) => {
-    const publication = publications.value.find(p => p.publication_id === publicationId)
+  publicationsSelected.value.forEach((publicationId) => {
+    const publication = publications.value.find((p) => p.publication_id === publicationId)
     if (publication) {
       // Contar relaciones salientes
       totalRelations += publication.to_syncs.length
-      
+
       // Contar relaciones entrantes
       totalRelations += publication.from_syncs.length
     }
   })
-  
+
   return totalRelations
 }
 
 // Función para eliminar todas las relaciones de sincronización seleccionadas
 const deleteSelectedSyncRelations = async () => {
   const totalRelations = getTotalSyncRelations()
-  
-  if (!selected.value || selected.value.length === 0 || totalRelations === 0) {
+
+  if (
+    !publicationsSelected.value ||
+    publicationsSelected.value.length === 0 ||
+    totalRelations === 0
+  ) {
     showNotification.value = true
     notificationMessage.value = 'No hay relaciones de sincronización para eliminar'
     notificationType.value = 'warning'
@@ -1553,35 +1559,35 @@ const deleteSelectedSyncRelations = async () => {
   try {
     // Obtener todas las relaciones de sincronización de las publicaciones seleccionadas
     const syncRelations: Array<{ publication_id: string; to_sync_id: string }> = []
-    
+
     // Recopilar todas las relaciones de sincronización (salientes y entrantes)
-    selected.value.forEach((publicationId) => {
-      const publication = publications.value.find(p => p.publication_id === publicationId)
+    publicationsSelected.value.forEach((publicationId) => {
+      const publication = publications.value.find((p) => p.publication_id === publicationId)
       if (publication) {
         // Agregar relaciones salientes
-        publication.to_syncs.forEach(sync => {
+        publication.to_syncs.forEach((sync) => {
           syncRelations.push({
             publication_id: publication.publication_id,
-            to_sync_id: sync.to_sync_id
+            to_sync_id: sync.to_sync_id,
           })
         })
-        
+
         // Agregar relaciones entrantes
-        publication.from_syncs.forEach(sync => {
+        publication.from_syncs.forEach((sync) => {
           syncRelations.push({
             publication_id: sync.from_publication_id,
-            to_sync_id: publication.publication_id
+            to_sync_id: publication.publication_id,
           })
         })
       }
     })
-    
+
     // Ya verificamos que hay relaciones para eliminar con getTotalSyncRelations()
-    
+
     // Llamada a la API para eliminar todas las relaciones
     const request = { sync_relations: syncRelations }
     const response = await migrationService.deleteSyncRelation(request)
-    
+
     showNotification.value = true
     if (response.success) {
       notificationMessage.value = `${response.total_deleted} relaciones de sincronización eliminadas correctamente`
@@ -1590,7 +1596,7 @@ const deleteSelectedSyncRelations = async () => {
       notificationMessage.value = `${response.total_deleted} relaciones eliminadas, ${response.total_failed} con errores`
       notificationType.value = response.total_deleted > 0 ? 'warning' : 'error'
     }
-    
+
     // Recargar los datos para ver los cambios
     loadSyncRelations()
   } catch (error) {
@@ -1615,7 +1621,7 @@ watch(
 
 // Watcher para depurar la selección
 watch(
-  selected,
+  publicationsSelected,
   (newSelected) => {
     console.log('Elementos seleccionados:', newSelected)
   },
