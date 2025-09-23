@@ -123,7 +123,33 @@
           </v-select>
         </v-col>
         <v-col cols="12" md="3">
-          <!-- Espacio reservado para otros filtros si se necesitan en el futuro -->
+          <v-select
+            v-model="statusFilter"
+            :items="statusOptions"
+            label="Estado"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="loadSyncRelations"
+          >
+            <template v-slot:prepend>
+              <v-icon color="success">mdi-check-circle</v-icon>
+            </template>
+            <template v-slot:append>
+              <v-icon
+                v-if="statusFilter !== 'all'"
+                color="primary"
+                @click.stop="
+                  () => {
+                    statusFilter = 'all'
+                    loadSyncRelations()
+                  }
+                "
+              >
+                mdi-close-circle
+              </v-icon>
+            </template>
+          </v-select>
         </v-col>
       </v-row>
     </div>
@@ -171,6 +197,29 @@
               <div class="text-center px-3">
                 <div class="text-h6">{{ nonCatalogCount }}</div>
                 <div class="text-caption">Estándar</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Grupo de estado de publicación -->
+          <div class="d-flex flex-column align-center px-4 border-start">
+            <div class="text-caption text-primary font-weight-medium mb-2">Estado de publicación</div>
+            <div class="d-flex">
+              <div class="text-center px-2">
+                <div class="text-h6 text-success">{{ activeCount }}</div>
+                <div class="text-caption">Activo</div>
+              </div>
+              <div class="text-center px-2">
+                <div class="text-h6 text-warning">{{ pausedCount }}</div>
+                <div class="text-caption">Pausado</div>
+              </div>
+              <div class="text-center px-2">
+                <div class="text-h6 text-error">{{ closedCount }}</div>
+                <div class="text-caption">Cerrado</div>
+              </div>
+              <div class="text-center px-2">
+                <div class="text-h6 text-grey">{{ otherStatusCount }}</div>
+                <div class="text-caption">Otros</div>
               </div>
             </div>
           </div>
@@ -378,10 +427,21 @@
           </div>
         </template>
 
-        <!-- Columna de Estado -->
-        <template #[`item.status`]="slotProps">
+        <!-- Columna de Estado de Sincronización -->
+        <template #[`item.sync_status`]="slotProps">
           <v-chip :color="getSyncStatusColor(slotProps.item)" size="small">
             {{ getSyncStatusText(slotProps.item) }}
+          </v-chip>
+        </template>
+        
+        <!-- Columna de Estado de la Publicación -->
+        <template #[`item.status`]="slotProps">
+          <v-chip
+            :color="getStatusColor(slotProps.item.status)"
+            size="small"
+            variant="flat"
+          >
+            {{ getStatusText(slotProps.item.status) }}
           </v-chip>
         </template>
         
@@ -1099,6 +1159,7 @@ const searchQuery = ref('')
 const syncStatusFilter = ref('all')
 const syncCountFilter = ref('all')
 const catalogFilter = ref('all')
+const statusFilter = ref('all') // Filtro para el status de la publicación
 
 // Estado para el campo de búsqueda
 const showSearchField = ref(false)
@@ -1129,11 +1190,21 @@ const catalogOptions = [
   { title: 'NO', value: 'no' },
 ]
 
+// Opciones para el filtro de status
+const statusOptions = [
+  { title: 'Todos', value: 'all' },
+  { title: 'Activo', value: 'active' },
+  { title: 'Pausado', value: 'paused' },
+  { title: 'Cerrado', value: 'closed' },
+  { title: 'Otros', value: 'other' },
+]
+
 // Encabezados de la tabla
 const headers = [
   { title: 'ID', key: 'publication_id', sortable: true },
   { title: 'Sincr. Salientes', key: 'outgoing_syncs', sortable: true },
   { title: 'Sincr. Entrantes', key: 'incoming_syncs', sortable: true },
+  { title: 'Estado Sincr.', key: 'sync_status', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
   { title: 'Catálogo', key: 'catalog', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
@@ -1176,6 +1247,27 @@ const nonCatalogCount = computed(() => {
   return allPublications.value.filter((item) => item.is_catalog_listing === false).length
 })
 
+// Contadores para los diferentes estados de publicación
+const activeCount = computed(() => {
+  return allPublications.value.filter((item) => item.status?.toLowerCase() === 'active').length
+})
+
+const pausedCount = computed(() => {
+  return allPublications.value.filter((item) => item.status?.toLowerCase() === 'paused').length
+})
+
+const closedCount = computed(() => {
+  return allPublications.value.filter((item) => item.status?.toLowerCase() === 'closed').length
+})
+
+const otherStatusCount = computed(() => {
+  return allPublications.value.filter(
+    (item) => 
+      item.status && 
+      !['active', 'paused', 'closed'].includes(item.status.toLowerCase())
+  ).length
+})
+
 // No se necesitan datos para el gráfico ya que se ha eliminado
 
 // Variable para almacenar todas las publicaciones (para estadísticas)
@@ -1210,9 +1302,17 @@ const loadSyncRelations = async () => {
         Boolean(product.Attributes.catalog_listing) : 
         false
       
+      // Extraer el status de los atributos
+      const publicationStatus = product.Attributes && 
+        typeof product.Attributes === 'object' && 
+        'status' in product.Attributes ? 
+        String(product.Attributes.status) : 
+        'unknown'
+      
       productDetailsMap.set(product.ID, { 
         isCatalogListing,
-        status: product.Status,
+        status: product.Status, // Estado booleano (activo/inactivo)
+        publicationStatus: publicationStatus, // Status de la publicación (active, paused, etc.)
         title: (product.Attributes?.title as string) || ''
       })
     })
@@ -1222,7 +1322,8 @@ const loadSyncRelations = async () => {
       const details = productDetailsMap.get(pub.publication_id)
       return {
         ...pub,
-        is_catalog_listing: details ? details.isCatalogListing : false
+        is_catalog_listing: details ? details.isCatalogListing : false,
+        status: details ? details.publicationStatus : 'unknown'
       }
     })
     
@@ -1295,6 +1396,28 @@ const loadSyncRelations = async () => {
       })
     }
     
+    // Filtrar por status de la publicación
+    if (statusFilter.value !== 'all') {
+      filteredPublications = filteredPublications.filter((item) => {
+        if (!item.status) return false
+        
+        const status = item.status.toLowerCase()
+        
+        switch (statusFilter.value) {
+          case 'active':
+            return status === 'active'
+          case 'paused':
+            return status === 'paused'
+          case 'closed':
+            return status === 'closed'
+          case 'other':
+            return !['active', 'paused', 'closed'].includes(status)
+          default:
+            return true
+        }
+      })
+    }
+    
     // Actualizar el total de publicaciones filtradas
     totalPublications.value = filteredPublications.length
     
@@ -1337,6 +1460,50 @@ const getSyncStatusColor = (item: PublicationSyncData) => {
   if (hasOutgoing) return 'primary'
   if (hasIncoming) return 'success'
   return 'grey'
+}
+
+// Función para obtener el color según el status de la publicación
+const getStatusColor = (status: string | undefined) => {
+  if (!status) return 'grey'
+  
+  // Convertir a minúsculas para la comparación
+  const statusLower = status.toLowerCase()
+  
+  switch (statusLower) {
+    case 'active':
+      return 'success'
+    case 'paused':
+      return 'warning'
+    case 'closed':
+      return 'error'
+    case 'under_review':
+      return 'info'
+    default:
+      // Para otros estados, usar un color distintivo
+      return 'deep-purple-lighten-3' // Color distintivo para estados no estándar
+  }
+}
+
+// Función para obtener el texto según el status de la publicación
+const getStatusText = (status: string | undefined) => {
+  if (!status) return 'Desconocido'
+  
+  // Convertir a minúsculas para la comparación
+  const statusLower = status.toLowerCase()
+  
+  switch (statusLower) {
+    case 'active':
+      return 'Activo'
+    case 'paused':
+      return 'Pausado'
+    case 'closed':
+      return 'Cerrado'
+    case 'under_review':
+      return 'En revisión'
+    default:
+      // Para otros estados, mostrar el valor original con la primera letra en mayúscula
+      return status.charAt(0).toUpperCase() + status.slice(1)
+  }
 }
 
 const getAccountName = (accountId: number) => {

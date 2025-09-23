@@ -249,6 +249,7 @@ export interface PublicationSyncData {
   to_syncs: SyncToItem[]
   from_syncs: SyncFromItem[]
   is_catalog_listing?: boolean
+  status?: string // Campo para el status de la publicación (active, paused, etc.)
 }
 
 export interface SyncStatsResponse {
