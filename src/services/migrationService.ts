@@ -1,8 +1,6 @@
 // Servicio para manejar las operaciones de migración
 import apiClient from './api'
-import { accountService } from './accountService'
-import { useAuthStore } from '@/stores/auth'
-import type { Account } from './api'
+import { useAccountStore } from '@/stores/account'
 
 // Interfaces para las respuestas de la API
 export interface ProductId {
@@ -392,18 +390,10 @@ export const migrationService = {
 
       // Transformar la respuesta al nuevo formato
       const data = response.data
-      // Obtener las cuentas para mapear los nombres
-      const authStore = useAuthStore()
-      const userId = authStore.currentUserId
-      let accounts: Account[] = []
-
-      try {
-        if (userId) {
-          accounts = await accountService.getUserAccounts(userId)
-        }
-      } catch (err) {
-        console.warn('No se pudieron cargar las cuentas para mostrar nombres:', err)
-      }
+      
+      // Obtener las cuentas del store para mapear los nombres
+      const accountStore = useAccountStore()
+      const accounts = accountStore.accounts
 
       const products = data.products.map(
         (product: {
@@ -419,7 +409,7 @@ export const migrationService = {
           // Buscar el nombre de la cuenta si está disponible
           let accountName = 'N/A'
           if (product.AccountID && accounts.length > 0) {
-            const account = accounts.find((acc) => acc.ID === product.AccountID)
+            const account = accounts.find((acc: { ID: number; Nickname?: string; Email?: string }) => acc.ID === product.AccountID)
             if (account) {
               accountName = account.Nickname || account.Email || `Cuenta #${product.AccountID}`
             }

@@ -9,10 +9,10 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const menuOpen = ref(false)
 
-// Cargar cuentas al montar el componente
+// Cargar cuentas al montar el componente solo si no hay cuentas ya cargadas
 onMounted(async () => {
   console.log('AccountSelector montado, autenticado:', authStore.isAuthenticated)
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated && accountStore.accounts.length === 0) {
     // Verificar que exista el token
     const token = localStorage.getItem('token')
     if (!token) {
@@ -30,6 +30,8 @@ onMounted(async () => {
     } finally {
       loading.value = false
     }
+  } else if (accountStore.accounts.length > 0) {
+    console.log('Usando cuentas ya cargadas:', accountStore.accounts.length)
   }
 })
 
@@ -37,7 +39,8 @@ onMounted(async () => {
 watch(
   () => authStore.isAuthenticated,
   async (isAuthenticated) => {
-    if (isAuthenticated) {
+    // Solo cargar cuentas si el usuario está autenticado y no hay cuentas cargadas
+    if (isAuthenticated && accountStore.accounts.length === 0) {
       // Verificar que exista el token
       const token = localStorage.getItem('token')
       if (!token) {
@@ -48,6 +51,7 @@ watch(
       loading.value = true
       try {
         await accountStore.fetchUserAccounts()
+        console.log('Cuentas cargadas por cambio en autenticación:', accountStore.accounts.length)
       } catch (error) {
         console.error('Error al cargar cuentas:', error)
       } finally {
@@ -73,11 +77,21 @@ const selectAccount = (account: Account) => {
       color="white"
       variant="outlined"
       class="mb-1 refresh-btn"
+      :loading="loading"
       @click="
         async () => {
+          // Evitar múltiples clics mientras carga
+          if (loading) return;
+          
           loading = true
-          await accountStore.fetchUserAccounts()
-          loading = false
+          try {
+            await accountStore.fetchUserAccounts()
+            console.log('Cuentas actualizadas manualmente:', accountStore.accounts.length)
+          } catch (error) {
+            console.error('Error al actualizar cuentas:', error)
+          } finally {
+            loading = false
+          }
         }
       "
     >
