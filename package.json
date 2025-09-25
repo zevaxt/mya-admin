@@ -17,6 +17,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@guolao/vue-monaco-editor": "^1.5.5",
     "@mdi/font": "^7.4.47",
     "axios": "^1.12.2",
     "jwt-decode": "^4.0.0",

@@ -394,21 +394,55 @@
               <v-window-item value="json">
                 <v-card variant="flat">
                   <v-card-text>
-                    <div class="d-flex justify-end mb-2">
-                      <v-btn
-                        color="primary"
-                        variant="text"
-                        size="small"
-                        @click="copyToClipboard(JSON.stringify(product, null, 2))"
-                      >
-                        <v-icon start>mdi-content-copy</v-icon>
-                        Copiar JSON
-                      </v-btn>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <div>
+                        <v-switch
+                          v-model="jsonReadOnly"
+                          label="Solo lectura"
+                          color="primary"
+                          hide-details
+                          density="compact"
+                          class="mt-0"
+                        ></v-switch>
+                      </div>
+                      <div>
+                        <v-btn
+                          color="success"
+                          variant="text"
+                          size="small"
+                          class="mr-2"
+                          :disabled="jsonReadOnly"
+                          @click="applyJsonChanges"
+                        >
+                          <v-icon start>mdi-content-save</v-icon>
+                          Aplicar cambios
+                        </v-btn>
+                        <v-btn
+                          color="primary"
+                          variant="text"
+                          size="small"
+                          @click="copyToClipboard(JSON.stringify(product, null, 2))"
+                        >
+                          <v-icon start>mdi-content-copy</v-icon>
+                          Copiar JSON
+                        </v-btn>
+                      </div>
                     </div>
-                    <div class="json-viewer pa-2 bg-grey-lighten-5 rounded">
-                      <pre class="overflow-auto" style="max-height: 400px">{{
-                        JSON.stringify(product, null, 2)
-                      }}</pre>
+                    <div class="json-editor rounded" style="height: 500px; border: 1px solid #e0e0e0;">
+                      <MonacoEditor
+                        v-model:value="jsonContent"
+                        :options="{
+                          language: 'json',
+                          readOnly: jsonReadOnly,
+                          automaticLayout: true,
+                          minimap: { enabled: true },
+                          scrollBeyondLastLine: false,
+                          theme: 'vs',
+                          fontSize: 14,
+                          tabSize: 2,
+                        }"
+                        @change="handleEditorChange"
+                      />
                     </div>
                   </v-card-text>
                 </v-card>
@@ -437,10 +471,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import migrationService from '@/services/migrationService'
 import { useAccountStore } from '@/stores/account'
+import MonacoEditor from '@guolao/vue-monaco-editor'
 
 // Interfaces
 // Importar la interfaz del servicio de migración
@@ -459,6 +494,11 @@ const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
 const loading = ref(false)
 
+// Variables para el editor JSON
+const jsonContent = ref('')
+const jsonReadOnly = ref(true)
+const originalJson = ref('')
+
 // Imagen actual basada en el índice
 const currentPicture = computed(() => {
   if (!product.value?.Attributes?.pictures || product.value.Attributes.pictures.length === 0) {
@@ -470,30 +510,24 @@ const currentPicture = computed(() => {
 // Cargar datos del producto directamente desde la API
 onMounted(async () => {
   const productId = route.params.id as string
-  if (!productId) {
-    showNotification.value = true
-    notificationMessage.value = 'ID de producto no especificado'
-    notificationType.value = 'error'
-    return
-  }
-
   const accountId = accountStore.currentAccount?.ID
+
   if (!accountId) {
     showNotification.value = true
-    notificationMessage.value = 'Selecciona una cuenta para ver los detalles del producto'
-    notificationType.value = 'error'
+    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationType.value = 'warning'
+    loading.value = false
     return
   }
 
-  loading.value = true
-
   try {
-    // Obtener los detalles del producto directamente desde la API
     const response = await migrationService.getProductDetail(accountId, productId)
+    product.value = response
 
-    // Verificar si la respuesta tiene la estructura esperada
-    if (response && response.Attributes) {
-      product.value = response as ProductDetail
+    // Inicializar el contenido del editor JSON
+    if (product.value) {
+      jsonContent.value = JSON.stringify(product.value, null, 2)
+      originalJson.value = jsonContent.value // Guardar el JSON original
     } else {
       showNotification.value = true
       notificationMessage.value = 'Error en el formato de la respuesta'
@@ -506,6 +540,13 @@ onMounted(async () => {
     notificationType.value = 'error'
   } finally {
     loading.value = false
+  }
+})
+
+// Observar cambios en el producto para actualizar el editor JSON
+watch(() => product.value, (newProduct) => {
+  if (newProduct) {
+    jsonContent.value = JSON.stringify(newProduct, null, 2)
   }
 })
 
@@ -546,10 +587,30 @@ const openInMercadoLibre = () => {
   }
 }
 
-// La función goToEditPage ha sido eliminada ya que no se necesita la página de edición
+// Funciones para el editor JSON
+const handleEditorChange = (value: string) => {
+  // Esta función se llama cada vez que cambia el contenido del editor
+  jsonContent.value = value
+}
 
-const goBack = () => {
-  window.history.back()
+const applyJsonChanges = () => {
+  try {
+    // Intentar parsear el JSON para validarlo
+    const updatedProduct = JSON.parse(jsonContent.value)
+
+    // Actualizar el producto con los cambios
+    product.value = updatedProduct
+
+    // Mostrar notificación de éxito
+    showNotification.value = true
+    notificationMessage.value = 'Cambios aplicados correctamente'
+    notificationType.value = 'success'
+  } catch (error) {
+    // Mostrar notificación de error si el JSON no es válido
+    showNotification.value = true
+    notificationMessage.value = 'Error en el formato JSON: ' + (error instanceof Error ? error.message : 'Error desconocido')
+    notificationType.value = 'error'
+  }
 }
 
 const copyToClipboard = (text: string) => {
