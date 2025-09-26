@@ -395,15 +395,44 @@
                 <v-card variant="flat">
                   <v-card-text>
                     <div class="d-flex justify-space-between align-center mb-2">
-                      <div>
+                      <div class="d-flex align-center">
                         <v-switch
                           v-model="jsonReadOnly"
                           label="Solo lectura"
                           color="primary"
                           hide-details
                           density="compact"
-                          class="mt-0"
+                          class="mt-0 mr-4"
                         ></v-switch>
+                        
+                        <!-- Controles de zoom -->
+                        <div class="d-flex align-center">
+                          <v-btn
+                            icon
+                            size="small"
+                            variant="text"
+                            color="grey-darken-1"
+                            @click="decreaseFontSize"
+                            :disabled="fontSize <= 10"
+                          >
+                            <v-icon>mdi-magnify-minus</v-icon>
+                            <v-tooltip activator="parent" location="bottom">Disminuir tamaño de fuente</v-tooltip>
+                          </v-btn>
+                          
+                          <span class="text-caption mx-2">{{ fontSize }}px</span>
+                          
+                          <v-btn
+                            icon
+                            size="small"
+                            variant="text"
+                            color="grey-darken-1"
+                            @click="increaseFontSize"
+                            :disabled="fontSize >= 24"
+                          >
+                            <v-icon>mdi-magnify-plus</v-icon>
+                            <v-tooltip activator="parent" location="bottom">Aumentar tamaño de fuente</v-tooltip>
+                          </v-btn>
+                        </div>
                       </div>
                       <div>
                         <v-btn
@@ -463,13 +492,43 @@
                       <v-btn
                         v-if="isFullscreen"
                         icon
-                        color="grey-darken-2"
-                        size="small"
+                        color="error"
+                        variant="elevated"
+                        size="default"
                         class="close-fullscreen-btn"
                         @click="toggleFullscreen"
                       >
-                        <v-icon>mdi-close</v-icon>
+                        <v-icon size="large" color="white">mdi-close</v-icon>
                       </v-btn>
+                      
+                      <!-- Controles de zoom en modo pantalla completa -->
+                      <div v-if="isFullscreen" class="fullscreen-zoom-controls">
+                        <v-btn
+                          icon
+                          size="small"
+                          color="primary"
+                          variant="flat"
+                          class="mr-2"
+                          @click="decreaseFontSize"
+                          :disabled="fontSize <= 10"
+                        >
+                          <v-icon>mdi-magnify-minus</v-icon>
+                        </v-btn>
+                        
+                        <span class="text-caption font-weight-medium px-2 py-1 bg-grey-lighten-3 rounded">{{ fontSize }}px</span>
+                        
+                        <v-btn
+                          icon
+                          size="small"
+                          color="primary"
+                          variant="flat"
+                          class="ml-2"
+                          @click="increaseFontSize"
+                          :disabled="fontSize >= 24"
+                        >
+                          <v-icon>mdi-magnify-plus</v-icon>
+                        </v-btn>
+                      </div>
                       
                       <MonacoEditor
                         v-model:value="jsonContent"
@@ -480,7 +539,7 @@
                           minimap: { enabled: true },
                           scrollBeyondLastLine: false,
                           theme: 'vs',
-                          fontSize: isFullscreen ? 16 : 14,
+                          fontSize: fontSize,
                           tabSize: 2,
                         }"
                         @change="handleEditorChange"
@@ -544,6 +603,7 @@ const jsonContent = ref('')
 const jsonReadOnly = ref(true)
 const originalJson = ref('')
 const isFullscreen = ref(false) // Estado para controlar el modo pantalla completa
+const fontSize = ref(14) // Estado para controlar el tamaño de la fuente
 
 // Imagen actual basada en el índice
 const currentPicture = computed(() => {
@@ -678,6 +738,27 @@ const copyToClipboard = (text: string) => {
 // Función para alternar el modo de pantalla completa
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
+  
+  // Ajustar el tamaño de la fuente cuando se cambia entre modo normal y pantalla completa
+  if (isFullscreen.value && fontSize.value < 16) {
+    // Guardar el tamaño actual para restaurarlo cuando se salga de pantalla completa
+    fontSize.value = Math.max(fontSize.value + 2, 16)
+  }
+}
+
+// Funciones para controlar el tamaño de la fuente
+const increaseFontSize = () => {
+  // Limitar el tamaño máximo de la fuente a 24px
+  if (fontSize.value < 24) {
+    fontSize.value += 2
+  }
+}
+
+const decreaseFontSize = () => {
+  // Limitar el tamaño mínimo de la fuente a 10px
+  if (fontSize.value > 10) {
+    fontSize.value -= 2
+  }
 }
 </script>
 
@@ -738,7 +819,21 @@ const toggleFullscreen = () => {
   top: 8px;
   right: 8px;
   z-index: 1001;
-  background-color: white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  opacity: 1 !important;
+  border: 2px solid white !important;
+}
+
+.fullscreen-zoom-controls {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
