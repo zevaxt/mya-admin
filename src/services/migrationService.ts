@@ -625,6 +625,33 @@ export const migrationService = {
     }
   },
   
+  // Actualizar los atributos de población de todas las publicaciones de una cuenta
+  async updateAllProductsPopulate(
+    accountId: number,
+    isEmpty: boolean = false,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      await apiClient.post(
+        `/v1/migration/update/products/populate`,
+        {},
+        {
+          headers: {
+            'account-id': accountId.toString(),
+            'is_empty': isEmpty.toString(),
+          },
+        },
+      )
+
+      return {
+        success: true,
+        message: `Se ha iniciado el proceso de populate para todas las publicaciones de la cuenta`,
+      }
+    } catch (error) {
+      console.error(`Error al iniciar el proceso de populate para la cuenta ${accountId}:`, error)
+      throw error
+    }
+  },
+  
   // Actualizar los atributos de población de múltiples productos
   async updateMultipleProductsPopulate(
     accountId: number,

@@ -2442,7 +2442,20 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Número total de publicaciones
+                    example: 83
+                  data:
+                    type: array
+                    description: Lista de IDs de publicaciones
+                    items:
+                      type: string
+                    example: ["MCO2944805032", "MCO577635904"]
   /v1/migration/update/products/populate/{id}:
     post:
       tags:

@@ -109,6 +109,31 @@
         </v-col>
 
         <v-col cols="12" md="3" class="d-flex justify-end align-center gap-2">
+          <v-menu v-if="hasAccount">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                color="success"
+                variant="outlined"
+                v-bind="props"
+                class="mr-2"
+                size="small"
+                :loading="processingPopulateAll"
+                :disabled="processingPopulateAll"
+              >
+                <v-icon start>mdi-database-import</v-icon>
+                Populate todas
+                <v-icon end>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item @click="confirmPopulateAllProducts(false)">
+                <v-list-item-title>Todas las publicaciones</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="confirmPopulateAllProducts(true)">
+                <v-list-item-title>Solo publicaciones sin atributos</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
           <v-btn
             v-if="hasActiveFilters || searchQuery"
             color="secondary"
@@ -473,6 +498,7 @@ const processingPopulateId = ref<string | null>(null)
 const processingDeleteId = ref<string | null>(null)
 const processingSyncActiveId = ref<string | null>(null)
 const processingPopulateMultiple = ref<boolean>(false)
+const processingPopulateAll = ref<boolean>(false)
 
 // Estado para el diálogo de confirmación
 const showConfirmDialog = ref(false)
@@ -830,6 +856,45 @@ const populateSelectedItems = async () => {
   } finally {
     showNotification.value = true
     processingPopulateMultiple.value = false
+  }
+}
+
+// Confirmar populate de todas las publicaciones de la cuenta
+const confirmPopulateAllProducts = (isEmpty: boolean = false) => {
+  if (!hasAccount.value) return
+
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = isEmpty ? 'Populate publicaciones sin atributos' : 'Populate todas las publicaciones'
+  confirmDialogMessage.value = isEmpty
+    ? `¿Estás seguro de que deseas hacer populate de todas las publicaciones SIN ATRIBUTOS de la cuenta? Este proceso puede tardar varios minutos.`
+    : `¿Estás seguro de que deseas hacer populate de TODAS las publicaciones de la cuenta? Este proceso puede tardar varios minutos.`
+  confirmDialogAction.value = () => populateAllProducts(isEmpty)
+  showConfirmDialog.value = true
+}
+
+// Populate todas las publicaciones de la cuenta
+const populateAllProducts = async (isEmpty: boolean = false) => {
+  if (!hasAccount.value) return
+
+  try {
+    processingPopulateAll.value = true
+    
+    // Llamar al servicio para poblar todas las publicaciones
+    const result = await migrationService.updateAllProductsPopulate(accountId.value, isEmpty)
+    
+    // Mostrar mensaje de resultado
+    notificationMessage.value = result.message
+    notificationType.value = 'success'
+    
+    // Recargar los datos para reflejar los cambios
+    await loadProductIds()
+  } catch (err) {
+    console.error('Error al hacer populate de todas las publicaciones:', err)
+    notificationMessage.value = 'Error al iniciar el proceso de populate para todas las publicaciones'
+    notificationType.value = 'error'
+  } finally {
+    showNotification.value = true
+    processingPopulateAll.value = false
   }
 }
 
