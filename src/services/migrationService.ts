@@ -12,6 +12,8 @@ export interface ProductId {
   Status: boolean
   ToSync: null | boolean
   updated_at: string
+  last_updated?: string // Fecha de última actualización del producto
+  date_created?: string // Fecha de creación del producto
   Attributes?: Record<string, unknown> // Campo para almacenar los atributos del producto
   Populate?: boolean // Campo para indicar si tiene atributos
   IsCatalogListing?: boolean // Campo para indicar si es una publicación de catálogo
@@ -438,6 +440,8 @@ export const migrationService = {
             Status: product.Status,
             ToSync: product.ToSync,
             updated_at: product.updated_at,
+            last_updated: product.Attributes?.last_updated || null,
+            date_created: product.Attributes?.date_created || null,
             Attributes: product.Attributes,
             Populate: hasAttributes,
             IsCatalogListing: isCatalogListing,

@@ -13,6 +13,26 @@ components:
           type: integer
           format: uint
           description: ID único de la cuenta
+    SyncActiveRequest:
+      type: object
+      properties:
+        sync_active:
+          type: boolean
+          description: Nuevo valor para el campo SyncActive (true o false)
+      required:
+        - sync_active
+    SyncActiveResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Mensaje de confirmación
+        publication_id:
+          type: string
+          description: ID de la publicación actualizada
+        sync_active:
+          type: boolean
+          description: Valor actualizado del campo SyncActive
         CreatedAt:
           type: string
           format: date-time
@@ -59,6 +79,59 @@ tags:
   - name: migration tag
   - name: account tag
 paths:
+  /v1/migration/products/{id}/sync-active:
+    patch:
+      tags:
+        - migration tag
+      summary: Actualiza el campo SyncActive de una publicación
+      description: Permite activar o desactivar la sincronización de una publicación específica
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la publicación a actualizar
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncActiveRequest'
+      responses:
+        '200':
+          description: Estado de sincronización actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncActiveResponse'
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Publicación no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
   /v1/signup:
     post:
       tags:

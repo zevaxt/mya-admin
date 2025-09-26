@@ -260,6 +260,14 @@
           {{ formatDate(item.updated_at) }}
         </template>
 
+        <template #[`item.last_updated`]="{ item }">
+          {{ item.last_updated ? formatDate(item.last_updated) : 'No disponible' }}
+        </template>
+
+        <template #[`item.date_created`]="{ item }">
+          {{ item.date_created ? formatDate(item.date_created) : 'No disponible' }}
+        </template>
+
         <template #[`item.actions`]="{ item }">
           <div class="d-flex">
             <v-btn
@@ -477,7 +485,9 @@ const productIdsHeaders = [
   { title: 'Estado', key: 'Status', sortable: true },
   { title: 'Por Sincronizar', key: 'ToSync', sortable: true },
   { title: 'Populate', key: 'Populate', sortable: true },
-  { title: 'Actualizado', key: 'updated_at', sortable: true },
+  { title: 'F. Populated', key: 'updated_at', sortable: true },
+  { title: 'F. Updated', key: 'last_updated', sortable: true },
+  { title: 'F. Created', key: 'date_created', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
