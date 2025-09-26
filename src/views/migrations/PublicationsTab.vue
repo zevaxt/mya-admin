@@ -227,9 +227,26 @@
           </div>
         </template>
         <template #[`item.SyncActive`]="{ item }">
-          <v-chip :color="item.SyncActive ? 'success' : 'error'" size="small">
-            {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
-          </v-chip>
+          <div class="d-flex align-center">
+            <v-switch
+              v-model="item.SyncActive"
+              color="success"
+              hide-details
+              density="compact"
+              :loading="processingSyncActiveId === item.ID"
+              :disabled="processingSyncActiveId === item.ID"
+              @click.stop="toggleSyncActive(item.ID, item.SyncActive)"
+              class="ma-0 pa-0"
+            ></v-switch>
+            <v-chip
+              :color="item.SyncActive ? 'success' : 'error'"
+              size="small"
+              class="ml-2"
+              :class="{ 'pulse-animation': processingSyncActiveId === item.ID }"
+            >
+              {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
+            </v-chip>
+          </div>
         </template>
 
         <template #[`item.CatalogActive`]="{ item }">
@@ -416,10 +433,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
 import migrationService from '@/services/migrationService'
 import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 import type { ProductId } from '@/services/migrationService'
+
+const router = useRouter()
 
 // Emits
 // No hay emisiones de eventos
@@ -443,6 +463,7 @@ const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
 const processingPopulateId = ref<string | null>(null)
 const processingDeleteId = ref<string | null>(null)
+const processingSyncActiveId = ref<string | null>(null)
 
 // Estado para el diálogo de confirmación
 const showConfirmDialog = ref(false)
@@ -592,10 +613,44 @@ const loadProductIds = async () => {
 
 // Ver detalles del producto
 const viewProductDetail = (productId: string) => {
-  if (!hasAccount.value) return
+  router.push(`/product/${productId}`)
+}
 
-  // Redireccionar directamente a la vista de detalles
-  window.open(`/product-detail/${productId}`, '_blank')
+// Actualizar el estado de sincronización de un producto
+const toggleSyncActive = async (productId: string, currentValue: boolean) => {
+  if (!hasAccount.value) return
+  
+  try {
+    processingSyncActiveId.value = productId
+    const newValue = !currentValue
+    
+    const result = await migrationService.updateSyncActive(productId, newValue, accountId.value)
+    
+    if (result && result.success) {
+      // Actualizar el estado localmente para evitar recargar toda la lista
+      const index = productIds.value.findIndex(p => p.ID === productId)
+      if (index !== -1) {
+        productIds.value[index].SyncActive = newValue
+      }
+      
+      notificationMessage.value = result.message
+      notificationType.value = 'success'
+    } else {
+      notificationMessage.value = 'Error al actualizar el estado de sincronización'
+      notificationType.value = 'error'
+      // Recargar la lista para asegurar que los datos están actualizados
+      await loadProductIds()
+    }
+  } catch (err) {
+    console.error(`Error al actualizar el estado de sincronización para ${productId}:`, err)
+    notificationMessage.value = 'Error al actualizar el estado de sincronización'
+    notificationType.value = 'error'
+    // Recargar la lista para asegurar que los datos están actualizados
+    await loadProductIds()
+  } finally {
+    showNotification.value = true
+    processingSyncActiveId.value = null
+  }
 }
 
 // Confirmar eliminación de un producto
@@ -915,6 +970,26 @@ onMounted(() => {
 
 :deep(.v-field__field) {
   height: 32px;
+}
+
+/* Animación de pulso para el chip cuando se está procesando */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pulse-animation {
+  animation: pulse 1.5s infinite ease-in-out;
 }
 
 /* Estilos para el encabezado ordenable */

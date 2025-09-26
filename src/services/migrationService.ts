@@ -816,5 +816,28 @@ export const migrationService = {
       throw error
     }
   },
+
+  // Actualizar el estado de sincronización de una publicación
+  async updateSyncActive(productId: string, syncActive: boolean, accountId: number): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.patch(
+        `/v1/migration/products/${productId}/sync-active`,
+        { sync_active: syncActive },
+        {
+          headers: {
+            'account-id': accountId.toString(),
+          },
+        }
+      )
+
+      return {
+        success: true,
+        message: response.data.message || `Estado de sincronización actualizado a ${syncActive ? 'activo' : 'inactivo'}`,
+      }
+    } catch (error) {
+      console.error(`Error al actualizar estado de sincronización para ${productId}:`, error)
+      throw error
+    }
+  },
 }
 export default migrationService
