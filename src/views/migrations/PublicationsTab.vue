@@ -882,9 +882,20 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
     // Llamar al servicio para poblar todas las publicaciones
     const result = await migrationService.updateAllProductsPopulate(accountId.value, isEmpty)
     
-    // Mostrar mensaje de resultado
+    // Mostrar mensaje de resultado con el número de publicaciones
     notificationMessage.value = result.message
-    notificationType.value = 'success'
+    
+    // Determinar el tipo de notificación según el resultado
+    if (result.count && result.count > 0) {
+      notificationType.value = 'success'
+      
+      // Si hay menos de 10 publicaciones, mostrar los IDs en el mensaje
+      if (result.data && result.data.length > 0 && result.data.length <= 10) {
+        notificationMessage.value += `\nIDs: ${result.data.join(', ')}`
+      }
+    } else {
+      notificationType.value = 'warning'
+    }
     
     // Recargar los datos para reflejar los cambios
     await loadProductIds()

@@ -629,9 +629,9 @@ export const migrationService = {
   async updateAllProductsPopulate(
     accountId: number,
     isEmpty: boolean = false,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; count?: number; data?: string[] }> {
     try {
-      await apiClient.post(
+      const response = await apiClient.post(
         `/v1/migration/update/products/populate`,
         {},
         {
@@ -641,10 +641,22 @@ export const migrationService = {
           },
         },
       )
+      
+      // Extraer información del response
+      const count = response.data?.count || 0
+      const data = response.data?.data || []
+      
+      // Crear mensaje según el filtro aplicado
+      const filterMsg = isEmpty ? 'sin atributos' : ''
+      const message = count > 0
+        ? `Se ha iniciado el proceso de populate para ${count} publicaciones ${filterMsg} de la cuenta`
+        : `No se encontraron publicaciones ${filterMsg} para actualizar`
 
       return {
         success: true,
-        message: `Se ha iniciado el proceso de populate para todas las publicaciones de la cuenta`,
+        message,
+        count,
+        data,
       }
     } catch (error) {
       console.error(`Error al iniciar el proceso de populate para la cuenta ${accountId}:`, error)
