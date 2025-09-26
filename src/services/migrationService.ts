@@ -7,6 +7,7 @@ export interface ProductId {
   ID: string
   AccountID: number
   AccountName?: string // Nuevo campo para mostrar el nombre de la cuenta
+  price?: number // Precio del producto
   SyncActive: boolean
   CatalogActive: boolean
   Status: boolean
@@ -435,6 +436,7 @@ export const migrationService = {
             ID: product.ID,
             AccountID: product.AccountID,
             AccountName: accountName,
+            price: product.Attributes?.base_price || product.Attributes?.price || null,
             SyncActive: product.SyncActive,
             CatalogActive: product.CatalogActive,
             Status: product.Status,

@@ -226,6 +226,15 @@
             </div>
           </div>
         </template>
+
+        <template #[`item.price`]="{ item }">
+          <div class="d-flex align-center justify-end w-100">
+            <span :class="{ 'font-weight-medium': item.price, 'price-text': true }">
+              {{ formatPrice(item.price) }}
+            </span>
+          </div>
+        </template>
+
         <template #[`item.SyncActive`]="{ item }">
           <div class="d-flex align-center">
             <v-switch
@@ -501,6 +510,7 @@ const productIdsHeaders = [
     filterable: true,
   },
   { title: 'Cuenta', key: 'AccountName', sortable: true },
+  { title: 'Precio', key: 'price', sortable: true, class: 'text-right' },
   { title: 'Sync Activo', key: 'SyncActive', sortable: true },
   { title: 'Catálogo Activo', key: 'CatalogActive', sortable: true },
   { title: 'Estado', key: 'Status', sortable: true },
@@ -619,20 +629,20 @@ const viewProductDetail = (productId: string) => {
 // Actualizar el estado de sincronización de un producto
 const toggleSyncActive = async (productId: string, currentValue: boolean) => {
   if (!hasAccount.value) return
-  
+
   try {
     processingSyncActiveId.value = productId
     const newValue = !currentValue
-    
+
     const result = await migrationService.updateSyncActive(productId, newValue, accountId.value)
-    
+
     if (result && result.success) {
       // Actualizar el estado localmente para evitar recargar toda la lista
-      const index = productIds.value.findIndex(p => p.ID === productId)
+      const index = productIds.value.findIndex((p) => p.ID === productId)
       if (index !== -1) {
         productIds.value[index].SyncActive = newValue
       }
-      
+
       notificationMessage.value = result.message
       notificationType.value = 'success'
     } else {
@@ -766,10 +776,39 @@ const deleteSelectedItems = async () => {
 const openProductInNewTab = openInMercadoLibre
 
 // Formatear fecha
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string | null | undefined) => {
   if (!dateString) return 'N/A'
-  const date = new Date(dateString)
-  return date.toLocaleString()
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch (e) {
+    return dateString
+  }
+}
+
+// Formatear precio
+const formatPrice = (price: number | null | undefined) => {
+  if (price === null || price === undefined) return 'No disponible'
+
+  try {
+    // Formatear el precio con separador de miles y sin decimales
+    const formattedPrice = new Intl.NumberFormat('es-ES', {
+      style: 'decimal', // Cambiado de 'currency' a 'decimal' para evitar el símbolo de moneda automático
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price)
+    
+    // Añadir el símbolo $ al principio
+    return `$${formattedPrice}`
+  } catch (e) {
+    return `$${price}`
+  }
 }
 
 // Manejar cambio de página
@@ -1005,6 +1044,17 @@ onMounted(() => {
 .sort-icon {
   opacity: 0.7;
   margin-left: 4px;
+}
+
+/* Estilo para el texto del precio */
+.price-text {
+  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: 'tnum' on, 'lnum' on; /* Activa números tabulares y lineales */
+  text-align: right;
+  width: 100%;
+  padding-right: 8px;
+  font-weight: 500; /* Semi-bold para mejor legibilidad */
+  letter-spacing: -0.01em; /* Ligero ajuste de espaciado para mejor apariencia */
 }
 
 .visible-on-hover {
