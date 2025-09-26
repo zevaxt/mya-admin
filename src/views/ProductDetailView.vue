@@ -418,6 +418,16 @@
                           Aplicar cambios
                         </v-btn>
                         <v-btn
+                          color="info"
+                          variant="text"
+                          size="small"
+                          class="mr-2"
+                          @click="toggleFullscreen"
+                        >
+                          <v-icon start>{{ isFullscreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen' }}</v-icon>
+                          {{ isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa' }}
+                        </v-btn>
+                        <v-btn
                           color="primary"
                           variant="text"
                           size="small"
@@ -428,7 +438,39 @@
                         </v-btn>
                       </div>
                     </div>
-                    <div class="json-editor rounded" style="height: 500px; border: 1px solid #e0e0e0;">
+                    <div v-if="isFullscreen" class="fullscreen-backdrop" @click.self="toggleFullscreen"></div>
+                    <div 
+                      :class="[
+                        'json-editor rounded', 
+                        { 'fullscreen-editor': isFullscreen }
+                      ]"
+                      style="position: relative;"
+                      :style="{
+                        height: isFullscreen ? 'calc(100vh - 120px)' : '500px',
+                        border: '1px solid #e0e0e0',
+                        position: isFullscreen ? 'fixed' : 'relative',
+                        top: isFullscreen ? '64px' : 'auto',
+                        left: isFullscreen ? '0' : 'auto',
+                        right: isFullscreen ? '0' : 'auto',
+                        zIndex: isFullscreen ? '1000' : 'auto',
+                        width: isFullscreen ? 'calc(100% - 32px)' : 'auto',
+                        margin: isFullscreen ? '0 16px' : '0',
+                        backgroundColor: 'white',
+                        padding: isFullscreen ? '16px' : '0',
+                      }"
+                    >
+                      <!-- Botón de cierre en modo pantalla completa -->
+                      <v-btn
+                        v-if="isFullscreen"
+                        icon
+                        color="grey-darken-2"
+                        size="small"
+                        class="close-fullscreen-btn"
+                        @click="toggleFullscreen"
+                      >
+                        <v-icon>mdi-close</v-icon>
+                      </v-btn>
+                      
                       <MonacoEditor
                         v-model:value="jsonContent"
                         :options="{
@@ -438,10 +480,11 @@
                           minimap: { enabled: true },
                           scrollBeyondLastLine: false,
                           theme: 'vs',
-                          fontSize: 14,
+                          fontSize: isFullscreen ? 16 : 14,
                           tabSize: 2,
                         }"
                         @change="handleEditorChange"
+                        style="height: 100%; width: 100%;"
                       />
                     </div>
                   </v-card-text>
@@ -467,6 +510,8 @@
         <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
+    
+    <!-- Ya no necesitamos un overlay separado, lo manejaremos dentro del editor -->
   </v-container>
 </template>
 
@@ -498,6 +543,7 @@ const loading = ref(false)
 const jsonContent = ref('')
 const jsonReadOnly = ref(true)
 const originalJson = ref('')
+const isFullscreen = ref(false) // Estado para controlar el modo pantalla completa
 
 // Imagen actual basada en el índice
 const currentPicture = computed(() => {
@@ -628,6 +674,11 @@ const copyToClipboard = (text: string) => {
       notificationType.value = 'error'
     })
 }
+
+// Función para alternar el modo de pantalla completa
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+}
 </script>
 
 <style scoped>
@@ -665,5 +716,29 @@ const copyToClipboard = (text: string) => {
 .json-viewer {
   font-family: monospace;
   font-size: 14px;
+}
+
+.fullscreen-editor {
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.close-fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1001;
+  background-color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
