@@ -515,6 +515,7 @@ const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 const statusOptions = [
   { title: 'Todos', value: '' },
   { title: 'Activo', value: 'active' },
+  { title: 'Inactivas', value: 'inactive' },
   { title: 'Pausado', value: 'paused' },
   { title: 'Finalizado', value: 'closed' },
 ]
@@ -582,20 +583,28 @@ const filteredProductIds = computed(() => {
 
   // Filtrar por estado
   if (statusFilter.value) {
-    if (statusFilter.value === 'active') {
+    const filterValue = statusFilter.value.toLowerCase()
+
+    if (filterValue === 'active') {
       // Filtrar solo los productos con estado 'active'
       filtered = filtered.filter(
         (item) =>
           item.status?.toLowerCase() === 'active' ||
           (item.status === undefined && item.Status === true),
       )
-    } else {
+    } else if (filterValue === 'inactive') {
       // Filtrar todos los productos con estado diferente a 'active'
       filtered = filtered.filter(
         (item) =>
           item.status?.toLowerCase() !== 'active' &&
           !(item.status === undefined && item.Status === true),
       )
+    } else if (filterValue === 'paused') {
+      // Filtrar solo los productos con estado 'paused'
+      filtered = filtered.filter((item) => item.status?.toLowerCase() === 'paused')
+    } else if (filterValue === 'closed') {
+      // Filtrar solo los productos con estado 'closed'
+      filtered = filtered.filter((item) => item.status?.toLowerCase() === 'closed')
     }
   }
 
