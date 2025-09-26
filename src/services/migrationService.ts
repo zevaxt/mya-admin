@@ -624,6 +624,63 @@ export const migrationService = {
       throw error
     }
   },
+  
+  // Actualizar los atributos de población de múltiples productos
+  async updateMultipleProductsPopulate(
+    accountId: number,
+    productIds: string[],
+  ): Promise<{
+    success: boolean
+    message: string
+    results: { id: string; success: boolean; message: string }[]
+  }> {
+    const results: { id: string; success: boolean; message: string }[] = []
+    let successCount = 0
+    let errorCount = 0
+
+    try {
+      // Procesar cada ID en secuencia
+      for (const productId of productIds) {
+        try {
+          await apiClient.post(
+            `/v1/migration/update/products/populate/${productId}`,
+            {},
+            {
+              headers: {
+                'account-id': accountId.toString(),
+              },
+            },
+          )
+
+          results.push({
+            id: productId,
+            success: true,
+            message: `Atributos actualizados correctamente`,
+          })
+          successCount++
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Error al actualizar los atributos'
+          results.push({
+            id: productId,
+            success: false,
+            message: errorMessage,
+          })
+          errorCount++
+          console.error(`Error al actualizar atributos del producto ${productId}:`, error)
+        }
+      }
+
+      return {
+        success: errorCount === 0,
+        message: `${successCount} productos actualizados correctamente${errorCount > 0 ? `, ${errorCount} con errores` : ''}`,
+        results,
+      }
+    } catch (error) {
+      console.error(`Error general al actualizar productos:`, error)
+      throw error
+    }
+  },
 
   // Eliminar una publicación
   async deleteProduct(

@@ -346,6 +346,19 @@
               <v-icon start>mdi-delete</v-icon>
               Eliminar {{ selectedItems.length }} seleccionadas
             </v-btn>
+            
+            <v-btn
+              color="success"
+              variant="outlined"
+              size="small"
+              :disabled="selectedItems.length === 0 || processingPopulateMultiple"
+              @click="confirmPopulateSelectedItems"
+              :loading="processingPopulateMultiple"
+              class="me-4"
+            >
+              <v-icon start>mdi-database-import</v-icon>
+              Populate {{ selectedItems.length }} seleccionadas
+            </v-btn>
             <div class="text-caption text-grey me-4">
               {{
                 totalProductIds > 0
@@ -459,6 +472,7 @@ const notificationType = ref<'success' | 'error' | 'warning'>('success')
 const processingPopulateId = ref<string | null>(null)
 const processingDeleteId = ref<string | null>(null)
 const processingSyncActiveId = ref<string | null>(null)
+const processingPopulateMultiple = ref<boolean>(false)
 
 // Estado para el diálogo de confirmación
 const showConfirmDialog = ref(false)
@@ -484,7 +498,7 @@ const booleanFilterOptions = [
 ]
 
 // Estado para los elementos seleccionados
-const selectedItems = ref([])
+const selectedItems = ref<ProductId[]>([])
 
 // Cabeceras de tabla para IDs de productos
 const productIdsHeaders = [
@@ -706,6 +720,14 @@ const populateProduct = async (productId: string) => {
   if (!hasAccount.value) return
 
   try {
+    console.log('Populate individual - Product ID:', productId, 'Account ID:', accountId.value)
+    if (!productId) {
+      console.error('ID de producto indefinido o vacío en populate individual')
+      notificationMessage.value = 'Error: ID de producto no válido'
+      notificationType.value = 'error'
+      showNotification.value = true
+      return
+    }
     processingPopulateId.value = productId
     // Usar el método correcto del servicio
     const result = await migrationService.updateProductPopulate(accountId.value, productId)
@@ -743,29 +765,72 @@ const deleteSelectedItems = async () => {
       // Llamar al servicio para eliminar los productos seleccionados
       const result = await migrationService.deleteMultipleProducts(
         accountId.value,
-        selectedItems.value,
+        selectedItems.value.map((item) => item.ID)
       )
 
-      // Mostrar notificación de éxito
-      notificationMessage.value = result.message
-      notificationType.value = result.success ? 'success' : 'warning'
-      showNotification.value = true
-
-      // Recargar la lista de productos
-      await loadProductIds()
-
-      // Limpiar selección
-      selectedItems.value = []
+      if (result && result.success) {
+        notificationMessage.value = result.message
+        notificationType.value = 'success'
+        selectedItems.value = []
+        await loadProductIds()
+      } else {
+        notificationMessage.value = 'Error al eliminar las publicaciones seleccionadas'
+        notificationType.value = 'error'
+      }
     } catch (err) {
-      console.error('Error al eliminar publicaciones seleccionadas:', err)
+      console.error('Error al eliminar productos seleccionados:', err)
       notificationMessage.value = 'Error al eliminar las publicaciones seleccionadas'
       notificationType.value = 'error'
-      showNotification.value = true
     } finally {
+      showNotification.value = true
       loading.value = false
     }
   }
   showConfirmDialog.value = true
+}
+
+// Confirmar populate de múltiples productos
+const confirmPopulateSelectedItems = () => {
+  if (selectedItems.value.length === 0) return
+
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = 'Populate publicaciones seleccionadas'
+  confirmDialogMessage.value = `¿Estás seguro de que deseas hacer populate de las ${selectedItems.value.length} publicaciones seleccionadas?`
+  confirmDialogAction.value = () => populateSelectedItems()
+  showConfirmDialog.value = true
+}
+
+// Populate múltiples productos
+const populateSelectedItems = async () => {
+  if (!hasAccount.value || selectedItems.value.length === 0) return
+
+  try {
+    processingPopulateMultiple.value = true
+    
+    // Convertir los IDs seleccionados a strings si es necesario
+    const productIds = selectedItems.value.map(id => id.toString())
+    
+    // Usar el nuevo método que procesa múltiples productos en una sola llamada
+    const result = await migrationService.updateMultipleProductsPopulate(
+      accountId.value,
+      productIds
+    )
+    
+    // Mostrar mensaje de resultado
+    notificationMessage.value = result.message
+    notificationType.value = result.success ? 'success' : 
+      (result.results.some(r => r.success) ? 'warning' : 'error')
+    
+    // Recargar los datos para reflejar los cambios
+    await loadProductIds()
+  } catch (err) {
+    console.error('Error al hacer populate de productos seleccionados:', err)
+    notificationMessage.value = 'Error al hacer populate de las publicaciones seleccionadas'
+    notificationType.value = 'error'
+  } finally {
+    showNotification.value = true
+    processingPopulateMultiple.value = false
+  }
 }
 
 // Alias para mantener compatibilidad con el código existente
@@ -783,7 +848,7 @@ const formatDate = (dateString: string | null | undefined) => {
       hour: '2-digit',
       minute: '2-digit',
     })
-  } catch (e) {
+  } catch (_) {
     return dateString
   }
 }
@@ -802,7 +867,7 @@ const formatPrice = (price: number | null | undefined) => {
 
     // Añadir el símbolo $ al principio
     return `$${formattedPrice}`
-  } catch (e) {
+  } catch (_) {
     return `$${price}`
   }
 }
@@ -858,7 +923,7 @@ const handleCatalogActiveFilterChange = () => {
 
 // Referencias para el campo de búsqueda y la tabla de datos
 const searchInput = ref<HTMLElement | null>(null)
-const dataTable = ref<any>(null)
+const dataTable = ref<unknown>(null)
 
 // Función para manejar el ordenamiento
 const handleSort = (key: string) => {
@@ -870,14 +935,24 @@ const handleSort = (key: string) => {
   }
 }
 
+// Definir interfaz para la columna
+interface TableColumn {
+  sortable?: boolean
+  key?: string
+  options?: {
+    sortBy?: string[]
+    sortDesc?: boolean[]
+  }
+}
+
 // Función para verificar si una columna está ordenada
-const isSorted = (column: any) => {
+const isSorted = (column: TableColumn) => {
   if (!column.sortable || !column.options || !column.options.sortBy) return false
-  return column.options.sortBy.includes(column.key)
+  return column.options.sortBy.includes(column.key || '')
 }
 
 // Función para obtener el icono de ordenamiento
-const getSortIcon = (column: any) => {
+const getSortIcon = (column: TableColumn) => {
   // Si la columna no está ordenada, mostrar el icono neutral
   if (!column.sortable) return ''
 
