@@ -236,7 +236,7 @@
         </template>
 
         <template #[`item.SyncActive`]="{ item }">
-          <div class="d-flex align-center">
+          <div class="d-flex align-center justify-center w-100">
             <v-switch
               v-model="item.SyncActive"
               color="success"
@@ -247,14 +247,6 @@
               @click.stop="toggleSyncActive(item.ID, item.SyncActive)"
               class="ma-0 pa-0"
             ></v-switch>
-            <v-chip
-              :color="item.SyncActive ? 'success' : 'error'"
-              size="small"
-              class="ml-2"
-              :class="{ 'pulse-animation': processingSyncActiveId === item.ID }"
-            >
-              {{ item.SyncActive ? 'Activo' : 'Inactivo' }}
-            </v-chip>
           </div>
         </template>
 
@@ -267,12 +259,6 @@
         <template #[`item.Status`]="{ item }">
           <v-chip :color="item.Status ? 'success' : 'error'" size="small">
             {{ item.Status ? 'Activo' : 'Inactivo' }}
-          </v-chip>
-        </template>
-
-        <template #[`item.ToSync`]="{ item }">
-          <v-chip :color="item.ToSync ? 'success' : 'grey'" size="small">
-            {{ item.ToSync ? 'Sí' : 'No' }}
           </v-chip>
         </template>
 
@@ -509,12 +495,10 @@ const productIdsHeaders = [
     sortable: true,
     filterable: true,
   },
-  { title: 'Cuenta', key: 'AccountName', sortable: true },
   { title: 'Precio', key: 'price', sortable: true, class: 'text-right' },
-  { title: 'Sync Activo', key: 'SyncActive', sortable: true },
-  { title: 'Catálogo Activo', key: 'CatalogActive', sortable: true },
+  { title: 'Sync', key: 'SyncActive', sortable: true, class: 'text-center' },
+  { title: 'Catálogo', key: 'CatalogActive', sortable: true },
   { title: 'Estado', key: 'Status', sortable: true },
-  { title: 'Por Sincronizar', key: 'ToSync', sortable: true },
   { title: 'Populate', key: 'Populate', sortable: true },
   { title: 'F. Populated', key: 'updated_at', sortable: true },
   { title: 'F. Updated', key: 'last_updated', sortable: true },
@@ -803,7 +787,7 @@ const formatPrice = (price: number | null | undefined) => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price)
-    
+
     // Añadir el símbolo $ al principio
     return `$${formattedPrice}`
   } catch (e) {
@@ -1048,8 +1032,16 @@ onMounted(() => {
 
 /* Estilo para el texto del precio */
 .price-text {
-  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-feature-settings: 'tnum' on, 'lnum' on; /* Activa números tabulares y lineales */
+  font-family:
+    'Inter',
+    'SF Pro Display',
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-feature-settings:
+    'tnum' on,
+    'lnum' on; /* Activa números tabulares y lineales */
   text-align: right;
   width: 100%;
   padding-right: 8px;
