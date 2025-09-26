@@ -10,7 +10,8 @@ export interface ProductId {
   price?: number // Precio del producto
   SyncActive: boolean
   CatalogActive: boolean
-  Status: boolean
+  Status: boolean // Estado booleano (true = activo, false = inactivo)
+  status?: string // Estado real como string (active, paused, closed, etc.)
   ToSync: null | boolean
   updated_at: string
   last_updated?: string // Fecha de última actualización del producto
@@ -393,7 +394,7 @@ export const migrationService = {
 
       // Transformar la respuesta al nuevo formato
       const data = response.data
-      
+
       // Obtener las cuentas del store para mapear los nombres
       const accountStore = useAccountStore()
       const accounts = accountStore.accounts
@@ -440,6 +441,7 @@ export const migrationService = {
             SyncActive: product.SyncActive,
             CatalogActive: product.CatalogActive,
             Status: product.Status,
+            status: product.Attributes?.status || 'unknown', // Estado real como string
             ToSync: product.ToSync,
             updated_at: product.updated_at,
             last_updated: product.Attributes?.last_updated || null,

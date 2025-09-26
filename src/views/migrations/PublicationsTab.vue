@@ -252,13 +252,13 @@
 
         <template #[`item.CatalogActive`]="{ item }">
           <v-chip :color="item.CatalogActive ? 'success' : 'error'" size="small">
-            {{ item.CatalogActive ? 'Activo' : 'Inactivo' }}
+            {{ item.CatalogActive ? 'Sí' : 'No' }}
           </v-chip>
         </template>
 
         <template #[`item.Status`]="{ item }">
-          <v-chip :color="item.Status ? 'success' : 'error'" size="small">
-            {{ item.Status ? 'Activo' : 'Inactivo' }}
+          <v-chip :color="getStatusColor(item.status)" size="small" class="text-capitalize">
+            {{ item.status || (item.Status ? 'active' : 'inactive') }}
           </v-chip>
         </template>
 
@@ -540,9 +540,21 @@ const filteredProductIds = computed(() => {
 
   // Filtrar por estado
   if (statusFilter.value) {
-    // Convertir el valor booleano a string para la comparación
-    const statusValue = statusFilter.value === 'active' ? true : false
-    filtered = filtered.filter((item) => item.Status === statusValue)
+    if (statusFilter.value === 'active') {
+      // Filtrar solo los productos con estado 'active'
+      filtered = filtered.filter(
+        (item) =>
+          item.status?.toLowerCase() === 'active' ||
+          (item.status === undefined && item.Status === true),
+      )
+    } else {
+      // Filtrar todos los productos con estado diferente a 'active'
+      filtered = filtered.filter(
+        (item) =>
+          item.status?.toLowerCase() !== 'active' &&
+          !(item.status === undefined && item.Status === true),
+      )
+    }
   }
 
   // Filtrar por Sync Activo
@@ -792,6 +804,26 @@ const formatPrice = (price: number | null | undefined) => {
     return `$${formattedPrice}`
   } catch (e) {
     return `$${price}`
+  }
+}
+
+// Determinar el color del chip según el estado
+const getStatusColor = (status: string | undefined): string => {
+  if (!status) return 'grey'
+
+  status = status.toLowerCase()
+
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'paused':
+      return 'warning'
+    case 'closed':
+      return 'error'
+    case 'under_review':
+      return 'info'
+    default:
+      return 'grey'
   }
 }
 
