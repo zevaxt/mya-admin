@@ -1800,7 +1800,7 @@ const syncAllPublications = async () => {
 
     // Iniciamos la sincronización pero no esperamos a que termine completamente
     const syncPromise = migrationService.syncAllPublications(accountId)
-    
+
     // Esperamos solo la confirmación de inicio o el timeout, lo que ocurra primero
     const result = await Promise.race([syncPromise, timeoutPromise]) as { success: boolean; message: string; data?: SyncAllPublicationsResponse }
 
@@ -1811,13 +1811,13 @@ const syncAllPublications = async () => {
     // Recargar los datos después de un tiempo para ver los cambios iniciales
     setTimeout(() => {
       loadSyncRelations()
-      
+
       // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
       showNotification.value = true
       notificationMessage.value = 'La sincronización continuará en segundo plano. Puedes seguir usando la aplicación.'
       notificationType.value = 'success' // Usamos success en lugar de info que no es un tipo válido
     }, 3000)
-    
+
     // Continuamos con la promesa original en segundo plano
     syncPromise.catch((error: unknown) => {
       console.error('Error en la sincronización en segundo plano:', error)

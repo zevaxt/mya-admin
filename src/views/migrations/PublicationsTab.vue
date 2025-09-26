@@ -894,34 +894,70 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
 
   try {
     processingPopulateAll.value = true
-
-    // Llamar al servicio para poblar todas las publicaciones
-    const result = await migrationService.updateAllProductsPopulate(accountId.value, isEmpty)
-
-    // Mostrar mensaje de resultado con el número de publicaciones
+    
+    // Crear una promesa de timeout para mostrar un mensaje rápido al usuario
+    const timeoutPromise = new Promise<{ success: boolean; message: string }>((resolve) => {
+      setTimeout(() => {
+        resolve({ 
+          success: true, 
+          message: `Proceso de populate ${isEmpty ? 'para publicaciones sin atributos' : 'para todas las publicaciones'} iniciado. Este proceso puede tardar varios minutos.` 
+        })
+      }, 3000) // Esperamos máximo 3 segundos por una respuesta inicial
+    })
+    
+    // Iniciar el proceso de populate sin esperar a que termine completamente
+    const populatePromise = migrationService.updateAllProductsPopulate(accountId.value, isEmpty)
+    
+    // Esperamos solo la confirmación de inicio o el timeout, lo que ocurra primero
+    const result = await Promise.race([populatePromise, timeoutPromise])
+    
+    // Mostrar mensaje de resultado inicial
     notificationMessage.value = result.message
-
-    // Determinar el tipo de notificación según el resultado
-    if (result.count && result.count > 0) {
-      notificationType.value = 'success'
-
-      // Si hay menos de 10 publicaciones, mostrar los IDs en el mensaje
-      if (result.data && result.data.length > 0 && result.data.length <= 10) {
-        notificationMessage.value += `\nIDs: ${result.data.join(', ')}`
-      }
-    } else {
-      notificationType.value = 'warning'
-    }
-
-    // Recargar los datos para reflejar los cambios
-    await loadProductIds()
-  } catch (err) {
-    console.error('Error al hacer populate de todas las publicaciones:', err)
-    notificationMessage.value =
-      'Error al iniciar el proceso de populate para todas las publicaciones'
-    notificationType.value = 'error'
-  } finally {
+    notificationType.value = 'success'
     showNotification.value = true
+    
+    // Recargar los datos después de un tiempo para ver los cambios iniciales
+    setTimeout(() => {
+      loadProductIds()
+      
+      // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
+      showNotification.value = true
+      notificationMessage.value = 'El proceso de populate continuará en segundo plano. Puedes seguir usando la aplicación.'
+      notificationType.value = 'success'
+    }, 3000)
+    
+    // Continuamos con la promesa original en segundo plano
+    populatePromise
+      .then((finalResult) => {
+        // Cuando finalmente termine, mostramos el resultado completo
+        if (finalResult.count && finalResult.count > 0) {
+          setTimeout(() => {
+            showNotification.value = true
+            notificationMessage.value = `Proceso de populate completado: ${finalResult.count} publicaciones procesadas.`
+            
+            // Si hay menos de 10 publicaciones, mostrar los IDs en el mensaje
+            if (finalResult.data && finalResult.data.length > 0 && finalResult.data.length <= 10) {
+              notificationMessage.value += `\nIDs: ${finalResult.data.join(', ')}`
+            }
+            
+            notificationType.value = 'success'
+          }, 10000) // Mostramos este mensaje después de 10 segundos
+        }
+      })
+      .catch((error) => {
+        console.error('Error en el proceso de populate en segundo plano:', error)
+        setTimeout(() => {
+          showNotification.value = true
+          notificationMessage.value = 'Error durante el proceso de populate en segundo plano'
+          notificationType.value = 'error'
+        }, 5000)
+      })
+  } catch (err) {
+    console.error('Error al iniciar el proceso de populate:', err)
+    notificationMessage.value = 'Error al iniciar el proceso de populate para las publicaciones'
+    notificationType.value = 'error'
+    showNotification.value = true
+  } finally {
     processingPopulateAll.value = false
   }
 }
