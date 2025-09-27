@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import { compareService } from '@/services/compareService'
 import { migrationService } from '@/services/migrationService'
+import { populateProduct } from '@/services/publicationOperations'
 
 // Props
 defineProps({
@@ -242,12 +243,7 @@ const syncProductIds = async (readOnly: boolean = false) => {
 
 // Crear publicación
 const createPublication = async (productId: string) => {
-  if (!hasAccount.value) {
-    notificationMessage.value = 'Selecciona una cuenta para crear la publicación'
-    notificationType.value = 'error'
-    showNotification.value = true
-    return
-  }
+  if (!hasAccount.value) return
 
   try {
     processingId.value = productId
@@ -255,30 +251,67 @@ const createPublication = async (productId: string) => {
 
     // Llamar al servicio para crear la publicación
     const result = await migrationService.createPublication(accountId.value, productId)
-
-    // Verificar que la respuesta contiene el ID de la publicación creada
+    
     if (result && result.length > 0 && result.includes(productId)) {
-      notificationMessage.value = `Publicación ${productId} creada exitosamente`
+      notificationMessage.value = 'Publicación creada correctamente'
       notificationType.value = 'success'
-
-      // Recargar la lista de publicaciones faltantes para actualizar la vista
+      
+      // Recargar la lista de publicaciones faltantes
       await loadMissingPublications()
     } else {
-      notificationMessage.value = `Respuesta inesperada al crear la publicación ${productId}`
+      notificationMessage.value = 'Error al crear la publicación'
       notificationType.value = 'error'
     }
   } catch (err) {
     console.error(`Error al crear la publicación ${productId}:`, err)
-    if (err instanceof Error) {
-      notificationMessage.value = `Error al crear la publicación: ${err.message}`
-    } else {
-      notificationMessage.value = 'Error al crear la publicación'
-    }
+    notificationMessage.value = 'Error al crear la publicación'
     notificationType.value = 'error'
+    emit('error', notificationMessage.value)
   } finally {
-    emit('update:loading', false)
     showNotification.value = true
     processingId.value = null
+    emit('update:loading', false)
+  }
+}
+
+// Crear y popular publicación
+const createAndPopulatePublication = async (productId: string) => {
+  if (!hasAccount.value) return
+
+  try {
+    processingId.value = productId
+    emit('update:loading', true)
+
+    // Paso 1: Crear la publicación
+    const createResult = await migrationService.createPublication(accountId.value, productId)
+    
+    if (createResult && createResult.length > 0 && createResult.includes(productId)) {
+      // Paso 2: Popular la publicación
+      const populateResult = await populateProduct(accountId.value, productId)
+      
+      if (populateResult.success) {
+        notificationMessage.value = 'Publicación creada y populada correctamente'
+        notificationType.value = 'success'
+      } else {
+        notificationMessage.value = 'Publicación creada pero hubo un error al popularla'
+        notificationType.value = 'warning'
+      }
+      
+      // Recargar la lista de publicaciones faltantes
+      await loadMissingPublications()
+    } else {
+      notificationMessage.value = 'Error al crear la publicación'
+      notificationType.value = 'error'
+    }
+  } catch (err) {
+    console.error(`Error al crear y popular la publicación ${productId}:`, err)
+    notificationMessage.value = 'Error al crear y popular la publicación'
+    notificationType.value = 'error'
+    emit('error', notificationMessage.value)
+  } finally {
+    showNotification.value = true
+    processingId.value = null
+    emit('update:loading', false)
   }
 }
 
@@ -322,12 +355,23 @@ const createSelectedPublications = () => {
   // Mostrar diálogo de confirmación
   confirmDialogTitle.value = 'Crear publicaciones seleccionadas'
   confirmDialogMessage.value = `¿Estás seguro de que deseas crear las ${selectedItems.value.length} publicaciones seleccionadas?`
-  confirmDialogAction.value = () => createMultiplePublications()
+  confirmDialogAction.value = () => createMultiplePublications(false)
+  showConfirmDialog.value = true
+}
+
+// Confirmar creación y populación de publicaciones seleccionadas
+const createAndPopulateSelectedPublications = () => {
+  if (selectedItems.value.length === 0) return
+
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = 'Crear y popular publicaciones seleccionadas'
+  confirmDialogMessage.value = `¿Estás seguro de que deseas crear y popular las ${selectedItems.value.length} publicaciones seleccionadas? Este proceso puede tardar varios minutos.`
+  confirmDialogAction.value = () => createMultiplePublications(true)
   showConfirmDialog.value = true
 }
 
 // Crear múltiples publicaciones
-const createMultiplePublications = async () => {
+const createMultiplePublications = async (populateAfterCreate: boolean = false) => {
   if (!hasAccount.value || selectedItems.value.length === 0) return
 
   try {
@@ -335,20 +379,55 @@ const createMultiplePublications = async () => {
     emit('update:loading', true)
 
     // Crear un array para almacenar los resultados
-    const results: { id: string; success: boolean; message?: string }[] = []
+    const results: { id: string; success: boolean; populated?: boolean; message?: string }[] = []
     let successCount = 0
     let errorCount = 0
+    let populateSuccessCount = 0
+    let populateErrorCount = 0
 
     // Procesar cada publicación seleccionada
     for (const productId of selectedItems.value) {
       try {
-        // Llamar al servicio para crear la publicación
+        // Paso 1: Llamar al servicio para crear la publicación
         const result = await migrationService.createPublication(accountId.value, productId)
-
+        
         if (result && result.length > 0 && result.includes(productId)) {
-          results.push({ id: productId, success: true })
+          // Publicación creada con éxito
           successCount++
+          
+          // Paso 2 (opcional): Popular la publicación si se solicitó
+          if (populateAfterCreate) {
+            try {
+              const populateResult = await populateProduct(accountId.value, productId)
+              
+              if (populateResult.success) {
+                results.push({ id: productId, success: true, populated: true })
+                populateSuccessCount++
+              } else {
+                results.push({ 
+                  id: productId, 
+                  success: true, 
+                  populated: false, 
+                  message: 'Creada pero error al popular' 
+                })
+                populateErrorCount++
+              }
+            } catch (populateErr) {
+              console.error(`Error al popular la publicación ${productId}:`, populateErr)
+              results.push({ 
+                id: productId, 
+                success: true, 
+                populated: false, 
+                message: 'Creada pero error al popular' 
+              })
+              populateErrorCount++
+            }
+          } else {
+            // Sin populación, solo registrar éxito en la creación
+            results.push({ id: productId, success: true })
+          }
         } else {
+          // Error al crear la publicación
           results.push({ id: productId, success: false, message: 'Respuesta inesperada' })
           errorCount++
         }
@@ -364,20 +443,38 @@ const createMultiplePublications = async () => {
     }
 
     // Mostrar notificación con el resultado
-    if (errorCount === 0) {
-      notificationMessage.value = `Se han creado ${successCount} publicaciones correctamente`
-      notificationType.value = 'success'
-    } else if (successCount === 0) {
-      notificationMessage.value = `Error al crear las ${errorCount} publicaciones seleccionadas`
-      notificationType.value = 'error'
+    if (populateAfterCreate) {
+      // Mensaje para creación + populación
+      if (errorCount === 0 && populateErrorCount === 0) {
+        notificationMessage.value = `Se han creado y populado ${successCount} publicaciones correctamente`
+        notificationType.value = 'success'
+      } else if (successCount === 0) {
+        notificationMessage.value = `Error al crear las ${errorCount} publicaciones seleccionadas`
+        notificationType.value = 'error'
+      } else if (populateErrorCount > 0) {
+        notificationMessage.value = `Creadas ${successCount} publicaciones. Populadas con éxito: ${populateSuccessCount}. Errores al popular: ${populateErrorCount}. Errores al crear: ${errorCount}.`
+        notificationType.value = 'warning'
+      } else {
+        notificationMessage.value = `Creadas ${successCount} publicaciones. Fallaron ${errorCount} publicaciones.`
+        notificationType.value = 'warning'
+      }
     } else {
-      notificationMessage.value = `Creadas ${successCount} publicaciones. Fallaron ${errorCount} publicaciones.`
-      notificationType.value = 'warning'
+      // Mensaje para solo creación
+      if (errorCount === 0) {
+        notificationMessage.value = `Se han creado ${successCount} publicaciones correctamente`
+        notificationType.value = 'success'
+      } else if (successCount === 0) {
+        notificationMessage.value = `Error al crear las ${errorCount} publicaciones seleccionadas`
+        notificationType.value = 'error'
+      } else {
+        notificationMessage.value = `Creadas ${successCount} publicaciones. Fallaron ${errorCount} publicaciones.`
+        notificationType.value = 'warning'
+      }
     }
 
     // Recargar la lista de publicaciones faltantes
     await loadMissingPublications()
-
+    
     // Limpiar selección
     selectedItems.value = []
   } catch (err) {
@@ -569,18 +666,31 @@ defineExpose({
       <!-- Columna de acciones -->
       <template #[`item.actions`]="{ item }">
         <div class="d-flex">
-          <v-btn
-            icon
-            size="small"
-            color="success"
-            class="mr-2"
-            @click="createPublication(item.id)"
-            :disabled="loading || processingId === item.id"
-            :loading="processingId === item.id"
-          >
-            <v-icon v-if="processingId !== item.id">mdi-plus-circle</v-icon>
-            <v-tooltip activator="parent" location="top">Crear publicación</v-tooltip>
-          </v-btn>
+          <v-menu>
+            <template v-slot:activator="{ props: menuProps }">
+              <v-btn
+                icon
+                size="small"
+                color="success"
+                class="mr-2"
+                :disabled="loading || processingId === item.id"
+                :loading="processingId === item.id"
+                v-bind="menuProps"
+              >
+                <v-icon v-if="processingId !== item.id">mdi-plus-circle</v-icon>
+                <v-tooltip activator="parent" location="top">Crear publicación</v-tooltip>
+              </v-btn>
+            </template>
+            <v-list density="compact">
+              <v-list-item @click="createPublication(item.id)">
+                <v-list-item-title>Crear</v-list-item-title>
+              </v-list-item>
+              <v-divider></v-divider>
+              <v-list-item @click="createAndPopulatePublication(item.id)">
+                <v-list-item-title>Crear y popular</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
 
           <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
             <v-icon>mdi-open-in-new</v-icon>
@@ -598,17 +708,31 @@ defineExpose({
       <div class="pagination-fixed">
         <div class="d-flex align-center w-100 px-4 py-2 bg-white">
           <div class="d-flex align-center">
-            <v-btn
-              color="success"
-              variant="outlined"
-              size="small"
-              :disabled="selectedItems.length === 0"
-              @click="createSelectedPublications"
-              class="me-4"
-            >
-              <v-icon start>mdi-plus-circle</v-icon>
-              Crear {{ selectedItems.length }} seleccionadas
-            </v-btn>
+            <v-menu>
+              <template v-slot:activator="{ props: menuProps }">
+                <v-btn
+                  color="success"
+                  variant="outlined"
+                  size="small"
+                  :disabled="selectedItems.length === 0"
+                  class="me-4"
+                  v-bind="menuProps"
+                >
+                  <v-icon start>mdi-plus-circle</v-icon>
+                  Crear {{ selectedItems.length }} seleccionadas
+                  <v-icon end>mdi-menu-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list density="compact">
+                <v-list-item @click="createSelectedPublications">
+                  <v-list-item-title>Crear</v-list-item-title>
+                </v-list-item>
+                <v-divider></v-divider>
+                <v-list-item @click="createAndPopulateSelectedPublications">
+                  <v-list-item-title>Crear y popular</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
             <div class="text-caption text-grey me-4">
               {{ total > 0 ?
                 `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` :

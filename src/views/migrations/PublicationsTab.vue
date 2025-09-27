@@ -517,7 +517,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
-import migrationService from '@/services/migrationService'
+import { migrationService } from '@/services/migrationService'
+import { compareService } from '@/services/compareService'
+import * as publicationOperations from '@/services/publicationOperations'
 import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 import type { ProductId } from '@/services/migrationService'
 
@@ -818,25 +820,18 @@ const populateProduct = async (productId: string) => {
   if (!hasAccount.value) return
 
   try {
-    console.log('Populate individual - Product ID:', productId, 'Account ID:', accountId.value)
-    if (!productId) {
-      console.error('ID de producto indefinido o vacío en populate individual')
-      notificationMessage.value = 'Error: ID de producto no válido'
-      notificationType.value = 'error'
-      showNotification.value = true
-      return
-    }
     processingPopulateId.value = productId
-    // Usar el método correcto del servicio
-    const result = await migrationService.updateProductPopulate(accountId.value, productId)
+    
+    // Usar la función reutilizable del servicio publicationOperations
+    const result = await publicationOperations.populateProduct(accountId.value, productId)
 
-    if (result && result.success) {
-      notificationMessage.value = result.message
-      notificationType.value = 'success'
+    // Manejar el resultado
+    notificationMessage.value = result.message
+    notificationType.value = result.success ? 'success' : 'error'
+    
+    // Si fue exitoso, recargar los IDs de productos
+    if (result.success) {
       await loadProductIds()
-    } else {
-      notificationMessage.value = 'Error al hacer populate de la publicación'
-      notificationType.value = 'error'
     }
   } catch (err) {
     console.error(`Error al hacer populate del producto ${productId}:`, err)
