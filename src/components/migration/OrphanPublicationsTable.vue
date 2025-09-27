@@ -27,33 +27,42 @@
     <div class="filter-container mb-4">
       <v-row>
         <v-col cols="12" md="3">
-          <v-select
-            v-model="statusFilter"
-            :items="statusOptions"
-            item-title="title"
-            item-value="value"
-            label="Filtrar por estado"
-            variant="outlined"
-            density="comfortable"
-            @update:model-value="loadOrphanPublications"
-            :color="statusFilter !== '' ? 'primary' : undefined"
-            :bg-color="statusFilter !== '' ? 'primary-lighten-5' : undefined"
+          <v-tooltip
+            location="top"
+            text="Al seleccionar 'Activas' se muestran solo las publicaciones con estado 'active' en Mercado Libre y que están en el Canal Marketplace"
           >
-            <template v-slot:append-inner>
-              <v-icon
-                v-if="statusFilter !== ''"
-                color="primary"
-                @click.stop="
-                  () => {
-                    statusFilter = ''
-                    loadOrphanPublications()
-                  }
-                "
-              >
-                mdi-close
-              </v-icon>
+            <template v-slot:activator="{ props }">
+              <div v-bind="props" class="w-100">
+                <v-select
+                  v-model="statusFilter"
+                  :items="statusOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="Filtrar por estado"
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="loadOrphanPublications"
+                  :color="statusFilter !== null ? 'primary' : undefined"
+                  :bg-color="statusFilter !== null ? 'primary-lighten-5' : undefined"
+                >
+                  <template v-slot:append-inner>
+                    <v-icon
+                      v-if="statusFilter !== null"
+                      color="primary"
+                      @click.stop="
+                        () => {
+                          statusFilter = null
+                          loadOrphanPublications()
+                        }
+                      "
+                    >
+                      mdi-close
+                    </v-icon>
+                  </template>
+                </v-select>
+              </div>
             </template>
-          </v-select>
+          </v-tooltip>
         </v-col>
 
         <v-col cols="12" md="3">
@@ -88,7 +97,7 @@
 
         <v-col cols="12" md="6" class="d-flex justify-end align-center gap-2">
           <v-btn
-            v-if="statusFilter !== '' || soldQuantityFilter !== 'all'"
+            v-if="statusFilter !== null || soldQuantityFilter !== 'all'"
             color="secondary"
             variant="outlined"
             @click="clearFilters"
@@ -116,10 +125,7 @@
         :items="
           Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0
             ? orphanPublicationIds.map((id) => ({
-                id,
-                account: accountName,
-                status: getStatusFromFilter(),
-                sales: getSalesFromFilter(),
+                id
               }))
             : []
         "
@@ -141,35 +147,7 @@
           </div>
         </template>
 
-        <!-- Columna de Estado -->
-        <template #[`item.status`]="{ item }">
-          <v-chip :color="getStatusColor(item.status)" size="small" variant="outlined">
-            <v-icon start size="small">
-              {{
-                item.status === 'active'
-                  ? 'mdi-check-circle'
-                  : item.status === 'paused'
-                    ? 'mdi-pause-circle'
-                    : item.status === 'closed'
-                      ? 'mdi-close-circle'
-                      : item.status === 'under_review'
-                        ? 'mdi-eye'
-                        : 'mdi-help-circle'
-              }}
-            </v-icon>
-            {{ getStatusText(item.status) }}
-          </v-chip>
-        </template>
-
-        <!-- Columna de Ventas -->
-        <template #[`item.sales`]="{ item }">
-          <v-chip :color="item.sales === true ? 'success' : 'grey'" size="small" variant="outlined">
-            <v-icon start size="small">
-              {{ item.sales === true ? 'mdi-cart' : 'mdi-cart-off' }}
-            </v-icon>
-            {{ item.sales === true ? 'Con ventas' : 'Sin ventas' }}
-          </v-chip>
-        </template>
+        <!-- Columnas de Estado y Ventas eliminadas -->
 
         <!-- Columna de Acciones -->
         <template #[`item.actions`]="{ item }">
@@ -351,17 +329,13 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Filtros
-const statusFilter = ref<string>('')
+const statusFilter = ref<boolean | null>(null)
 const soldQuantityFilter = ref<boolean | 'all'>('all')
 
 // Opciones para los filtros
 const statusOptions = [
-  { title: 'Todos los estados', value: '' },
-  { title: 'Activo', value: 'active' },
-  { title: 'Inactivas', value: 'inactive' },
-  { title: 'Pausado', value: 'paused' },
-  { title: 'Finalizado', value: 'closed' },
-  { title: 'En revisión', value: 'under_review' },
+  { title: 'Todas', value: null },
+  { title: 'Activas', value: true },
 ]
 
 const soldQuantityOptions = [
@@ -372,7 +346,7 @@ const soldQuantityOptions = [
 
 // Función para limpiar todos los filtros
 const clearFilters = () => {
-  statusFilter.value = ''
+  statusFilter.value = null
   soldQuantityFilter.value = 'all'
   loadOrphanPublications()
 }
@@ -381,64 +355,11 @@ const clearFilters = () => {
 const orphanPublicationsHeaders = [
   { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
-  { title: 'Estado', key: 'status', sortable: true },
-  { title: 'Ventas', key: 'sales', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
-// Funciones para obtener el estado y las ventas según los filtros aplicados
-const getStatusFromFilter = () => {
-  // Si hay un filtro de estado, devolver ese valor
-  if (statusFilter.value) return statusFilter.value
-
-  // Si no hay filtro, asignar un estado aleatorio para demostración
-  // En un caso real, esto vendría de la API
-  const estados = ['active', 'inactive', 'paused', 'closed', 'under_review']
-  return estados[Math.floor(Math.random() * estados.length)]
-}
-
-// Función para obtener el color del estado
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'active':
-      return 'success'
-    case 'paused':
-      return 'warning'
-    case 'closed':
-      return 'error'
-    case 'inactive':
-      return 'grey'
-    case 'under_review':
-      return 'info'
-    default:
-      return 'grey'
-  }
-}
-
-// Función para obtener el texto del estado
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'active':
-      return 'Activo'
-    case 'paused':
-      return 'Pausado'
-    case 'closed':
-      return 'Finalizado'
-    case 'inactive':
-      return 'Inactivo'
-    case 'under_review':
-      return 'En revisión'
-    default:
-      return 'Desconocido'
-  }
-}
-
-const getSalesFromFilter = () => {
-  if (soldQuantityFilter.value === true) return true
-  if (soldQuantityFilter.value === false) return false
-  // Si es 'all', asignamos un valor aleatorio para demostración
-  return Math.random() > 0.5
-}
+// Funciones para obtener el estado y las ventas eliminadas
+// Ya no son necesarias
 
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
@@ -465,7 +386,7 @@ const loadOrphanPublications = async () => {
     const options: OrphanPublicationsOptions = {
       offset: (page.value - 1) * itemsPerPage.value,
       limit: itemsPerPage.value,
-      status: statusFilter.value || 'all', // Usar el valor del filtro o 'all' si está vacío
+      status: statusFilter.value === null ? false : true, // false para todas, true para activas
       withSoldQuantity: soldQuantityFilter.value as boolean | 'all',
     }
 

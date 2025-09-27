@@ -3632,9 +3632,10 @@ paths:
          Este handler identifica publicaciones que:
          1. Pertenecen a una cuenta específica (account-id)
          2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
-         3. No están activas en el catálogo (catalog_active = false)
+         3. Por defecto, no están activas en el catálogo (catalog_active = false)
          4. Opcionalmente, filtradas por estado (true/false/all)
          5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
+         6. Opcionalmente, filtradas por catalog_active (true/false/all)
       security:
         - bearerAuth: []
       parameters:
@@ -3655,6 +3656,12 @@ paths:
             type: boolean
           description: true, false, all
           example: 'true'
+        - name: catalog-active
+          in: header
+          schema:
+            type: boolean
+          description: true, false, all
+          example: 'false'
       responses:
         '200':
           description: Successful response
