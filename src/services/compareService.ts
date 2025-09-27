@@ -35,6 +35,7 @@ export interface DeprecatedPublicationsOptions {
 export interface OrphanPublicationsOptions {
   status?: string | boolean | 'all' // Ahora acepta string para los estados de ML
   withSoldQuantity?: boolean | 'all'
+  catalogActive?: boolean | 'all' // Nuevo parámetro para filtrar por publicaciones de catálogo
   offset?: number
   limit?: number
 }
@@ -139,6 +140,10 @@ export const compareService = {
 
       if (options?.withSoldQuantity !== undefined) {
         headers['with-sold-quantity'] = options.withSoldQuantity.toString()
+      }
+      
+      if (options?.catalogActive !== undefined) {
+        headers['catalog-active'] = options.catalogActive.toString()
       }
 
       // Parámetros de paginación

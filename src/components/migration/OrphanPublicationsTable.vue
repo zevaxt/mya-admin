@@ -42,16 +42,16 @@
                   variant="outlined"
                   density="comfortable"
                   @update:model-value="loadOrphanPublications"
-                  :color="statusFilter !== null ? 'primary' : undefined"
-                  :bg-color="statusFilter !== null ? 'primary-lighten-5' : undefined"
+                  :color="statusFilter !== 'all' ? 'primary' : undefined"
+                  :bg-color="statusFilter !== 'all' ? 'primary-lighten-5' : undefined"
                 >
                   <template v-slot:append-inner>
                     <v-icon
-                      v-if="statusFilter !== null"
+                      v-if="statusFilter !== 'all'"
                       color="primary"
                       @click.stop="
                         () => {
-                          statusFilter = null
+                          statusFilter = 'all'
                           loadOrphanPublications()
                         }
                       "
@@ -94,10 +94,49 @@
             </template>
           </v-select>
         </v-col>
+        
+        <v-col cols="12" md="3">
+          <v-tooltip
+            location="top"
+            text="Selecciona 'De catálogo' para mostrar solo publicaciones que están en el catálogo de Mercado Libre, o 'Estándar' para las publicaciones normales"
+          >
+            <template v-slot:activator="{ props }">
+              <div v-bind="props" class="w-100">
+                <v-select
+                  v-model="catalogActiveFilter"
+                  :items="catalogActiveOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="Tipo de publicación"
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="loadOrphanPublications"
+                  :color="catalogActiveFilter !== 'all' ? 'primary' : undefined"
+                  :bg-color="catalogActiveFilter !== 'all' ? 'primary-lighten-5' : undefined"
+                >
+                  <template v-slot:append-inner>
+                    <v-icon
+                      v-if="catalogActiveFilter !== 'all'"
+                      color="primary"
+                      @click.stop="
+                        () => {
+                          catalogActiveFilter = 'all'
+                          loadOrphanPublications()
+                        }
+                      "
+                    >
+                      mdi-close
+                    </v-icon>
+                  </template>
+                </v-select>
+              </div>
+            </template>
+          </v-tooltip>
+        </v-col>
 
-        <v-col cols="12" md="6" class="d-flex justify-end align-center gap-2">
+        <v-col cols="12" md="6" class="d-flex justify-start align-center gap-2">
           <v-btn
-            v-if="statusFilter !== null || soldQuantityFilter !== 'all'"
+            v-if="statusFilter !== 'all' || soldQuantityFilter !== 'all' || catalogActiveFilter !== 'all'"
             color="secondary"
             variant="outlined"
             @click="clearFilters"
@@ -329,13 +368,15 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Filtros
-const statusFilter = ref<boolean | null>(null)
+const statusFilter = ref<boolean | 'all'>('all')
 const soldQuantityFilter = ref<boolean | 'all'>('all')
+const catalogActiveFilter = ref<boolean | 'all'>('all')
 
 // Opciones para los filtros
 const statusOptions = [
-  { title: 'Todas', value: null },
+  { title: 'Todas', value: 'all' },
   { title: 'Activas', value: true },
+  { title: 'Inactivas', value: false },
 ]
 
 const soldQuantityOptions = [
@@ -344,10 +385,17 @@ const soldQuantityOptions = [
   { title: 'Sin ventas', value: false },
 ]
 
+const catalogActiveOptions = [
+  { title: 'Todas', value: 'all' },
+  { title: 'De catálogo', value: true },
+  { title: 'Estándar', value: false },
+]
+
 // Función para limpiar todos los filtros
 const clearFilters = () => {
-  statusFilter.value = null
+  statusFilter.value = 'all'
   soldQuantityFilter.value = 'all'
+  catalogActiveFilter.value = 'all'
   loadOrphanPublications()
 }
 
@@ -364,10 +412,6 @@ const orphanPublicationsHeaders = [
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
-const accountName = computed(
-  () =>
-    currentAccount.value?.Nickname || currentAccount.value?.Email || `Cuenta #${accountId.value}`,
-)
 const hasAccount = computed(() => !!currentAccount.value)
 
 // Cargar publicaciones huérfanas
@@ -386,8 +430,9 @@ const loadOrphanPublications = async () => {
     const options: OrphanPublicationsOptions = {
       offset: (page.value - 1) * itemsPerPage.value,
       limit: itemsPerPage.value,
-      status: statusFilter.value === null ? false : true, // false para todas, true para activas
-      withSoldQuantity: soldQuantityFilter.value as boolean | 'all',
+      status: statusFilter.value, // 'all' para todas, true para activas, false para inactivas
+      withSoldQuantity: soldQuantityFilter.value,
+      catalogActive: catalogActiveFilter.value, // Nuevo filtro para publicaciones de catálogo
     }
 
     const response = await compareService.getOrphanPublications(accountId.value, options)
