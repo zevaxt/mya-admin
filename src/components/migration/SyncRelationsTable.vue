@@ -1,35 +1,37 @@
 <template>
   <div>
-    <!-- Título -->
-    <div class="mb-4">
-      <h2 class="text-h5 font-weight-medium text-primary mb-1">Sincronizaciones</h2>
-      <p class="text-subtitle-2 text-grey">
-        Gestiona las relaciones de sincronización entre publicaciones de diferentes cuentas.
-        <span class="font-weight-medium">{{ totalPublications }}</span> publicaciones disponibles.
-      </p>
-    </div>
-
-    <!-- Botones de acción -->
-    <div class="d-flex justify-end mb-4">
-      <v-btn
-        color="success"
-        variant="outlined"
-        prepend-icon="mdi-sync"
-        class="mr-2"
-        :loading="syncingAll"
-        @click="syncAllPublications"
-      >
-        Sincronizar Todo
-      </v-btn>
-      <v-btn
-        color="primary"
-        variant="outlined"
-        prepend-icon="mdi-refresh"
-        :loading="loading"
-        @click="loadSyncRelations"
-      >
-        Actualizar
-      </v-btn>
+    <!-- Título y botones -->
+    <div class="d-flex justify-space-between align-center mb-4">
+      <div>
+        <h3 class="text-h6 text-primary font-weight-medium mb-1">Sincronizaciones</h3>
+        <p class="text-caption text-grey">
+          Gestiona las relaciones de sincronización entre publicaciones de diferentes cuentas.
+          <span class="font-weight-medium">{{ totalPublications }}</span> publicaciones disponibles.
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <v-btn
+          color="success"
+          variant="outlined"
+          size="small"
+          :loading="syncingAll"
+          :disabled="syncingAll"
+          @click="syncAllPublications"
+        >
+          <v-icon start>mdi-sync</v-icon>
+          Sincronizar Todo
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="outlined"
+          size="small"
+          :loading="loading"
+          @click="loadSyncRelations"
+        >
+          <v-icon start>mdi-refresh</v-icon>
+          Actualizar
+        </v-btn>
+      </div>
     </div>
 
     <!-- Filtros -->

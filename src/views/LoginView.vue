@@ -227,21 +227,6 @@ const handleForgotPassword = async () => {
             </v-btn>
           </v-card-actions>
 
-          <!-- Botón de desarrollo para inicio rápido -->
-          <v-card-actions class="justify-center pb-2">
-            <v-btn
-              color="success"
-              variant="outlined"
-              size="small"
-              @click="() => {
-                username = 'admin'
-                password = 'password123'
-                login()
-              }"
-            >
-              Inicio rápido (desarrollo)
-            </v-btn>
-          </v-card-actions>
         </v-card>
 
         <div class="text-center mt-6">
