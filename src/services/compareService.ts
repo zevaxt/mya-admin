@@ -33,7 +33,7 @@ export interface DeprecatedPublicationsOptions {
 
 // Opciones para la consulta de publicaciones huérfanas
 export interface OrphanPublicationsOptions {
-  status?: boolean | 'all'
+  status?: string | boolean | 'all' // Ahora acepta string para los estados de ML
   withSoldQuantity?: boolean | 'all'
   offset?: number
   limit?: number

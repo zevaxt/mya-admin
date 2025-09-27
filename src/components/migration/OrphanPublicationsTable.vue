@@ -36,16 +36,16 @@
             variant="outlined"
             density="comfortable"
             @update:model-value="loadOrphanPublications"
-            :color="statusFilter !== 'all' ? 'primary' : undefined"
-            :bg-color="statusFilter !== 'all' ? 'primary-lighten-5' : undefined"
+            :color="statusFilter !== '' ? 'primary' : undefined"
+            :bg-color="statusFilter !== '' ? 'primary-lighten-5' : undefined"
           >
             <template v-slot:append-inner>
               <v-icon
-                v-if="statusFilter !== 'all'"
+                v-if="statusFilter !== ''"
                 color="primary"
                 @click.stop="
                   () => {
-                    statusFilter = 'all'
+                    statusFilter = ''
                     loadOrphanPublications()
                   }
                 "
@@ -88,11 +88,10 @@
 
         <v-col cols="12" md="6" class="d-flex justify-end align-center gap-2">
           <v-btn
-            v-if="statusFilter !== 'all' || soldQuantityFilter !== 'all'"
+            v-if="statusFilter !== '' || soldQuantityFilter !== 'all'"
             color="secondary"
             variant="outlined"
             @click="clearFilters"
-            class="mr-2"
             size="small"
           >
             <v-icon start>mdi-filter-remove</v-icon>
@@ -142,24 +141,23 @@
           </div>
         </template>
 
-        <!-- Columna de Cuenta -->
-        <template #[`item.account`]="{ item }">
-          <div class="d-flex align-center">
-            <span>{{ item.account }}</span>
-          </div>
-        </template>
-
         <!-- Columna de Estado -->
         <template #[`item.status`]="{ item }">
-          <v-chip
-            :color="item.status === true ? 'success' : 'error'"
-            size="small"
-            variant="outlined"
-          >
+          <v-chip :color="getStatusColor(item.status)" size="small" variant="outlined">
             <v-icon start size="small">
-              {{ item.status === true ? 'mdi-check-circle' : 'mdi-close-circle' }}
+              {{
+                item.status === 'active'
+                  ? 'mdi-check-circle'
+                  : item.status === 'paused'
+                    ? 'mdi-pause-circle'
+                    : item.status === 'closed'
+                      ? 'mdi-close-circle'
+                      : item.status === 'under_review'
+                        ? 'mdi-eye'
+                        : 'mdi-help-circle'
+              }}
             </v-icon>
-            {{ item.status === true ? 'Activa' : 'Inactiva' }}
+            {{ getStatusText(item.status) }}
           </v-chip>
         </template>
 
@@ -353,14 +351,17 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Filtros
-const statusFilter = ref<boolean | 'all'>('all')
+const statusFilter = ref<string>('')
 const soldQuantityFilter = ref<boolean | 'all'>('all')
 
 // Opciones para los filtros
 const statusOptions = [
-  { title: 'Todos los estados', value: 'all' },
-  { title: 'Activas', value: true },
-  { title: 'Inactivas', value: false },
+  { title: 'Todos los estados', value: '' },
+  { title: 'Activo', value: 'active' },
+  { title: 'Inactivas', value: 'inactive' },
+  { title: 'Pausado', value: 'paused' },
+  { title: 'Finalizado', value: 'closed' },
+  { title: 'En revisión', value: 'under_review' },
 ]
 
 const soldQuantityOptions = [
@@ -371,7 +372,7 @@ const soldQuantityOptions = [
 
 // Función para limpiar todos los filtros
 const clearFilters = () => {
-  statusFilter.value = 'all'
+  statusFilter.value = ''
   soldQuantityFilter.value = 'all'
   loadOrphanPublications()
 }
@@ -380,7 +381,6 @@ const clearFilters = () => {
 const orphanPublicationsHeaders = [
   { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
-  { title: 'Cuenta', key: 'account', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
   { title: 'Ventas', key: 'sales', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
@@ -388,11 +388,49 @@ const orphanPublicationsHeaders = [
 
 // Funciones para obtener el estado y las ventas según los filtros aplicados
 const getStatusFromFilter = () => {
-  if (statusFilter.value === true) return true
-  if (statusFilter.value === false) return false
-  // Si es 'all', asignamos un valor aleatorio para demostración
+  // Si hay un filtro de estado, devolver ese valor
+  if (statusFilter.value) return statusFilter.value
+
+  // Si no hay filtro, asignar un estado aleatorio para demostración
   // En un caso real, esto vendría de la API
-  return Math.random() > 0.5
+  const estados = ['active', 'inactive', 'paused', 'closed', 'under_review']
+  return estados[Math.floor(Math.random() * estados.length)]
+}
+
+// Función para obtener el color del estado
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'paused':
+      return 'warning'
+    case 'closed':
+      return 'error'
+    case 'inactive':
+      return 'grey'
+    case 'under_review':
+      return 'info'
+    default:
+      return 'grey'
+  }
+}
+
+// Función para obtener el texto del estado
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'Activo'
+    case 'paused':
+      return 'Pausado'
+    case 'closed':
+      return 'Finalizado'
+    case 'inactive':
+      return 'Inactivo'
+    case 'under_review':
+      return 'En revisión'
+    default:
+      return 'Desconocido'
+  }
 }
 
 const getSalesFromFilter = () => {
@@ -427,7 +465,7 @@ const loadOrphanPublications = async () => {
     const options: OrphanPublicationsOptions = {
       offset: (page.value - 1) * itemsPerPage.value,
       limit: itemsPerPage.value,
-      status: statusFilter.value as boolean | 'all',
+      status: statusFilter.value || 'all', // Usar el valor del filtro o 'all' si está vacío
       withSoldQuantity: soldQuantityFilter.value as boolean | 'all',
     }
 
