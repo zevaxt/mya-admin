@@ -180,7 +180,7 @@
               icon
               size="small"
               color="error"
-              class="mr-2"
+              class="mr-3"
               @click="confirmDeleteProduct(item.id)"
               :disabled="loading || processingDeleteId === item.id"
               :loading="processingDeleteId === item.id"
@@ -189,9 +189,27 @@
               <v-tooltip activator="parent" location="top">Eliminar publicación</v-tooltip>
             </v-btn>
 
-            <v-btn icon size="small" color="info" @click="openProductInNewTab(item.id)">
+            <v-btn
+              icon
+              size="small"
+              color="info"
+              class="mr-3"
+              @click="openProductInNewTab(item.id)"
+            >
               <v-icon>mdi-open-in-new</v-icon>
               <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
+            </v-btn>
+
+            <v-btn
+              icon
+              size="small"
+              color="primary"
+              class="mr-3"
+              @click="viewProductDetail(item.id)"
+              :disabled="loading"
+            >
+              <v-icon>mdi-eye</v-icon>
+              <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
             </v-btn>
           </div>
         </template>
@@ -295,6 +313,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
+import router from '@/router'
 import { compareService, type OrphanPublicationsOptions } from '@/services/compareService'
 import migrationService from '@/services/migrationService'
 
@@ -431,6 +450,13 @@ const loadOrphanPublications = async () => {
 // Manejar cambio de página
 const handlePageChange = () => {
   loadOrphanPublications()
+}
+
+// Ver detalles del producto
+const viewProductDetail = (productId: string) => {
+  // Abrir en una nueva pestaña
+  const route = router.resolve(`/product-detail/${productId}`)
+  window.open(route.href, '_blank')
 }
 
 // Importar la función compartida

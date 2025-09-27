@@ -12,12 +12,15 @@
 
           <v-divider></v-divider>
 
+          <!-- Estado de carga -->
           <v-card-text v-if="loading">
-            <div class="d-flex justify-center align-center" style="height: 400px">
-              <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+            <div class="d-flex flex-column justify-center align-center" style="height: 400px">
+              <v-progress-circular indeterminate color="primary" size="64" class="mb-4"></v-progress-circular>
+              <span class="text-subtitle-1">Cargando detalles del producto...</span>
             </div>
           </v-card-text>
 
+          <!-- Producto cargado correctamente -->
           <v-card-text v-else-if="product">
             <!-- Información básica y carrusel de imágenes -->
             <v-row>
@@ -553,9 +556,24 @@
           </v-card-text>
 
           <v-card-text v-else>
-            <v-alert type="warning">
-              No se encontró información del producto. Por favor, vuelve a la lista de productos e
-              intenta nuevamente.
+            <v-alert type="warning" border="start" prominent>
+              <v-row class="align-center">
+                <v-col cols="auto">
+                  <v-icon size="36" icon="mdi-alert-circle-outline"></v-icon>
+                </v-col>
+                <v-col>
+                  <div class="text-subtitle-1 font-weight-medium mb-1">No se encontró información del producto</div>
+                  <div class="text-body-2">
+                    Esto puede deberse a que:
+                    <ul class="mt-1">
+                      <li>El producto no existe</li>
+                      <li>No tienes permisos para ver este producto</li>
+                      <li>Hubo un error en la comunicación con el servidor</li>
+                    </ul>
+                    <div class="mt-2">Por favor, vuelve a la lista de productos e intenta nuevamente.</div>
+                  </div>
+                </v-col>
+              </v-row>
             </v-alert>
           </v-card-text>
         </v-card>
@@ -596,7 +614,7 @@ const currentImageIndex = ref(0)
 const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
-const loading = ref(false)
+const loading = ref(true) // Iniciar con loading en true para mostrar el indicador de carga inmediatamente
 
 // Variables para el editor JSON
 const jsonContent = ref('')
@@ -616,13 +634,27 @@ const currentPicture = computed(() => {
 // Cargar datos del producto directamente desde la API
 onMounted(async () => {
   const productId = route.params.id as string
+  
+  if (!productId) {
+    showNotification.value = true
+    notificationMessage.value = 'ID de producto no válido'
+    notificationType.value = 'error'
+    loading.value = false
+    return
+  }
+  
   const accountId = accountStore.currentAccount?.ID
 
   if (!accountId) {
+    // Mostrar mensaje pero no error, ya que es posible que la cuenta se cargue después
     showNotification.value = true
-    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationMessage.value = 'Selecciona una cuenta para ver los detalles completos'
     notificationType.value = 'warning'
-    loading.value = false
+    
+    // Esperar un momento antes de desactivar el indicador de carga
+    setTimeout(() => {
+      loading.value = false
+    }, 1500)
     return
   }
 
@@ -636,16 +668,20 @@ onMounted(async () => {
       originalJson.value = jsonContent.value // Guardar el JSON original
     } else {
       showNotification.value = true
-      notificationMessage.value = 'Error en el formato de la respuesta'
-      notificationType.value = 'error'
+      notificationMessage.value = 'No se encontraron datos para este producto'
+      notificationType.value = 'warning'
     }
   } catch (error) {
     console.error(`Error al obtener detalles del producto ${productId}:`, error)
     showNotification.value = true
-    notificationMessage.value = 'Error al obtener detalles del producto'
+    notificationMessage.value = error instanceof Error ? `Error: ${error.message}` : 'Error al obtener detalles del producto'
     notificationType.value = 'error'
   } finally {
-    loading.value = false
+    // Asegurar que el indicador de carga se oculte después de un tiempo mínimo
+    // para evitar parpadeos en la interfaz
+    setTimeout(() => {
+      loading.value = false
+    }, 500)
   }
 })
 

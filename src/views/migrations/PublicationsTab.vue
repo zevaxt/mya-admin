@@ -153,22 +153,35 @@
       <!-- La barra de búsqueda ahora está integrada en el encabezado de la columna ID -->
     </div>
 
-    <!-- Mensaje de filtrado -->
-    <div v-if="filteredMessage" class="d-flex align-center mb-2">
-      <v-chip color="info" variant="outlined" size="small" class="mr-2">
-        <v-icon start size="small">mdi-filter</v-icon>
-        {{ filteredMessage }}
-      </v-chip>
+    <!-- Mensaje de filtrado y botón de columnas -->
+    <div class="d-flex justify-space-between align-center mb-2">
+      <div v-if="filteredMessage" class="d-flex align-center">
+        <v-chip color="info" variant="outlined" size="small" class="mr-2">
+          <v-icon start size="small">mdi-filter</v-icon>
+          {{ filteredMessage }}
+        </v-chip>
+        <v-btn
+          size="x-small"
+          icon
+          variant="text"
+          color="grey"
+          @click="clearAllFilters"
+          v-if="hasActiveFilters"
+        >
+          <v-icon size="small">mdi-close</v-icon>
+          <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
+        </v-btn>
+      </div>
+      
+      <!-- Botón para gestionar columnas visibles -->
       <v-btn
-        size="x-small"
-        icon
-        variant="text"
-        color="grey"
-        @click="clearAllFilters"
-        v-if="hasActiveFilters"
+        size="small"
+        variant="outlined"
+        color="secondary"
+        @click="showColumnsDialog = true"
       >
-        <v-icon size="small">mdi-close</v-icon>
-        <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
+        <v-icon start>mdi-eye-settings</v-icon>
+        Columnas
       </v-btn>
     </div>
 
@@ -463,6 +476,40 @@
         <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
+    
+    <!-- Diálogo para gestionar columnas visibles -->
+    <v-dialog v-model="showColumnsDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5">
+          Gestionar columnas visibles
+        </v-card-title>
+        
+        <v-card-text>
+          <p class="mb-4">Selecciona las columnas que deseas mostrar en la tabla:</p>
+          
+          <v-list>
+            <v-list-item v-for="column in allColumns.filter(col => !col.required && col.title)" :key="column.key">
+              <template v-slot:prepend>
+                <v-checkbox
+                  v-model="visibleColumns"
+                  :value="column.key"
+                  :disabled="column.required"
+                  hide-details
+                  @click="toggleColumnVisibility(column.key)"
+                ></v-checkbox>
+              </template>
+              <v-list-item-title>{{ column.title }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey" variant="text" @click="showColumnsDialog = false">Cerrar</v-btn>
+          <v-btn color="primary" variant="elevated" @click="resetColumns">Restablecer</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -529,25 +576,37 @@ const booleanFilterOptions = [
 // Estado para los elementos seleccionados
 const selectedItems = ref<ProductId[]>([])
 
-// Cabeceras de tabla para IDs de productos
-const productIdsHeaders = [
-  { title: '', key: 'select', sortable: false },
+// Estado para el diálogo de columnas visibles
+const showColumnsDialog = ref(false)
+
+// Definición de todas las columnas disponibles
+const allColumns = [
+  { title: '', key: 'select', sortable: false, required: true },
   {
     title: 'ID',
     key: 'ID',
     sortable: true,
     filterable: true,
+    required: true,
   },
-  { title: 'Precio', key: 'price', sortable: true, class: 'text-right' },
-  { title: 'Sync', key: 'SyncActive', sortable: true, class: 'text-center' },
-  { title: 'Catálogo', key: 'CatalogActive', sortable: true },
-  { title: 'Estado', key: 'Status', sortable: true },
-  { title: 'Populate', key: 'Populate', sortable: true },
-  { title: 'F. Populated', key: 'updated_at', sortable: true },
-  { title: 'F. Updated', key: 'last_updated', sortable: true },
-  { title: 'F. Created', key: 'date_created', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false },
+  { title: 'Precio', key: 'price', sortable: true, class: 'text-right', required: false },
+  { title: 'Sync', key: 'SyncActive', sortable: true, class: 'text-center', required: false },
+  { title: 'Catálogo', key: 'CatalogActive', sortable: true, required: false },
+  { title: 'Estado', key: 'Status', sortable: true, required: false },
+  { title: 'Populate', key: 'Populate', sortable: true, required: false },
+  { title: 'F. Populated', key: 'updated_at', sortable: true, required: false },
+  { title: 'F. Updated', key: 'last_updated', sortable: true, required: false },
+  { title: 'F. Created', key: 'date_created', sortable: true, required: false },
+  { title: 'Acciones', key: 'actions', sortable: false, required: true },
 ]
+
+// Estado para las columnas visibles (inicialmente todas)
+const visibleColumns = ref<string[]>(allColumns.map(col => col.key))
+
+// Cabeceras de tabla para IDs de productos (filtradas según las columnas visibles)
+const productIdsHeaders = computed(() => {
+  return allColumns.filter(col => visibleColumns.value.includes(col.key) || col.required)
+})
 
 // Estado para el filtro de búsqueda en la tabla
 const showIdSearch = ref(false)
@@ -670,7 +729,9 @@ const loadProductIds = async () => {
 
 // Ver detalles del producto
 const viewProductDetail = (productId: string) => {
-  router.push(`/product/${productId}`)
+  // Abrir en una nueva pestaña
+  const route = router.resolve(`/product-detail/${productId}`)
+  window.open(route.href, '_blank')
 }
 
 // Actualizar el estado de sincronización de un producto
@@ -978,7 +1039,47 @@ const formatDate = (dateString: string | null | undefined) => {
       minute: '2-digit',
     })
   } catch (_) {
-    return dateString
+    return 'N/A'
+  }
+}
+
+// Funciones para gestionar columnas visibles
+const toggleColumnVisibility = (key: string) => {
+  // No permitir ocultar columnas requeridas
+  const column = allColumns.find(col => col.key === key)
+  if (column?.required) return
+
+  // Alternar visibilidad
+  if (visibleColumns.value.includes(key)) {
+    visibleColumns.value = visibleColumns.value.filter(k => k !== key)
+  } else {
+    visibleColumns.value.push(key)
+  }
+
+  // Guardar preferencias en localStorage
+  localStorage.setItem('publicationsTableColumns', JSON.stringify(visibleColumns.value))
+}
+
+// Restablecer columnas visibles a su estado predeterminado
+const resetColumns = () => {
+  visibleColumns.value = allColumns.map(col => col.key)
+  localStorage.setItem('publicationsTableColumns', JSON.stringify(visibleColumns.value))
+}
+
+// Cargar preferencias de columnas desde localStorage al iniciar
+const loadColumnPreferences = () => {
+  const savedColumns = localStorage.getItem('publicationsTableColumns')
+  if (savedColumns) {
+    try {
+      const parsedColumns = JSON.parse(savedColumns)
+      // Asegurarse de que las columnas requeridas siempre estén incluidas
+      const requiredKeys = allColumns.filter(col => col.required).map(col => col.key)
+      visibleColumns.value = [...new Set([...parsedColumns, ...requiredKeys])]
+    } catch (error) {
+      console.error('Error al cargar preferencias de columnas:', error)
+      // Si hay un error, usar todas las columnas
+      visibleColumns.value = allColumns.map(col => col.key)
+    }
   }
 }
 
@@ -1162,8 +1263,12 @@ watch(
   },
 )
 
-// Cargar datos iniciales
+// Cargar datos al montar el componente
 onMounted(() => {
+  // Cargar preferencias de columnas
+  loadColumnPreferences()
+  
+  // Cargar datos si hay una cuenta seleccionada
   if (hasAccount.value) {
     loadProductIds()
   }
