@@ -190,7 +190,6 @@
           </div>
         </template>
 
-        <!-- Columnas de Estado y Ventas eliminadas -->
 
         <!-- Columna de Acciones -->
         <template #[`item.actions`]="{ item }">

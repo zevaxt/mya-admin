@@ -28,8 +28,8 @@ const itemsPerPage = ref(100)
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 
 // Filtros
-const statusFilter = ref<'active' | 'paused' | 'inactive' | ''>('')
-const channelsFilter = ref<'marketplace' | 'marketplace,mshops'>('marketplace')
+const statusFilter = ref<'active' | 'paused' | 'inactive' | 'closed' | ''>('')
+const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace,mshops')
 
 // Opciones para los filtros
 const statusOptions = [
@@ -37,11 +37,13 @@ const statusOptions = [
   { title: 'Activas', value: 'active' },
   { title: 'Pausadas', value: 'paused' },
   { title: 'Inactivas', value: 'inactive' },
+  { title: 'Finalizadas', value: 'closed' },
 ]
 
 const channelsOptions = [
+  { title: 'Todas', value: 'marketplace,mshops' },
   { title: 'Marketplace', value: 'marketplace' },
-  { title: 'Marketplace y Tiendas', value: 'marketplace,mshops' },
+  { title: 'Tienda', value: 'mshops' },
 ]
 
 // Computed properties
@@ -64,6 +66,8 @@ const getStatusColor = (status: string): string => {
       return 'warning'
     case 'inactive':
       return 'error'
+    case 'closed':
+      return 'grey-darken-1'
     default:
       return 'primary'
   }
@@ -89,24 +93,53 @@ const loadMissingPublications = async () => {
 
   try {
     // Configurar opciones de filtrado
+    const channels = channelsFilter.value
+
     const options = {
       status: statusFilter.value,
-      channels: channelsFilter.value,
-      offset: (page.value - 1) * itemsPerPage.value,
-      limit: itemsPerPage.value
+      channels: channels as 'marketplace' | 'marketplace,mshops' | 'mshops'
     }
 
     const response = await compareService.getMissingPublications(accountId.value, options)
     missingPublicationIds.value = response.missing_publication_ids || []
     total.value = response.total || 0
+    error.value = null // Limpiar error previo si la solicitud fue exitosa
   } catch (err) {
     console.error('Error al cargar publicaciones faltantes:', err)
+    missingPublicationIds.value = []
+    total.value = 0
+    
+    // Extraer el mensaje de error detallado
+    let errorMsg = 'Error al cargar publicaciones faltantes'
+    
     if (err instanceof Error) {
-      error.value = `Error al cargar publicaciones faltantes: ${err.message}`
-    } else {
-      error.value = 'Error al cargar publicaciones faltantes'
+      // Verificar si es un error de API con respuesta
+      if ('response' in err && err.response) {
+        // Definir una interfaz para el error de Axios
+        interface AxiosErrorResponse {
+          data?: { message?: string };
+          status?: number;
+        }
+        
+        const axiosError = err as { response: AxiosErrorResponse }
+        if (axiosError.response.data?.message) {
+          errorMsg = `Error en v1/provider/publications/compare: ${axiosError.response.data.message}`
+        } else if (axiosError.response.status) {
+          errorMsg = `Error en v1/provider/publications/compare: Código ${axiosError.response.status}`
+        }
+      } else {
+        // Error estándar de JavaScript
+        errorMsg = `Error al cargar publicaciones faltantes: ${err.message}`
+      }
     }
+    
+    error.value = errorMsg
     emit('error', error.value)
+    
+    // Mostrar el error en una notificación
+    notificationMessage.value = errorMsg
+    notificationType.value = 'error'
+    showNotification.value = true
   } finally {
     emit('update:loading', false)
   }
@@ -280,7 +313,7 @@ defineExpose({
         </v-btn>
       </div>
     </div>
-    
+
     <!-- Filtros -->
     <v-row class="mb-4">
       <v-col cols="12" md="4" lg="3">
@@ -314,16 +347,40 @@ defineExpose({
           density="comfortable"
           hide-details
           @update:model-value="loadMissingPublications"
-          :color="channelsFilter !== 'marketplace' ? 'primary' : undefined"
-          :bg-color="channelsFilter !== 'marketplace' ? 'primary-lighten-5' : undefined"
+          :color="channelsFilter !== 'marketplace,mshops' ? 'primary' : undefined"
+          :bg-color="channelsFilter !== 'marketplace,mshops' ? 'primary-lighten-5' : undefined"
         >
           <template v-slot:append-inner>
-            <v-icon v-if="channelsFilter !== 'marketplace'" color="primary" @click.stop="channelsFilter = 'marketplace'; loadMissingPublications()">mdi-close</v-icon>
+            <v-icon v-if="channelsFilter !== 'marketplace,mshops'" color="primary" @click.stop="channelsFilter = 'marketplace,mshops'; loadMissingPublications()">mdi-close</v-icon>
           </template>
         </v-select>
       </v-col>
 
     </v-row>
+
+    <!-- Mensaje de error -->
+    <v-alert
+      v-if="error"
+      type="error"
+      variant="tonal"
+      closable
+      class="mb-4"
+      title="Error al cargar publicaciones faltantes"
+      :text="error"
+      @click:close="error = null"
+    >
+      <template v-slot:append>
+        <v-btn
+          color="error"
+          variant="text"
+          size="small"
+          @click="loadMissingPublications"
+        >
+          <v-icon start>mdi-refresh</v-icon>
+          Reintentar
+        </v-btn>
+      </template>
+    </v-alert>
 
     <!-- Contador de resultados -->
     <div v-if="total > 0" class="mb-2">

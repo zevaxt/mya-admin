@@ -19,8 +19,8 @@ export interface OrphanPublicationsResponse {
 
 // Opciones para la consulta de publicaciones faltantes
 export interface MissingPublicationsOptions {
-  status?: 'active' | 'paused' | 'inactive' | ''
-  channels?: 'marketplace' | 'marketplace,mshops'
+  status?: 'active' | 'paused' | 'inactive' | 'closed' | ''
+  channels?: 'marketplace' | 'marketplace,mshops' | 'mshops' | 'all'
   offset?: number
   limit?: number
 }
@@ -63,19 +63,10 @@ export const compareService = {
 
       // Parámetros de paginación
       const url = '/v1/provider/publications/compare'
-      const params: Record<string, string> = {}
 
-      if (options?.offset !== undefined) {
-        params['offset'] = options.offset.toString()
-      }
-
-      if (options?.limit !== undefined) {
-        params['limit'] = options.limit.toString()
-      }
 
       const response = await apiClient.get(url, {
         headers,
-        params,
       })
 
       return response.data as MissingPublicationsResponse
