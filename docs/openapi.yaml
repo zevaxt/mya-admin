@@ -1995,10 +1995,22 @@ paths:
             almacenad los ids
           example: 'true'
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "MCO1587970801"
+              example:
+                - "MCO1587970801"
+                - "MCO3151961416"
+                - "MCO3151002798"
+                - "MCO3150875244"
+                - "MCO1681369851"
+                - "MCO1678235879"
   /v1/migration/delete/products/ids:
     get:
       tags:

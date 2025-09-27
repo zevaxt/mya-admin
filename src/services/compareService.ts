@@ -42,6 +42,51 @@ export interface OrphanPublicationsOptions {
 
 // Servicio de comparación
 export const compareService = {
+  // Sincronizar IDs de productos con Mercado Libre
+  async syncProductIds(
+    accountId: number,
+    status: string = '',
+    channels: string = 'marketplace',
+    readOnly: boolean = false,
+  ): Promise<{ success: boolean; message?: string; publication_ids?: string[] } | string[]> {
+    try {
+      const headers: Record<string, string> = {
+        'account-id': accountId.toString(),
+        status: status,
+        channels: channels,
+        'read-mode': readOnly.toString(),
+      }
+
+      const response = await apiClient.get('/v1/migration/products/ids', {
+        headers,
+      })
+
+      // Si es modo solo lectura, devolver el array de IDs directamente
+      if (readOnly) {
+        return Array.isArray(response.data) ? response.data : response.data?.publication_ids || []
+      }
+
+      // Modo normal (guardar en BD)
+      return {
+        success: true,
+        message: 'Sincronización de IDs completada correctamente',
+        publication_ids: response.data?.publication_ids || [],
+      }
+    } catch (error: any) {
+      console.error('Error al sincronizar IDs de productos:', error)
+
+      // En modo solo lectura, devolver array vacío en caso de error
+      if (readOnly) {
+        return []
+      }
+
+      // Modo normal, devolver error
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al sincronizar IDs de productos',
+      }
+    }
+  },
   // Obtener publicaciones que existen en Mercado Libre pero no en la base de datos
   async getMissingPublications(
     accountId: number,
@@ -63,7 +108,6 @@ export const compareService = {
 
       // Parámetros de paginación
       const url = '/v1/provider/publications/compare'
-
 
       const response = await apiClient.get(url, {
         headers,

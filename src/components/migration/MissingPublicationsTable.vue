@@ -78,7 +78,6 @@ const getStatusColor = (status: string): string => {
 const missingPublicationsHeaders = [
   { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
-  { title: 'Cuenta', key: 'account', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
 ]
 
@@ -110,10 +109,10 @@ const loadMissingPublications = async () => {
     console.error('Error al cargar publicaciones faltantes:', err)
     missingPublicationIds.value = []
     total.value = 0
-    
+
     // Extraer el mensaje de error detallado
     let errorMsg = 'Error al cargar publicaciones faltantes'
-    
+
     if (err instanceof Error) {
       // Verificar si es un error de API con respuesta
       if ('response' in err && err.response) {
@@ -122,7 +121,7 @@ const loadMissingPublications = async () => {
           data?: { message?: string };
           status?: number;
         }
-        
+
         const axiosError = err as { response: AxiosErrorResponse }
         if (axiosError.response.data?.message) {
           errorMsg = `Error en v1/provider/publications/compare: ${axiosError.response.data.message}`
@@ -134,10 +133,10 @@ const loadMissingPublications = async () => {
         errorMsg = `Error al cargar publicaciones faltantes: ${err.message}`
       }
     }
-    
+
     error.value = errorMsg
     emit('error', error.value)
-    
+
     // Mostrar el error en una notificación
     notificationMessage.value = errorMsg
     notificationType.value = 'error'
@@ -171,8 +170,12 @@ const confirmDialogTitle = ref('')
 const confirmDialogMessage = ref('')
 const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 
+// Estado para el diálogo de IDs
+const showIdsDialog = ref(false)
+const syncedPublicationIds = ref<string[]>([])
+
 // Sincronizar IDs de productos desde Mercado Libre
-const syncProductIds = async () => {
+const syncProductIds = async (readOnly: boolean = false) => {
   if (!hasAccount.value) {
     notificationMessage.value = 'Selecciona una cuenta para sincronizar las publicaciones'
     notificationType.value = 'error'
@@ -181,30 +184,46 @@ const syncProductIds = async () => {
   }
 
   syncLoading.value = true
-  error.value = null
+  notificationMessage.value = ''
+  notificationType.value = 'success'
 
   try {
-    // Llamar al servicio para sincronizar IDs de productos
-    const result = await migrationService.updateProductIds(
+    // Llamar al servicio para sincronizar los IDs
+    const result = await compareService.syncProductIds(
       accountId.value,
       statusFilter.value,
       channelsFilter.value,
-      false // No es modo lectura, queremos almacenar los IDs
+      readOnly // Usar el modo de solo lectura según el parámetro
     )
 
-    // Verificar que la respuesta sea válida
-    if (result && result.success) {
-      notificationMessage.value = result.message || 'Sincronización de IDs iniciada correctamente'
-      notificationType.value = 'success'
+    if (readOnly) {
+      // En modo solo lectura, mostramos los IDs en un diálogo
+      if (Array.isArray(result)) {
+        syncedPublicationIds.value = result
+        showIdsDialog.value = true
+      } else if (result && Array.isArray(result.publication_ids)) {
+        syncedPublicationIds.value = result.publication_ids
+        showIdsDialog.value = true
+      } else {
+        notificationMessage.value = 'No se encontraron publicaciones para sincronizar o el formato de respuesta es inesperado'
+        notificationType.value = 'warning'
+        showNotification.value = true
+      }
     } else {
-      notificationMessage.value = 'La sincronización se completó pero con un resultado inesperado'
-      notificationType.value = 'warning'
+      // Modo normal (guardar en BD)
+      if (result && result.success) {
+        notificationMessage.value = result.message || 'Sincronización de IDs iniciada correctamente'
+        notificationType.value = 'success'
+        showNotification.value = true
+        
+        // Recargar la lista de publicaciones faltantes después de sincronizar
+        await loadMissingPublications()
+      } else {
+        notificationMessage.value = 'La sincronización se completó pero con un resultado inesperado'
+        notificationType.value = 'warning'
+        showNotification.value = true
+      }
     }
-
-    showNotification.value = true
-
-    // Recargar la lista de publicaciones faltantes después de sincronizar
-    await loadMissingPublications()
   } catch (err) {
     console.error('Error al sincronizar IDs de productos:', err)
     if (err instanceof Error) {
@@ -311,7 +330,7 @@ const createMultiplePublications = async () => {
       try {
         // Llamar al servicio para crear la publicación
         const result = await migrationService.createPublication(accountId.value, productId)
-        
+
         if (result && result.length > 0 && result.includes(productId)) {
           results.push({ id: productId, success: true })
           successCount++
@@ -344,7 +363,7 @@ const createMultiplePublications = async () => {
 
     // Recargar la lista de publicaciones faltantes
     await loadMissingPublications()
-    
+
     // Limpiar selección
     selectedItems.value = []
   } catch (err) {
@@ -355,6 +374,21 @@ const createMultiplePublications = async () => {
     showNotification.value = true
     processingMultiple.value = false
     emit('update:loading', false)
+  }
+}
+
+// Copiar IDs al portapapeles
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(syncedPublicationIds.value.join('\n'))
+    notificationMessage.value = 'IDs copiadas al portapapeles'
+    notificationType.value = 'success'
+  } catch (err) {
+    console.error('Error al copiar al portapapeles:', err)
+    notificationMessage.value = 'Error al copiar al portapapeles'
+    notificationType.value = 'error'
+  } finally {
+    showNotification.value = true
   }
 }
 
@@ -373,19 +407,36 @@ defineExpose({
         <p class="text-caption text-grey">Publicaciones que existen en Mercado Libre pero no en la base de datos</p>
       </div>
       <div class="d-flex gap-2">
-        <v-btn
-          color="success"
-          variant="outlined"
-          @click="syncProductIds"
-          :loading="syncLoading"
-          size="small"
-        >
-          <v-icon start>mdi-sync</v-icon>
-          Sincronizar IDs
-          <v-tooltip activator="parent" location="top">
-            Sincroniza todas las publicaciones de Mercado Libre con la base de datos
-          </v-tooltip>
-        </v-btn>
+        <v-menu>
+          <template v-slot:activator="{ props: menuProps }">
+            <v-tooltip location="top">
+              <template v-slot:activator="{ props: tooltipProps }">
+                <v-btn
+                  color="success"
+                  variant="outlined"
+                  :loading="syncLoading"
+                  size="small"
+                  v-bind="{ ...menuProps, ...tooltipProps }"
+                >
+                  <v-icon start>mdi-sync</v-icon>
+                  Sincronizar IDs
+                  <v-icon end>mdi-menu-down</v-icon>
+                </v-btn>
+              </template>
+              <span>Sincroniza las publicaciones de Mercado Libre con la base de datos</span>
+            </v-tooltip>
+          </template>
+          <v-list density="compact">
+            <v-list-item @click="syncProductIds(false)">
+              <v-list-item-title>Modo normal (guardar en BD)</v-list-item-title>
+            </v-list-item>
+            <v-divider></v-divider>
+            <v-list-item @click="syncProductIds(true)">
+              <v-list-item-title>Modo solo lectura (ver IDs)</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+
         <v-btn
           color="info"
           variant="outlined"
@@ -501,15 +552,6 @@ defineExpose({
         </div>
       </template>
 
-      <!-- Columna de Cuenta -->
-      <template #[`item.account`]="{ item }">
-        <div class="d-flex align-center">
-          <v-chip size="small" color="primary" variant="outlined" class="text-truncate">
-            {{ item.account }}
-          </v-chip>
-        </div>
-      </template>
-
       <!-- Columna de acciones -->
       <template #[`item.actions`]="{ item }">
         <div class="d-flex">
@@ -613,9 +655,9 @@ defineExpose({
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="grey" variant="text" @click="showConfirmDialog = false">Cancelar</v-btn>
-          <v-btn 
-            color="primary" 
-            variant="elevated" 
+          <v-btn
+            color="primary"
+            variant="elevated"
             @click="
               showConfirmDialog = false;
               confirmDialogAction();
@@ -623,6 +665,46 @@ defineExpose({
           >
             Confirmar
           </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo para mostrar los IDs sincronizados en modo lectura -->
+    <v-dialog v-model="showIdsDialog" max-width="800px">
+      <v-card>
+        <v-card-title class="text-h6">
+          <v-icon class="mr-2" color="info">mdi-information-outline</v-icon>
+          IDs de publicaciones encontradas (modo solo lectura)
+        </v-card-title>
+        <v-card-text>
+          <p class="mb-4">
+            Se encontraron <strong>{{ syncedPublicationIds.length }}</strong> publicaciones en Mercado Libre que no están en la base de datos.
+          </p>
+          
+          <v-textarea
+            :model-value="syncedPublicationIds.join('\n')"
+            label="IDs de publicaciones"
+            readonly
+            auto-grow
+            rows="10"
+            variant="outlined"
+            class="mb-4"
+          ></v-textarea>
+          
+          <div class="d-flex justify-end">
+            <v-btn 
+              color="primary" 
+              @click="copyToClipboard"
+              variant="text"
+              prepend-icon="mdi-content-copy"
+            >
+              Copiar al portapapeles
+            </v-btn>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" @click="showIdsDialog = false">Cerrar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
