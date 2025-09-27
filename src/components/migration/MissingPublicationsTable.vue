@@ -23,6 +23,7 @@ const error = ref<string | null>(null)
 const syncLoading = ref(false)
 const page = ref(1)
 const itemsPerPage = ref(100)
+const selectedItems = ref<string[]>([])
 
 // Opciones para items por página
 const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
@@ -75,6 +76,7 @@ const getStatusColor = (status: string): string => {
 
 // Cabeceras de tabla para publicaciones faltantes
 const missingPublicationsHeaders = [
+  { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
   { title: 'Cuenta', key: 'account', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false },
@@ -161,6 +163,13 @@ const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
 const processingId = ref<string | null>(null)
+const processingMultiple = ref<boolean>(false)
+
+// Estado para el diálogo de confirmación
+const showConfirmDialog = ref(false)
+const confirmDialogTitle = ref('')
+const confirmDialogMessage = ref('')
+const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 
 // Sincronizar IDs de productos desde Mercado Libre
 const syncProductIds = async () => {
@@ -272,6 +281,82 @@ watch(
     }
   }
 )
+
+// Confirmar creación de publicaciones seleccionadas
+const createSelectedPublications = () => {
+  if (selectedItems.value.length === 0) return
+
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = 'Crear publicaciones seleccionadas'
+  confirmDialogMessage.value = `¿Estás seguro de que deseas crear las ${selectedItems.value.length} publicaciones seleccionadas?`
+  confirmDialogAction.value = () => createMultiplePublications()
+  showConfirmDialog.value = true
+}
+
+// Crear múltiples publicaciones
+const createMultiplePublications = async () => {
+  if (!hasAccount.value || selectedItems.value.length === 0) return
+
+  try {
+    processingMultiple.value = true
+    emit('update:loading', true)
+
+    // Crear un array para almacenar los resultados
+    const results: { id: string; success: boolean; message?: string }[] = []
+    let successCount = 0
+    let errorCount = 0
+
+    // Procesar cada publicación seleccionada
+    for (const productId of selectedItems.value) {
+      try {
+        // Llamar al servicio para crear la publicación
+        const result = await migrationService.createPublication(accountId.value, productId)
+        
+        if (result && result.length > 0 && result.includes(productId)) {
+          results.push({ id: productId, success: true })
+          successCount++
+        } else {
+          results.push({ id: productId, success: false, message: 'Respuesta inesperada' })
+          errorCount++
+        }
+      } catch (err) {
+        console.error(`Error al crear la publicación ${productId}:`, err)
+        let errorMsg = 'Error desconocido'
+        if (err instanceof Error) {
+          errorMsg = err.message
+        }
+        results.push({ id: productId, success: false, message: errorMsg })
+        errorCount++
+      }
+    }
+
+    // Mostrar notificación con el resultado
+    if (errorCount === 0) {
+      notificationMessage.value = `Se han creado ${successCount} publicaciones correctamente`
+      notificationType.value = 'success'
+    } else if (successCount === 0) {
+      notificationMessage.value = `Error al crear las ${errorCount} publicaciones seleccionadas`
+      notificationType.value = 'error'
+    } else {
+      notificationMessage.value = `Creadas ${successCount} publicaciones. Fallaron ${errorCount} publicaciones.`
+      notificationType.value = 'warning'
+    }
+
+    // Recargar la lista de publicaciones faltantes
+    await loadMissingPublications()
+    
+    // Limpiar selección
+    selectedItems.value = []
+  } catch (err) {
+    console.error('Error al crear publicaciones seleccionadas:', err)
+    notificationMessage.value = 'Error al crear las publicaciones seleccionadas'
+    notificationType.value = 'error'
+  } finally {
+    showNotification.value = true
+    processingMultiple.value = false
+    emit('update:loading', false)
+  }
+}
 
 // Exponer funciones para el componente padre
 defineExpose({
@@ -392,6 +477,8 @@ defineExpose({
 
     <div class="position-relative">
       <v-data-table
+        v-model="selectedItems"
+        show-select
         :headers="missingPublicationsHeaders"
         :items="Array.isArray(missingPublicationIds) && missingPublicationIds.length > 0 ? missingPublicationIds.map(id => ({
           id,
@@ -405,6 +492,7 @@ defineExpose({
             ? 'No hay publicaciones faltantes'
             : 'Selecciona una cuenta para ver las publicaciones faltantes'
         "
+        item-value="id"
       >
       <!-- Columna de ID -->
       <template #[`item.id`]="{ item }">
@@ -453,10 +541,23 @@ defineExpose({
       <!-- Paginador fijo -->
       <div class="pagination-fixed">
         <div class="d-flex align-center w-100 px-4 py-2 bg-white">
-          <div class="text-caption text-grey me-4">
-            {{ total > 0 ?
-              `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` :
-              '0-0 de 0' }}
+          <div class="d-flex align-center">
+            <v-btn
+              color="success"
+              variant="outlined"
+              size="small"
+              :disabled="selectedItems.length === 0"
+              @click="createSelectedPublications"
+              class="me-4"
+            >
+              <v-icon start>mdi-plus-circle</v-icon>
+              Crear {{ selectedItems.length }} seleccionadas
+            </v-btn>
+            <div class="text-caption text-grey me-4">
+              {{ total > 0 ?
+                `${(page - 1) * itemsPerPage + 1}-${Math.min(page * itemsPerPage, total)} de ${total}` :
+                '0-0 de 0' }}
+            </div>
           </div>
           <div class="d-flex align-center me-4">
             <span class="text-caption me-2">Registros por página:</span>
@@ -503,6 +604,28 @@ defineExpose({
         ></v-btn>
       </template>
     </v-snackbar>
+
+    <!-- Diálogo de confirmación -->
+    <v-dialog v-model="showConfirmDialog" max-width="500px">
+      <v-card>
+        <v-card-title class="text-h5">{{ confirmDialogTitle }}</v-card-title>
+        <v-card-text>{{ confirmDialogMessage }}</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey" variant="text" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn 
+            color="primary" 
+            variant="elevated" 
+            @click="
+              showConfirmDialog = false;
+              confirmDialogAction();
+            "
+          >
+            Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
