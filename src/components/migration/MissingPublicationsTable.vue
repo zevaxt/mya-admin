@@ -53,6 +53,18 @@ const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
 const hasAccount = computed(() => !!currentAccount.value)
 
+// Verificar si hay filtros activos
+const hasActiveFilters = computed(() => {
+  return statusFilter.value !== '' || channelsFilter.value !== 'marketplace,mshops'
+})
+
+// Función para limpiar todos los filtros
+const clearAllFilters = () => {
+  statusFilter.value = ''
+  channelsFilter.value = 'marketplace,mshops'
+  loadMissingPublications()
+}
+
 // Nombre de la cuenta formateado
 const accountName = computed(
   () =>
@@ -602,7 +614,20 @@ defineExpose({
           </template>
         </v-select>
       </v-col>
-
+      
+      <!-- Botón para limpiar todos los filtros -->
+      <v-col cols="12" md="4" lg="3" class="d-flex align-center">
+        <v-btn
+          v-if="hasActiveFilters"
+          color="grey"
+          variant="outlined"
+          size="small"
+          prepend-icon="mdi-filter-remove"
+          @click="clearAllFilters"
+        >
+          Limpiar filtros
+        </v-btn>
+      </v-col>
     </v-row>
 
     <!-- Mensaje de error -->
