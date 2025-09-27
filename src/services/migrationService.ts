@@ -309,10 +309,10 @@ export interface UpdateProductResponse {
 
 // Interfaz para la respuesta de sincronización de todas las publicaciones
 export interface SyncAllPublicationsResponse {
-  count_successful: number;
-  count_error: number;
-  publications: Array<{ publication_id: string; to_sync_id: string }>;
-  errors?: Array<{ publication_id: string; to_sync_id: string; details: string }>;
+  count_successful: number
+  count_error: number
+  publications: Array<{ publication_id: string; to_sync_id: string }>
+  errors?: Array<{ publication_id: string; to_sync_id: string; details: string }>
 }
 
 export interface CreateSyncRelationRequest {
@@ -413,7 +413,10 @@ export const migrationService = {
           // Buscar el nombre de la cuenta si está disponible
           let accountName = 'N/A'
           if (product.AccountID && accounts.length > 0) {
-            const account = accounts.find((acc: { ID: number; Nickname?: string; Email?: string }) => acc.ID === product.AccountID)
+            const account = accounts.find(
+              (acc: { ID: number; Nickname?: string; Email?: string }) =>
+                acc.ID === product.AccountID,
+            )
             if (account) {
               accountName = account.Nickname || account.Email || `Cuenta #${product.AccountID}`
             }
@@ -477,32 +480,6 @@ export const migrationService = {
       return response.data as ProductDetail
     } catch (error) {
       console.error(`Error al obtener detalle del producto ${productId}:`, error)
-      throw error
-    }
-  },
-
-  // Obtener productos huérfanos
-  async getOrphanProducts(
-    accountId: number,
-    status?: string,
-    offset = 0,
-    limit = 50,
-  ): Promise<OrphanProductsResponse> {
-    try {
-      let url = `/v1/migration/products/orphans?offset=${offset}&limit=${limit}`
-      if (status) {
-        url += `&status=${status}`
-      }
-
-      const response = await apiClient.get(url, {
-        headers: {
-          'account-id': accountId.toString(),
-        },
-      })
-
-      return response.data as OrphanProductsResponse
-    } catch (error) {
-      console.error('Error al obtener productos huérfanos:', error)
       throw error
     }
   },
@@ -624,7 +601,7 @@ export const migrationService = {
       throw error
     }
   },
-  
+
   // Actualizar los atributos de población de todas las publicaciones de una cuenta
   async updateAllProductsPopulate(
     accountId: number,
@@ -637,20 +614,21 @@ export const migrationService = {
         {
           headers: {
             'account-id': accountId.toString(),
-            'is_empty': isEmpty.toString(),
+            is_empty: isEmpty.toString(),
           },
         },
       )
-      
+
       // Extraer información del response
       const count = response.data?.count || 0
       const data = response.data?.data || []
-      
+
       // Crear mensaje según el filtro aplicado
       const filterMsg = isEmpty ? 'sin atributos' : ''
-      const message = count > 0
-        ? `Se ha iniciado el proceso de populate para ${count} publicaciones ${filterMsg} de la cuenta`
-        : `No se encontraron publicaciones ${filterMsg} para actualizar`
+      const message =
+        count > 0
+          ? `Se ha iniciado el proceso de populate para ${count} publicaciones ${filterMsg} de la cuenta`
+          : `No se encontraron publicaciones ${filterMsg} para actualizar`
 
       return {
         success: true,
@@ -663,7 +641,7 @@ export const migrationService = {
       throw error
     }
   },
-  
+
   // Actualizar los atributos de población de múltiples productos
   async updateMultipleProductsPopulate(
     accountId: number,
@@ -918,7 +896,11 @@ export const migrationService = {
   },
 
   // Actualizar el estado de sincronización de una publicación
-  async updateSyncActive(productId: string, syncActive: boolean, accountId: number): Promise<{ success: boolean; message: string }> {
+  async updateSyncActive(
+    productId: string,
+    syncActive: boolean,
+    accountId: number,
+  ): Promise<{ success: boolean; message: string }> {
     try {
       const response = await apiClient.patch(
         `/v1/migration/products/${productId}/sync-active`,
@@ -927,12 +909,14 @@ export const migrationService = {
           headers: {
             'account-id': accountId.toString(),
           },
-        }
+        },
       )
 
       return {
         success: true,
-        message: response.data.message || `Estado de sincronización actualizado a ${syncActive ? 'activo' : 'inactivo'}`,
+        message:
+          response.data.message ||
+          `Estado de sincronización actualizado a ${syncActive ? 'activo' : 'inactivo'}`,
       }
     } catch (error) {
       console.error(`Error al actualizar estado de sincronización para ${productId}:`, error)

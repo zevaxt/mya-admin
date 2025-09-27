@@ -141,26 +141,16 @@ export const compareService = {
       if (options?.withSoldQuantity !== undefined) {
         headers['with-sold-quantity'] = options.withSoldQuantity.toString()
       }
-      
+
       if (options?.catalogActive !== undefined) {
         headers['catalog-active'] = options.catalogActive.toString()
       }
 
       // Parámetros de paginación
       const url = '/v1/migration/products/orphans'
-      const params: Record<string, string> = {}
-
-      if (options?.offset !== undefined) {
-        params['offset'] = options.offset.toString()
-      }
-
-      if (options?.limit !== undefined) {
-        params['limit'] = options.limit.toString()
-      }
 
       const response = await apiClient.get(url, {
         headers,
-        params,
       })
 
       // Depurar la respuesta

@@ -5,8 +5,8 @@
       <div>
         <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
         <p class="text-caption text-grey">
-          Publicaciones que no están sincronizadas y no están activas en el catálogo, (Es decir no
-          estan como una publicacion destino de sincronizacion)
+          Publicaciones que no están sincronizadas, (Es decir no estan como una publicacion destino
+          de sincronizacion)
         </p>
       </div>
       <div class="d-flex gap-2">
@@ -94,7 +94,7 @@
             </template>
           </v-select>
         </v-col>
-        
+
         <v-col cols="12" md="3">
           <v-tooltip
             location="top"
@@ -136,7 +136,11 @@
 
         <v-col cols="12" md="6" class="d-flex justify-start align-center gap-2">
           <v-btn
-            v-if="statusFilter !== 'all' || soldQuantityFilter !== 'all' || catalogActiveFilter !== 'all'"
+            v-if="
+              statusFilter !== 'all' ||
+              soldQuantityFilter !== 'all' ||
+              catalogActiveFilter !== 'all'
+            "
             color="secondary"
             variant="outlined"
             @click="clearFilters"
@@ -164,7 +168,7 @@
         :items="
           Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0
             ? orphanPublicationIds.map((id) => ({
-                id
+                id,
               }))
             : []
         "
@@ -428,8 +432,6 @@ const loadOrphanPublications = async () => {
   try {
     // Configurar opciones de paginación y filtros
     const options: OrphanPublicationsOptions = {
-      offset: (page.value - 1) * itemsPerPage.value,
-      limit: itemsPerPage.value,
       status: statusFilter.value, // 'all' para todas, true para activas, false para inactivas
       withSoldQuantity: soldQuantityFilter.value,
       catalogActive: catalogActiveFilter.value, // Nuevo filtro para publicaciones de catálogo
