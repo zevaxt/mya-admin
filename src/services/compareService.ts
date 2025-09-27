@@ -47,18 +47,16 @@ export const compareService = {
     accountId: number,
     status: string = '',
     channels: string = 'marketplace',
-    readOnly: boolean = false,
-  ): Promise<{ success: boolean; message?: string; publication_ids?: string[] } | string[]> {
+    readOnly: boolean = false
+  ): Promise<{success: boolean; message?: string; publication_ids?: string[]} | string[]> {
     try {
-      const headers: Record<string, string> = {
-        'account-id': accountId.toString(),
-        status: status,
-        channels: channels,
-        'read-mode': readOnly.toString(),
-      }
-
-      const response = await apiClient.get('/v1/migration/products/ids', {
-        headers,
+      const response = await apiClient.post('/v1/migration/update/products/ids', {}, {
+        headers: {
+          'account-id': accountId.toString(),
+          'status': status,
+          'channels': channels,
+          'read-mode': readOnly.toString()
+        }
       })
 
       // Si es modo solo lectura, devolver el array de IDs directamente
@@ -70,20 +68,20 @@ export const compareService = {
       return {
         success: true,
         message: 'Sincronización de IDs completada correctamente',
-        publication_ids: response.data?.publication_ids || [],
+        publication_ids: response.data?.publication_ids || []
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error al sincronizar IDs de productos:', error)
-
+      
       // En modo solo lectura, devolver array vacío en caso de error
       if (readOnly) {
         return []
       }
-
+      
       // Modo normal, devolver error
       return {
         success: false,
-        message: error.response?.data?.message || 'Error al sincronizar IDs de productos',
+        message: error instanceof Error ? error.message : 'Error al sincronizar IDs de productos'
       }
     }
   },
@@ -108,6 +106,7 @@ export const compareService = {
 
       // Parámetros de paginación
       const url = '/v1/provider/publications/compare'
+
 
       const response = await apiClient.get(url, {
         headers,

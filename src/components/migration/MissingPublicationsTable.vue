@@ -201,7 +201,7 @@ const syncProductIds = async (readOnly: boolean = false) => {
       if (Array.isArray(result)) {
         syncedPublicationIds.value = result
         showIdsDialog.value = true
-      } else if (result && Array.isArray(result.publication_ids)) {
+      } else if (typeof result === 'object' && result !== null && Array.isArray(result.publication_ids)) {
         syncedPublicationIds.value = result.publication_ids
         showIdsDialog.value = true
       } else {
@@ -211,7 +211,8 @@ const syncProductIds = async (readOnly: boolean = false) => {
       }
     } else {
       // Modo normal (guardar en BD)
-      if (result && result.success) {
+      // Verificar que result sea un objeto y no un array
+      if (typeof result === 'object' && result !== null && !Array.isArray(result) && result.success) {
         notificationMessage.value = result.message || 'Sincronización de IDs iniciada correctamente'
         notificationType.value = 'success'
         showNotification.value = true
@@ -300,6 +301,19 @@ watch(
     }
   }
 )
+
+// Confirmar sincronización en modo normal (guardar en BD)
+const confirmSyncNormalMode = () => {
+  // Preparar mensaje con información de filtros
+  const estadoFiltro = statusFilter.value ? `"${statusFilter.value}"` : 'todos';
+  const canalesFiltro = channelsFilter.value;
+  
+  // Mostrar diálogo de confirmación
+  confirmDialogTitle.value = 'Sincronizar IDs en modo normal'
+  confirmDialogMessage.value = `\u00bfEst\u00e1s seguro de que deseas sincronizar los IDs y guardarlos en la base de datos?\n\nFiltros que se aplicar\u00e1n:\n- Estado de publicaciones: ${estadoFiltro}\n- Canales de venta: ${canalesFiltro}\n\nEsta acci\u00f3n puede tardar varios minutos dependiendo de la cantidad de publicaciones.`
+  confirmDialogAction.value = () => syncProductIds(false)
+  showConfirmDialog.value = true
+}
 
 // Confirmar creación de publicaciones seleccionadas
 const createSelectedPublications = () => {
@@ -427,7 +441,7 @@ defineExpose({
             </v-tooltip>
           </template>
           <v-list density="compact">
-            <v-list-item @click="syncProductIds(false)">
+            <v-list-item @click="confirmSyncNormalMode">
               <v-list-item-title>Modo normal (guardar en BD)</v-list-item-title>
             </v-list-item>
             <v-divider></v-divider>

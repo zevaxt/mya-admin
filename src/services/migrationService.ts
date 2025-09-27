@@ -78,8 +78,8 @@ export interface ProductSaleTerm {
 export interface ProductShipping {
   mode?: string
   tags?: string[]
-  methods?: any[]
-  dimensions?: any
+  methods?: Array<Record<string, unknown>>
+  dimensions?: Record<string, unknown> | null
   free_shipping?: boolean
   local_pick_up?: boolean
   store_pick_up?: boolean
