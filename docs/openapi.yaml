@@ -3639,11 +3639,14 @@ paths:
       tags:
         - migration tag
       summary: /v1/migration/products/orphans
-      description: >-
+      description: >
          NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
          Este handler identifica publicaciones que:
          1. Pertenecen a una cuenta específica (account-id)
-         2. No están sincronizadas con otras cuentas (no aparecen en la tabla publication_tosync)
+         2. No están sincronizadas con otras cuentas según el tipo de relación especificado:
+            - Si relation-query-type es "outgoing": No aparecen como to_sync_id (salientes)
+            - Si relation-query-type es "incoming": No aparecen como publication_id (entrantes)
+            - Si relation-query-type es "both": No aparecen ni como to_sync_id ni como publication_id
          3. Por defecto, no están activas en el catálogo (catalog_active = false)
          4. Opcionalmente, filtradas por estado (true/false/all)
          5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
@@ -3674,6 +3677,13 @@ paths:
             type: boolean
           description: true, false, all
           example: 'false'
+        - name: relation-query-type
+          in: header
+          schema:
+            type: string
+            enum: [outgoing, incoming, both]
+          description: Tipo de relación a consultar (outgoing, incoming, both). Por defecto es outgoing.
+          example: 'outgoing'
       responses:
         '200':
           description: Successful response

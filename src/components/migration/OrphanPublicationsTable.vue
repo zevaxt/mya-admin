@@ -133,13 +133,53 @@
             </template>
           </v-tooltip>
         </v-col>
+        
+        <v-col cols="12" md="3">
+          <v-tooltip
+            location="top"
+            text="Selecciona el tipo de relación a consultar: 'Salientes' para publicaciones que no aparecen como destino, 'Entrantes' para las que no aparecen como origen, o 'Todas' para ambas"
+          >
+            <template v-slot:activator="{ props }">
+              <div v-bind="props" class="w-100">
+                <v-select
+                  v-model="relationQueryTypeFilter"
+                  :items="relationQueryTypeOptions"
+                  item-title="title"
+                  item-value="value"
+                  label="Tipo de relación"
+                  variant="outlined"
+                  density="comfortable"
+                  @update:model-value="loadOrphanPublications"
+                  :color="relationQueryTypeFilter !== 'outgoing' ? 'primary' : undefined"
+                  :bg-color="relationQueryTypeFilter !== 'outgoing' ? 'primary-lighten-5' : undefined"
+                >
+                  <template v-slot:append-inner>
+                    <v-icon
+                      v-if="relationQueryTypeFilter !== 'outgoing'"
+                      color="primary"
+                      @click.stop="
+                        () => {
+                          relationQueryTypeFilter = 'outgoing'
+                          loadOrphanPublications()
+                        }
+                      "
+                    >
+                      mdi-close
+                    </v-icon>
+                  </template>
+                </v-select>
+              </div>
+            </template>
+          </v-tooltip>
+        </v-col>
 
         <v-col cols="12" md="6" class="d-flex justify-start align-center gap-2">
           <v-btn
             v-if="
               statusFilter !== 'all' ||
               soldQuantityFilter !== 'all' ||
-              catalogActiveFilter !== 'all'
+              catalogActiveFilter !== 'all' ||
+              relationQueryTypeFilter !== 'outgoing'
             "
             color="secondary"
             variant="outlined"
@@ -374,6 +414,7 @@ const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 const statusFilter = ref<boolean | 'all'>('all')
 const soldQuantityFilter = ref<boolean | 'all'>('all')
 const catalogActiveFilter = ref<boolean | 'all'>('all')
+const relationQueryTypeFilter = ref<'outgoing' | 'incoming' | 'both'>('outgoing')
 
 // Opciones para los filtros
 const statusOptions = [
@@ -394,11 +435,18 @@ const catalogActiveOptions = [
   { title: 'Estándar', value: false },
 ]
 
+const relationQueryTypeOptions = [
+  { title: 'Salientes', value: 'outgoing' },
+  { title: 'Entrantes', value: 'incoming' },
+  { title: 'Todas', value: 'both' },
+]
+
 // Función para limpiar todos los filtros
 const clearFilters = () => {
   statusFilter.value = 'all'
   soldQuantityFilter.value = 'all'
   catalogActiveFilter.value = 'all'
+  relationQueryTypeFilter.value = 'outgoing'
   loadOrphanPublications()
 }
 
@@ -433,7 +481,8 @@ const loadOrphanPublications = async () => {
     const options: OrphanPublicationsOptions = {
       status: statusFilter.value, // 'all' para todas, true para activas, false para inactivas
       withSoldQuantity: soldQuantityFilter.value,
-      catalogActive: catalogActiveFilter.value, // Nuevo filtro para publicaciones de catálogo
+      catalogActive: catalogActiveFilter.value, // Filtro para publicaciones de catálogo
+      relationQueryType: relationQueryTypeFilter.value, // Tipo de relación a consultar
     }
 
     const response = await compareService.getOrphanPublications(accountId.value, options)

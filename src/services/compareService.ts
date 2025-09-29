@@ -36,8 +36,7 @@ export interface OrphanPublicationsOptions {
   status?: string | boolean | 'all' // Ahora acepta string para los estados de ML
   withSoldQuantity?: boolean | 'all'
   catalogActive?: boolean | 'all' // Nuevo parámetro para filtrar por publicaciones de catálogo
-  offset?: number
-  limit?: number
+  relationQueryType?: 'outgoing' | 'incoming' | 'both' // Tipo de relación a consultar
 }
 
 // Servicio de comparación
@@ -72,12 +71,12 @@ export const compareService = {
       }
     } catch (error) {
       console.error('Error al sincronizar IDs de productos:', error)
-      
+
       // En modo solo lectura, devolver array vacío en caso de error
       if (readOnly) {
         return []
       }
-      
+
       // Modo normal, devolver error
       return {
         success: false,
@@ -178,6 +177,11 @@ export const compareService = {
 
       if (options?.catalogActive !== undefined) {
         headers['catalog-active'] = options.catalogActive.toString()
+      }
+
+      // Añadir el encabezado para el tipo de relación a consultar
+      if (options?.relationQueryType) {
+        headers['relation-query-type'] = options.relationQueryType
       }
 
       // Parámetros de paginación
