@@ -2093,11 +2093,22 @@ const syncSelectedPublications = async () => {
   if (!publicationsSelected.value || publicationsSelected.value.length === 0) return
 
   syncingSelected.value = true
+  
+  // Mostrar el overlay de progreso
+  showProgressOverlay.value = true
+  progressMessage.value = `Sincronizando ${publicationsSelected.value.length} publicaciones...`
+  syncComplete.value = false
+  progressValue.value = 0
+  syncSuccessCount.value = 0
+  syncErrorCount.value = 0
+  syncErrorMessages.value = []
+  syncHasErrors.value = false
 
   try {
     // Sincronizar cada publicación seleccionada
     let successCount = 0
     let errorCount = 0
+    const errorMessages: string[] = [] // Almacenar mensajes de error para mostrarlos después
 
     for (const publicationId of publicationsSelected.value) {
       try {
@@ -2110,9 +2121,56 @@ const syncSelectedPublications = async () => {
       } catch (error) {
         console.error(`Error al sincronizar la publicación ${publicationId}:`, error)
         errorCount++
+        
+        // Crear un objeto de error enriquecido con los IDs
+        let errorMessage = ''
+        let errorPayload: unknown = null
+        
+        // Extraer el mensaje de error
+        if (error instanceof Error) {
+          errorMessage = error.message
+          
+          // Intentar extraer el payload JSON si existe
+          try {
+            const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              errorPayload = JSON.parse(jsonMatch[0]);
+            }
+          } catch {
+            // Si no se puede parsear, usar el mensaje original
+          }
+        } else if (typeof error === 'object' && error !== null) {
+          // Si el error ya es un objeto, usarlo directamente
+          errorPayload = error;
+          errorMessage = JSON.stringify(error);
+        } else {
+          errorMessage = 'Error desconocido';
+        }
+        
+        // Crear un objeto de error enriquecido
+        const enrichedError = {
+          sourceId: publicationId,
+          targetId: 'N/A', // No hay ID de destino en sincronización simple
+          message: errorMessage,
+          payload: errorPayload
+        }
+        
+        // Guardar el error enriquecido como JSON
+        errorMessages.push(JSON.stringify(enrichedError))
+      } finally {
+        // Actualizar el indicador de progreso después de cada sincronización
+        progressValue.value = (successCount + errorCount) / publicationsSelected.value.length
       }
     }
 
+    // Actualizar el estado del overlay con los resultados
+    syncComplete.value = true
+    syncSuccessCount.value = successCount
+    syncErrorCount.value = errorCount
+    syncErrorMessages.value = errorMessages
+    syncHasErrors.value = errorCount > 0
+
+    // Mostrar notificación
     showNotification.value = true
     if (errorCount === 0) {
       notificationMessage.value = `${successCount} publicaciones sincronizadas correctamente`
