@@ -2110,56 +2110,96 @@ const syncSelectedPublications = async () => {
     let errorCount = 0
     const errorMessages: string[] = [] // Almacenar mensajes de error para mostrarlos después
 
+    // Obtener la publicación actual para determinar sus relaciones
     for (const publicationId of publicationsSelected.value) {
       try {
         const accountId = accountStore.currentAccount?.ID
         if (!accountId) continue
-
-        // Usar la función updateProduct directamente
-        await migrationService.updateProduct(accountId, publicationId)
-        successCount++
+        
+        // Encontrar la publicación en la lista para obtener sus relaciones
+        const publication = publications.value.find(item => item.publication_id === publicationId)
+        if (!publication) {
+          console.warn(`No se encontró la publicación ${publicationId} en la lista`)
+          continue
+        }
+        
+        // Procesar sincronizaciones salientes
+        if (publication.to_syncs && publication.to_syncs.length > 0) {
+          for (const toSync of publication.to_syncs) {
+            try {
+              // Buscar la cuenta a la que pertenece el destino
+              const targetAccountId = toSync.to_account_id
+              const targetPublicationId = toSync.to_sync_id
+              
+              // Sincronizar de publicationId hacia targetPublicationId
+              console.log(
+                `Sincronización saliente: accountId=${accountId}, publicationId=${publicationId}, targetAccountId=${targetAccountId}, targetPublicationId=${targetPublicationId}`,
+              )
+              
+              await migrationService.updateProduct(accountId, publicationId, targetAccountId, targetPublicationId)
+              successCount++
+            } catch (syncError) {
+              console.error(`Error en sincronización saliente de ${publicationId} a ${toSync.to_sync_id}:`, syncError)
+              errorCount++
+              
+              // Crear un objeto de error enriquecido
+              const enrichedError = createEnrichedError(syncError, publicationId, toSync.to_sync_id)
+              errorMessages.push(JSON.stringify(enrichedError))
+            }
+          }
+        }
+        
+        // Procesar sincronizaciones entrantes
+        if (publication.from_syncs && publication.from_syncs.length > 0) {
+          for (const fromSync of publication.from_syncs) {
+            try {
+              const sourceAccountId = fromSync.from_account_id
+              const sourcePublicationId = fromSync.from_publication_id
+              
+              // Sincronizar de sourcePublicationId hacia publicationId
+              console.log(
+                `Sincronización entrante: accountId=${sourceAccountId}, publicationId=${sourcePublicationId}, targetAccountId=${accountId}, targetPublicationId=${publicationId}`,
+              )
+              
+              await migrationService.updateProduct(sourceAccountId, sourcePublicationId, accountId, publicationId)
+              successCount++
+            } catch (syncError) {
+              console.error(`Error en sincronización entrante de ${fromSync.from_publication_id} a ${publicationId}:`, syncError)
+              errorCount++
+              
+              // Crear un objeto de error enriquecido
+              const enrichedError = createEnrichedError(syncError, fromSync.from_publication_id, publicationId)
+              errorMessages.push(JSON.stringify(enrichedError))
+            }
+          }
+        }
+        
+        // Si no hay relaciones, sincronizar la publicación consigo misma
+        if ((!publication.to_syncs || publication.to_syncs.length === 0) && 
+            (!publication.from_syncs || publication.from_syncs.length === 0)) {
+          try {
+            // Sincronizar la publicación consigo misma para actualizar sus datos
+            await migrationService.updateProduct(accountId, publicationId)
+            successCount++
+          } catch (syncError) {
+            console.error(`Error al sincronizar la publicación ${publicationId}:`, syncError)
+            errorCount++
+            
+            // Crear un objeto de error enriquecido
+            const enrichedError = createEnrichedError(syncError, publicationId, 'N/A')
+            errorMessages.push(JSON.stringify(enrichedError))
+          }
+        }
       } catch (error) {
-        console.error(`Error al sincronizar la publicación ${publicationId}:`, error)
+        console.error(`Error general al procesar la publicación ${publicationId}:`, error)
         errorCount++
         
-        // Crear un objeto de error enriquecido con los IDs
-        let errorMessage = ''
-        let errorPayload: unknown = null
-        
-        // Extraer el mensaje de error
-        if (error instanceof Error) {
-          errorMessage = error.message
-          
-          // Intentar extraer el payload JSON si existe
-          try {
-            const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              errorPayload = JSON.parse(jsonMatch[0]);
-            }
-          } catch {
-            // Si no se puede parsear, usar el mensaje original
-          }
-        } else if (typeof error === 'object' && error !== null) {
-          // Si el error ya es un objeto, usarlo directamente
-          errorPayload = error;
-          errorMessage = JSON.stringify(error);
-        } else {
-          errorMessage = 'Error desconocido';
-        }
-        
         // Crear un objeto de error enriquecido
-        const enrichedError = {
-          sourceId: publicationId,
-          targetId: 'N/A', // No hay ID de destino en sincronización simple
-          message: errorMessage,
-          payload: errorPayload
-        }
-        
-        // Guardar el error enriquecido como JSON
+        const enrichedError = createEnrichedError(error, publicationId, 'N/A')
         errorMessages.push(JSON.stringify(enrichedError))
       } finally {
-        // Actualizar el indicador de progreso después de cada sincronización
-        progressValue.value = (successCount + errorCount) / publicationsSelected.value.length
+        // Actualizar el indicador de progreso después de cada publicación procesada
+        progressValue.value = (successCount + errorCount) / (publicationsSelected.value.length * 2) // Aproximación del progreso
       }
     }
 
@@ -2569,6 +2609,41 @@ interface EnrichedError {
   targetId: string;
   message: string;
   payload?: unknown;
+}
+
+// Función para crear un objeto de error enriquecido
+const createEnrichedError = (error: unknown, sourceId: string, targetId: string): EnrichedError => {
+  let errorMessage = ''
+  let errorPayload: unknown = null
+  
+  // Extraer el mensaje de error
+  if (error instanceof Error) {
+    errorMessage = error.message
+    
+    // Intentar extraer el payload JSON si existe
+    try {
+      const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        errorPayload = JSON.parse(jsonMatch[0]);
+      }
+    } catch {
+      // Si no se puede parsear, usar el mensaje original
+    }
+  } else if (typeof error === 'object' && error !== null) {
+    // Si el error ya es un objeto, usarlo directamente
+    errorPayload = error;
+    errorMessage = JSON.stringify(error);
+  } else {
+    errorMessage = 'Error desconocido';
+  }
+  
+  // Crear un objeto de error enriquecido
+  return {
+    sourceId,
+    targetId,
+    message: errorMessage,
+    payload: errorPayload
+  }
 }
 
 // Función para extraer los IDs de origen y destino de un mensaje de error
