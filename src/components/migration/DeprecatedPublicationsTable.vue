@@ -225,7 +225,7 @@ const confirmDialogMessage = ref('')
 const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 
 // Opciones para items por página
-const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
+const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 
 // No se utilizan filtros
 

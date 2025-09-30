@@ -436,7 +436,7 @@
                   >
                     <v-icon size="small">
                       {{
-                        expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
+                        expanded.includes(slotProps.item.publication_id) ? 'mdi-chevron-up' : 'mdi-chevron-down'
                       }}
                     </v-icon>
                   </v-btn>
@@ -528,7 +528,7 @@
                   >
                     <v-icon size="small">
                       {{
-                        expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
+                        expanded.includes(slotProps.item.publication_id) ? 'mdi-chevron-up' : 'mdi-chevron-down'
                       }}
                     </v-icon>
                   </v-btn>
@@ -1210,7 +1210,7 @@ const deletingSelected = ref(false)
 // Estado para la paginación
 const page = ref(1)
 const itemsPerPage = ref(10)
-const itemsPerPageOptions = [5, 10, 25, 50, 100]
+const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 
 // Filtros
 const searchQuery = ref('')
