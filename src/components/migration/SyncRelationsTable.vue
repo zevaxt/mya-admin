@@ -332,104 +332,233 @@
 
         <!-- Columna de ID de Publicación -->
         <template #[`item.publication_id`]="slotProps">
-          <div class="d-flex align-center">
-            <span>{{ slotProps.item.publication_id }}</span>
+          <div class="d-flex align-center justify-space-between">
+            <!-- ID de la publicación -->
+            <div class="d-flex align-center">
+              <span>{{ slotProps.item.publication_id }}</span>
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="d-flex align-center">
+              <!-- Botón Ver detalles -->
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="text"
+                    color="primary"
+                    @click="viewProductDetails(slotProps.item.publication_id)"
+                  >
+                    <v-icon size="small">mdi-eye</v-icon>
+                  </v-btn>
+                </template>
+                <span>Ver detalles</span>
+              </v-tooltip>
+              
+              <!-- Botón Ver en Mercado Libre -->
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="text"
+                    color="primary"
+                    @click="openInMercadoLibre(slotProps.item.publication_id)"
+                    class="ml-1"
+                  >
+                    <v-icon size="small">mdi-open-in-new</v-icon>
+                  </v-btn>
+                </template>
+                <span>Ver en Mercado Libre</span>
+              </v-tooltip>
+            </div>
           </div>
         </template>
 
         <!-- Columna de Sincronizaciones Salientes -->
         <template #[`item.outgoing_syncs`]="slotProps">
-          <div class="d-flex align-center">
-            <!-- Mostrar el número de sincronizaciones -->
-            <v-chip
-              :color="slotProps.item.to_syncs.length > 0 ? 'primary' : 'grey'"
-              size="small"
-              variant="outlined"
-              class="mr-2"
-            >
-              {{ slotProps.item.to_syncs.length }}
-            </v-chip>
+          <div class="d-flex align-center justify-space-between">
+            <!-- Lado izquierdo: contador, botón de agregar y ID -->
+            <div class="d-flex align-center">
+              <!-- Mostrar el número de sincronizaciones -->
+              <v-chip
+                :color="slotProps.item.to_syncs.length > 0 ? 'primary' : 'grey'"
+                size="small"
+                variant="outlined"
+                class="mr-2"
+              >
+                {{ slotProps.item.to_syncs.length }}
+              </v-chip>
+              
+              <!-- Botón para agregar sincronización saliente -->
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="text"
+                    color="success"
+                    @click="openAddSyncDialog(slotProps.item.publication_id, 'outgoing')"
+                    class="mr-2"
+                  >
+                    <v-icon size="small">mdi-arrow-right-bold-box-outline</v-icon>
+                  </v-btn>
+                </template>
+                <span>Agregar sincronización saliente</span>
+              </v-tooltip>
 
-            <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
-            <div v-if="slotProps.item.to_syncs.length === 1" class="d-flex align-center">
-              <span class="text-caption text-truncate" style="max-width: 150px">
-                {{ slotProps.item.to_syncs[0].to_sync_id }}
-              </span>
+              <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
+              <div v-if="slotProps.item.to_syncs.length === 1" class="d-flex align-center">
+                <span class="text-caption text-truncate" style="max-width: 150px">
+                  {{ slotProps.item.to_syncs[0].to_sync_id }}
+                </span>
+              </div>
             </div>
+            
+            <!-- Lado derecho: botones alineados a la derecha -->
+            <div class="d-flex align-center">
+              
+              <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
+              <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="text"
+                    :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'primary'"
+                    @click.stop="toggleExpanded(slotProps.item.publication_id)"
+                    class="ml-1"
+                  >
+                    <v-icon size="small">
+                      {{
+                        expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
+                      }}
+                    </v-icon>
+                  </v-btn>
+                </template>
+                <span>{{
+                  expanded.includes(slotProps.item.publication_id)
+                    ? 'Ocultar detalles'
+                    : 'Ver sincronizaciones salientes'
+                }}</span>
+              </v-tooltip>
 
-            <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
-            <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="x-small"
-                  icon
-                  variant="text"
-                  :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'primary'"
-                  @click.stop="toggleExpanded(slotProps.item.publication_id)"
-                  class="ml-2"
-                >
-                  <v-icon size="small">
-                    {{
-                      expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
-                    }}
-                  </v-icon>
-                </v-btn>
-              </template>
-              <span>{{
-                expanded.includes(slotProps.item.publication_id)
-                  ? 'Ocultar detalles'
-                  : 'Ver sincronizaciones salientes'
-              }}</span>
-            </v-tooltip>
+              <!-- Botón para sincronizar todas las relaciones salientes -->
+              <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="elevated"
+                    color="warning"
+                    :loading="syncingItem === `${slotProps.item.publication_id}-outgoing-all`"
+                    @click.stop="syncAllRelations(slotProps.item.publication_id, 'outgoing')"
+                    class="ml-1"
+                  >
+                    <v-icon size="small">mdi-sync</v-icon>
+                  </v-btn>
+                </template>
+                <span>Sincronizar todas las relaciones salientes</span>
+              </v-tooltip>
+            </div>
           </div>
         </template>
 
         <!-- Columna de Sincronizaciones Entrantes -->
         <template #[`item.incoming_syncs`]="slotProps">
-          <div class="d-flex align-center">
-            <!-- Mostrar el número de sincronizaciones -->
-            <v-chip
-              :color="slotProps.item.from_syncs.length > 0 ? 'success' : 'grey'"
-              size="small"
-              variant="outlined"
-              class="mr-2"
-            >
-              {{ slotProps.item.from_syncs.length }}
-            </v-chip>
+          <div class="d-flex align-center justify-space-between">
+            <!-- Lado izquierdo: contador, botón de agregar y ID -->
+            <div class="d-flex align-center">
+              <!-- Mostrar el número de sincronizaciones -->
+              <v-chip
+                :color="slotProps.item.from_syncs.length > 0 ? 'success' : 'grey'"
+                size="small"
+                variant="outlined"
+                class="mr-2"
+              >
+                {{ slotProps.item.from_syncs.length }}
+              </v-chip>
+              
+              <!-- Botón para agregar sincronización entrante -->
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="text"
+                    color="info"
+                    @click="openAddSyncDialog(slotProps.item.publication_id, 'incoming')"
+                    class="mr-2"
+                  >
+                    <v-icon size="small">mdi-arrow-left-bold-box-outline</v-icon>
+                  </v-btn>
+                </template>
+                <span>Agregar sincronización entrante</span>
+              </v-tooltip>
 
-            <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
-            <div v-if="slotProps.item.from_syncs.length === 1" class="d-flex align-center">
-              <span class="text-caption text-truncate" style="max-width: 150px">
-                {{ slotProps.item.from_syncs[0].from_publication_id }}
-              </span>
+              <!-- Cuando hay exactamente una sincronización, mostrar el ID directamente -->
+              <div v-if="slotProps.item.from_syncs.length === 1" class="d-flex align-center">
+                <span class="text-caption text-truncate" style="max-width: 150px">
+                  {{ slotProps.item.from_syncs[0].from_publication_id }}
+                </span>
+              </div>
             </div>
+            
+            <!-- Lado derecho: botones alineados a la derecha -->
+            <div class="d-flex align-center">
+              
+              <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
+              <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="text"
+                    :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'success'"
+                    @click.stop="toggleExpanded(slotProps.item.publication_id)"
+                    class="ml-1"
+                  >
+                    <v-icon size="small">
+                      {{
+                        expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
+                      }}
+                    </v-icon>
+                  </v-btn>
+                </template>
+                <span>{{
+                  expanded.includes(slotProps.item.publication_id)
+                    ? 'Ocultar detalles'
+                    : 'Ver sincronizaciones entrantes'
+                }}</span>
+              </v-tooltip>
 
-            <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
-            <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="x-small"
-                  icon
-                  variant="text"
-                  :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'success'"
-                  @click.stop="toggleExpanded(slotProps.item.publication_id)"
-                  class="ml-2"
-                >
-                  <v-icon size="small">
-                    {{
-                      expanded.includes(slotProps.item.publication_id) ? 'mdi-eye-off' : 'mdi-eye'
-                    }}
-                  </v-icon>
-                </v-btn>
-              </template>
-              <span>{{
-                expanded.includes(slotProps.item.publication_id)
-                  ? 'Ocultar detalles'
-                  : 'Ver sincronizaciones entrantes'
-              }}</span>
-            </v-tooltip>
+              <!-- Botón para sincronizar todas las relaciones entrantes -->
+              <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    size="x-small"
+                    icon
+                    variant="elevated"
+                    color="warning"
+                    :loading="syncingItem === `${slotProps.item.publication_id}-incoming-all`"
+                    @click.stop="syncAllRelations(slotProps.item.publication_id, 'incoming')"
+                    class="ml-1"
+                  >
+                    <v-icon size="small">mdi-sync</v-icon>
+                  </v-btn>
+                </template>
+                <span>Sincronizar todas las relaciones entrantes</span>
+              </v-tooltip>
+            </div>
           </div>
         </template>
 
@@ -458,94 +587,7 @@
           </v-chip>
         </template>
 
-        <!-- Columna de Acciones -->
-        <template #[`item.actions`]="slotProps">
-          <div class="d-flex align-center">
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="small"
-                  icon
-                  variant="text"
-                  color="primary"
-                  @click="viewProductDetails(slotProps.item.publication_id)"
-                >
-                  <v-icon>mdi-eye</v-icon>
-                </v-btn>
-              </template>
-              <span>Ver detalles</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="small"
-                  icon
-                  variant="text"
-                  color="success"
-                  @click="openAddSyncDialog(slotProps.item.publication_id, 'outgoing')"
-                >
-                  <v-icon>mdi-arrow-right-bold-box-outline</v-icon>
-                </v-btn>
-              </template>
-              <span>Agregar sincronización saliente</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="small"
-                  icon
-                  variant="text"
-                  color="info"
-                  @click="openAddSyncDialog(slotProps.item.publication_id, 'incoming')"
-                >
-                  <v-icon>mdi-arrow-left-bold-box-outline</v-icon>
-                </v-btn>
-              </template>
-              <span>Agregar sincronización entrante</span>
-            </v-tooltip>
-
-            <v-divider vertical class="mx-2"></v-divider>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="small"
-                  icon
-                  variant="elevated"
-                  color="warning"
-                  :loading="syncingItem === slotProps.item.publication_id"
-                  @click="syncPublication(slotProps.item.publication_id)"
-                  class="ml-1"
-                >
-                  <v-icon>mdi-sync</v-icon>
-                </v-btn>
-              </template>
-              <span>Actualizar sincronización</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  size="small"
-                  icon
-                  variant="text"
-                  color="primary"
-                  @click="openInMercadoLibre(slotProps.item.publication_id)"
-                >
-                  <v-icon size="small">mdi-open-in-new</v-icon>
-                </v-btn>
-              </template>
-              <span>Ver en Mercado Libre</span>
-            </v-tooltip>
-          </div>
-        </template>
+        <!-- La columna de Acciones ha sido eliminada y sus botones movidos a las columnas de sincronizaciones -->
 
         <!-- Filas expandibles -->
         <template #expanded-row="slotProps">
@@ -1223,7 +1265,7 @@ const headers = [
   { title: 'Estado Sincr.', key: 'sync_status', sortable: true },
   { title: 'Estado', key: 'status', sortable: true },
   { title: 'Catálogo', key: 'catalog', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false },
+  // La columna de Acciones ha sido eliminada y sus botones movidos a las columnas de sincronizaciones
 ]
 
 // Ya no necesitamos la función filteredPublications computada
@@ -1583,15 +1625,6 @@ const availableAccounts = computed(() => {
     }))
 })
 
-// Función de filtro personalizado para el autocomplete
-const customFilter = (item: { id: string; title?: string; status: boolean }, queryText: string) => {
-  const id = item.id.toLowerCase()
-  const title = (item.title || '').toLowerCase()
-  const query = queryText.toLowerCase()
-
-  return id.includes(query) || title.includes(query)
-}
-
 // Cargar publicaciones para la cuenta seleccionada
 const loadPublicationsForAccount = async (accountId: number | null) => {
   if (!accountId) {
@@ -1854,13 +1887,34 @@ const syncSelectedPublications = async () => {
 
   try {
     // Sincronizar cada publicación seleccionada
+    let successCount = 0
+    let errorCount = 0
+
     for (const publicationId of publicationsSelected.value) {
-      await syncPublication(publicationId)
+      try {
+        const accountId = accountStore.currentAccount?.ID
+        if (!accountId) continue
+
+        // Usar la función updateProduct directamente
+        await migrationService.updateProduct(accountId, publicationId)
+        successCount++
+      } catch (error) {
+        console.error(`Error al sincronizar la publicación ${publicationId}:`, error)
+        errorCount++
+      }
     }
 
     showNotification.value = true
-    notificationMessage.value = `${publicationsSelected.value.length} publicaciones sincronizadas correctamente`
-    notificationType.value = 'success'
+    if (errorCount === 0) {
+      notificationMessage.value = `${successCount} publicaciones sincronizadas correctamente`
+      notificationType.value = 'success'
+    } else {
+      notificationMessage.value = `${successCount} publicaciones sincronizadas, con ${errorCount} errores`
+      notificationType.value = errorCount < successCount ? 'warning' : 'error'
+    }
+
+    // Recargar los datos para ver los cambios
+    await loadSyncRelations()
   } catch (error) {
     console.error('Error al sincronizar publicaciones seleccionadas:', error)
     showNotification.value = true
@@ -1868,39 +1922,6 @@ const syncSelectedPublications = async () => {
     notificationType.value = 'error'
   } finally {
     syncingSelected.value = false
-  }
-}
-
-// Función para sincronizar una publicación específica
-const syncPublication = async (publicationId: string) => {
-  const accountId = accountStore.currentAccount?.ID
-  if (!accountId) {
-    showNotification.value = true
-    notificationMessage.value = 'Selecciona una cuenta primero'
-    notificationType.value = 'warning'
-    return
-  }
-
-  syncingItem.value = publicationId
-
-  try {
-    // Llamar al endpoint para actualizar la publicación y sus sincronizaciones
-    const response = await migrationService.updateProduct(accountId, publicationId)
-
-    showNotification.value = true
-    notificationMessage.value =
-      response.message || `Sincronización de la publicación ${publicationId} iniciada`
-    notificationType.value = 'success'
-
-    // Recargar los datos para ver los cambios
-    await loadSyncRelations()
-  } catch (error) {
-    console.error(`Error al sincronizar la publicación ${publicationId}:`, error)
-    showNotification.value = true
-    notificationMessage.value = `Error al sincronizar la publicación ${publicationId}`
-    notificationType.value = 'error'
-  } finally {
-    syncingItem.value = null
   }
 }
 
@@ -1927,23 +1948,36 @@ const syncRelation = async (
     if (direction === 'outgoing') {
       // Sincronizar de sourceId hacia targetId
       // En este caso, sourceId es la publicación de origen y targetId es la publicación de destino
-      // Necesitamos el ID de la cuenta actual como cuenta de origen
-      response = await migrationService.updateProduct(accountId, sourceId, undefined, targetId)
+
+      // Buscar la cuenta a la que pertenece targetId
+      const targetAccountId = findAccountIdByPublicationId(targetId)
+
+      // Si no se encuentra la cuenta de destino, usamos la cuenta actual
+      // Esto es necesario porque el header account-id-to no puede estar vacío
+      const targetAccount = targetAccountId || accountId
+
+      console.log(
+        `Sincronización saliente: accountId=${accountId}, publicationId=${sourceId}, targetAccountId=${targetAccount}, targetPublicationId=${targetId}`,
+      )
+
+      response = await migrationService.updateProduct(accountId, sourceId, targetAccount, targetId)
     } else {
       // 'incoming'
       // Sincronizar de targetId hacia sourceId (inverso)
       // En este caso, targetId es la publicación de origen y sourceId es la publicación de destino
-      // Necesitamos encontrar el ID de la cuenta a la que pertenece sourceId
+
+      // Buscar la cuenta a la que pertenece sourceId
       const targetAccountId = findAccountIdByPublicationId(sourceId)
-      if (!targetAccountId) {
-        throw new Error(`No se pudo determinar la cuenta para la publicación ${sourceId}`)
-      }
-      response = await migrationService.updateProduct(
-        accountId,
-        targetId,
-        targetAccountId,
-        sourceId,
+
+      // Si no se encuentra la cuenta de destino, usamos la cuenta actual
+      // Esto es necesario porque el header account-id-to no puede estar vacío
+      const targetAccount = targetAccountId || accountId
+
+      console.log(
+        `Sincronización entrante: accountId=${accountId}, publicationId=${targetId}, targetAccountId=${targetAccount}, targetPublicationId=${sourceId}`,
       )
+
+      response = await migrationService.updateProduct(accountId, targetId, targetAccount, sourceId)
     }
 
     showNotification.value = true
@@ -1961,6 +1995,93 @@ const syncRelation = async (
     showNotification.value = true
     notificationMessage.value =
       error instanceof Error ? error.message : `Error al sincronizar la relación`
+    notificationType.value = 'error'
+  } finally {
+    syncingItem.value = null
+  }
+}
+
+// Función para sincronizar todas las relaciones de un tipo específico (entrantes o salientes)
+const syncAllRelations = async (publicationId: string, direction: 'outgoing' | 'incoming') => {
+  // Crear un ID único para esta operación de sincronización masiva
+  const operationId = `${publicationId}-${direction}-all`
+  syncingItem.value = operationId
+
+  try {
+    const accountId = accountStore.currentAccount?.ID
+    if (!accountId) {
+      showNotification.value = true
+      notificationMessage.value = 'Selecciona una cuenta primero'
+      notificationType.value = 'warning'
+      return
+    }
+
+    // Encontrar la publicación en la lista
+    const publication = publications.value.find((item) => item.publication_id === publicationId)
+    if (!publication) {
+      throw new Error(`No se encontró la publicación ${publicationId}`)
+    }
+
+    // Determinar qué relaciones sincronizar según la dirección
+    const relations = direction === 'outgoing' ? publication.to_syncs : publication.from_syncs
+
+    if (relations.length === 0) {
+      showNotification.value = true
+      notificationMessage.value = `No hay relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'} para sincronizar`
+      notificationType.value = 'warning'
+      return
+    }
+
+    // Mostrar notificación de inicio
+    showNotification.value = true
+    notificationMessage.value = `Iniciando sincronización de ${relations.length} relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'}`
+    notificationType.value = 'success' // Cambiado de 'info' a 'success' para evitar error de tipo
+
+    // Sincronizar cada relación una por una
+    let successCount = 0
+    let errorCount = 0
+
+    for (const relation of relations) {
+      try {
+        if (direction === 'outgoing') {
+          // Para relaciones salientes
+          // Asegurarnos de que estamos trabajando con una relación saliente
+          const outgoingRelation = relation as { to_sync_id: string; to_account_id: number }
+          await syncRelation(publicationId, outgoingRelation.to_sync_id, 'outgoing')
+          successCount++
+        } else {
+          // Para relaciones entrantes
+          // Asegurarnos de que estamos trabajando con una relación entrante
+          const incomingRelation = relation as {
+            from_publication_id: string
+            from_account_id: number
+          }
+          await syncRelation(incomingRelation.from_publication_id, publicationId, 'incoming')
+          successCount++
+        }
+      } catch (error) {
+        console.error(`Error al sincronizar relación:`, error)
+        errorCount++
+      }
+    }
+
+    // Mostrar notificación de resultado
+    showNotification.value = true
+    if (errorCount === 0) {
+      notificationMessage.value = `Se sincronizaron correctamente ${successCount} relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'}`
+      notificationType.value = 'success'
+    } else {
+      notificationMessage.value = `Se sincronizaron ${successCount} relaciones, con ${errorCount} errores`
+      notificationType.value = errorCount < successCount ? 'warning' : 'error'
+    }
+
+    // Recargar los datos para ver los cambios
+    await loadSyncRelations()
+  } catch (error) {
+    console.error(`Error al sincronizar relaciones ${direction}:`, error)
+    showNotification.value = true
+    notificationMessage.value =
+      error instanceof Error ? error.message : `Error al sincronizar relaciones`
     notificationType.value = 'error'
   } finally {
     syncingItem.value = null
@@ -1994,7 +2115,7 @@ const findAccountIdByPublicationId = (publicationId: string): number | undefined
 }
 
 // Nota: La función updateSyncRelations fue eliminada porque no se utilizaba y
-// su funcionalidad ya está cubierta por la función syncPublication
+// su funcionalidad ya está cubierta por otras funciones de sincronización
 
 // Función para eliminar una relación específica
 const deleteSyncRelation = async (
