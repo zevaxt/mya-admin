@@ -570,6 +570,18 @@ export const migrationService = {
       return response.data
     } catch (error) {
       console.error('Error al actualizar el producto:', error)
+      
+      // Procesar el error para extraer el payload completo
+      if (error && typeof error === 'object' && 'response' in error) {
+        // Error de Axios con datos de respuesta
+        const axiosError = error as { response?: { data?: unknown } }
+        if (axiosError.response && axiosError.response.data) {
+          // Devolver el payload completo del error
+          throw axiosError.response.data
+        }
+      }
+      
+      // Si no podemos extraer un payload estructurado, lanzar el error original
       throw error
     }
   },

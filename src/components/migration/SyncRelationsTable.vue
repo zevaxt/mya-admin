@@ -337,7 +337,7 @@
             <div class="d-flex align-center">
               <span>{{ slotProps.item.publication_id }}</span>
             </div>
-            
+
             <!-- Botones de acción -->
             <div class="d-flex align-center">
               <!-- Botón Ver detalles -->
@@ -356,7 +356,7 @@
                 </template>
                 <span>Ver detalles</span>
               </v-tooltip>
-              
+
               <!-- Botón Ver en Mercado Libre -->
               <v-tooltip location="top">
                 <template #activator="{ props }">
@@ -392,7 +392,7 @@
               >
                 {{ slotProps.item.to_syncs.length }}
               </v-chip>
-              
+
               <!-- Botón para agregar sincronización saliente -->
               <v-tooltip location="top">
                 <template #activator="{ props }">
@@ -418,10 +418,9 @@
                 </span>
               </div>
             </div>
-            
+
             <!-- Lado derecho: botones alineados a la derecha -->
             <div class="d-flex align-center">
-              
               <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
               <v-tooltip v-if="slotProps.item.to_syncs.length > 0" location="top">
                 <template #activator="{ props }">
@@ -430,13 +429,17 @@
                     size="x-small"
                     icon
                     variant="text"
-                    :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'primary'"
+                    :color="
+                      expanded.includes(slotProps.item.publication_id) ? 'warning' : 'primary'
+                    "
                     @click.stop="toggleExpanded(slotProps.item.publication_id)"
                     class="ml-1"
                   >
                     <v-icon size="small">
                       {{
-                        expanded.includes(slotProps.item.publication_id) ? 'mdi-chevron-up' : 'mdi-chevron-down'
+                        expanded.includes(slotProps.item.publication_id)
+                          ? 'mdi-chevron-up'
+                          : 'mdi-chevron-down'
                       }}
                     </v-icon>
                   </v-btn>
@@ -484,7 +487,7 @@
               >
                 {{ slotProps.item.from_syncs.length }}
               </v-chip>
-              
+
               <!-- Botón para agregar sincronización entrante -->
               <v-tooltip location="top">
                 <template #activator="{ props }">
@@ -510,10 +513,9 @@
                 </span>
               </div>
             </div>
-            
+
             <!-- Lado derecho: botones alineados a la derecha -->
             <div class="d-flex align-center">
-              
               <!-- Botón para expandir/contraer, mostrar siempre que haya al menos una sincronización -->
               <v-tooltip v-if="slotProps.item.from_syncs.length > 0" location="top">
                 <template #activator="{ props }">
@@ -522,13 +524,17 @@
                     size="x-small"
                     icon
                     variant="text"
-                    :color="expanded.includes(slotProps.item.publication_id) ? 'warning' : 'success'"
+                    :color="
+                      expanded.includes(slotProps.item.publication_id) ? 'warning' : 'success'
+                    "
                     @click.stop="toggleExpanded(slotProps.item.publication_id)"
                     class="ml-1"
                   >
                     <v-icon size="small">
                       {{
-                        expanded.includes(slotProps.item.publication_id) ? 'mdi-chevron-up' : 'mdi-chevron-down'
+                        expanded.includes(slotProps.item.publication_id)
+                          ? 'mdi-chevron-up'
+                          : 'mdi-chevron-down'
                       }}
                     </v-icon>
                   </v-btn>
@@ -908,12 +914,161 @@
     </v-card>
 
     <!-- Snackbar para notificaciones -->
-    <v-snackbar v-model="showNotification" :color="notificationType" timeout="3000">
-      {{ notificationMessage }}
+    <v-snackbar
+      v-model="showNotification"
+      :color="notificationType"
+      :timeout="notificationType === 'error' ? 6000 : 3000"
+      multi-line
+      class="error-snackbar"
+    >
+      <div v-html="notificationMessage"></div>
       <template #actions>
         <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
+    
+    <!-- Overlay con indicador de progreso y resultados -->
+    <v-overlay
+      v-model="showProgressOverlay"
+      class="align-center justify-center"
+      persistent
+      :scrim="true"
+      scrim-class="bg-primary"
+      :opacity="0.8"
+    >
+      <v-card class="pa-4 rounded-xl" min-width="350" max-width="450" elevation="10">
+        <v-card-title class="d-flex align-center pb-1">
+          <v-icon 
+            :icon="syncComplete ? (syncHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle') : 'mdi-sync'" 
+            :class="{'mr-2 rotating-icon': !syncComplete, 'mr-2': syncComplete}" 
+            :color="syncComplete ? (syncHasErrors ? 'error' : 'success') : 'primary'" 
+            size="small"
+          ></v-icon>
+          <span class="text-h6">
+            {{ syncComplete ? (syncHasErrors ? 'Sincronización con errores' : 'Sincronización completada') : 'Sincronizando' }}
+          </span>
+          
+          <!-- Botón de cerrar solo visible cuando se completa la sincronización -->
+          <v-spacer></v-spacer>
+          <v-btn v-if="syncComplete" icon="mdi-close" variant="text" density="compact" @click="showProgressOverlay = false"></v-btn>
+        </v-card-title>
+        
+        <v-card-text class="pt-2">
+          <!-- Mensaje de progreso -->
+          <p class="text-body-1 mb-4">{{ progressMessage }}</p>
+          
+          <!-- Barra de progreso -->
+          <template v-if="!syncComplete">
+            <div class="d-flex align-center mb-1">
+              <span class="text-caption text-medium-emphasis">Progreso:</span>
+              <span class="ml-auto font-weight-bold">{{ Math.round(progressValue * 100) }}%</span>
+            </div>
+            
+            <v-progress-linear
+              v-model="progressValue"
+              color="primary"
+              height="12"
+              :buffer-value="0"
+              striped
+              rounded
+            ></v-progress-linear>
+            
+            <p class="text-caption text-medium-emphasis mt-3 text-center">
+              Por favor, espere mientras se completa el proceso...
+            </p>
+          </template>
+          
+          <!-- Resultados cuando se completa la sincronización -->
+          <template v-else>
+            <v-alert
+              v-if="syncSuccessCount > 0"
+              type="success"
+              variant="tonal"
+              density="compact"
+              class="mb-3"
+            >
+              <strong>{{ syncSuccessCount }}</strong> relaciones sincronizadas correctamente
+            </v-alert>
+            
+            <v-alert
+              v-if="syncErrorCount > 0"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="mb-3"
+            >
+              <strong>{{ syncErrorCount }}</strong> relaciones fallaron
+              
+              <!-- Mostrar los detalles de los errores en una tabla con paginación -->
+              <div v-if="syncErrorMessages.length > 0" class="mt-3">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="font-weight-medium">Detalles de los errores:</div>
+                  <v-chip size="small" color="error" variant="outlined">{{ syncErrorMessages.length }} errores</v-chip>
+                </div>
+                
+                <v-data-table
+                  :headers="[
+                    { title: '#', key: 'index', width: '50px' },
+                    { title: 'Resumen', key: 'summary' },
+                    { title: 'Acciones', key: 'actions', width: '100px', sortable: false },
+                  ]"
+                  :items="syncErrorMessages.map((msg, idx) => ({
+                    index: idx + 1,
+                    message: msg,
+                    summary: extractErrorSummary(msg)
+                  }))"
+                  :items-per-page="5"
+                  :items-per-page-options="[5, 10, 20, -1]"
+                  density="compact"
+                  hover
+                  class="error-table"
+                >
+                  <template #[`item.actions`]="{ item }">
+                    <v-btn
+                      size="x-small"
+                      icon
+                      variant="text"
+                      color="primary"
+                      @click="selectedError = item.message; showErrorDialog = true"
+                    >
+                      <v-icon size="small">mdi-eye</v-icon>
+                    </v-btn>
+                  </template>
+                </v-data-table>
+                
+                <!-- Diálogo para mostrar detalles completos del error -->
+                <v-dialog v-model="showErrorDialog" max-width="600px">
+                  <v-card>
+                    <v-card-title class="bg-error text-white">
+                      <v-icon start icon="mdi-alert-circle" class="mr-2"></v-icon>
+                      Detalle del error
+                    </v-card-title>
+                    <v-card-text class="pa-4">
+                      <pre class="error-details pa-3 rounded bg-grey-lighten-4 overflow-x-auto text-caption">
+{{ formatErrorDetails(selectedError) }}</pre>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn color="primary" variant="text" @click="showErrorDialog = false">Cerrar</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+              </div>
+            </v-alert>
+            
+            <div class="d-flex justify-end mt-4">
+              <v-btn
+                color="primary"
+                variant="text"
+                @click="showProgressOverlay = false"
+              >
+                Cerrar
+              </v-btn>
+            </div>
+          </template>
+        </v-card-text>
+      </v-card>
+    </v-overlay>
 
     <!-- Diálogo para agregar sincronización -->
     <v-dialog v-model="showAddSyncDialog" max-width="500">
@@ -1178,9 +1333,25 @@ const loading = ref(false)
 const publications = ref<PublicationSyncData[]>([])
 const totalPublications = ref(0)
 const expanded = ref<string[]>([])
+
+// Estado para notificaciones
 const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
+
+// Estado para el indicador de progreso
+const showProgressOverlay = ref(false)
+const progressMessage = ref('')
+const progressValue = ref(0)
+const syncComplete = ref(false)
+const syncHasErrors = ref(false)
+const syncSuccessCount = ref(0)
+const syncErrorCount = ref(0)
+const syncErrorMessages = ref<string[]>([])
+
+// Estado para el diálogo de detalles de error
+const showErrorDialog = ref(false)
+const selectedError = ref<string | Record<string, unknown>>('')
 
 // Estado para el diálogo de agregar sincronización
 const showAddSyncDialog = ref(false)
@@ -1925,12 +2096,20 @@ const syncSelectedPublications = async () => {
   }
 }
 
+// Interfaz para el resultado de la sincronización
+interface SyncResult {
+  success: boolean;
+  message: string;
+  payload?: unknown;
+}
+
 // Función para sincronizar una relación específica
 const syncRelation = async (
   sourceId: string,
   targetId: string,
   direction: 'outgoing' | 'incoming',
-) => {
+  showNotifications = true, // Parámetro para controlar si se muestran notificaciones
+): Promise<SyncResult> => {
   // Creamos un ID único para esta relación
   const relationId = `${sourceId}-${targetId}`
   syncingItem.value = relationId
@@ -1938,10 +2117,12 @@ const syncRelation = async (
   try {
     const accountId = accountStore.currentAccount?.ID
     if (!accountId) {
-      showNotification.value = true
-      notificationMessage.value = 'Selecciona una cuenta primero'
-      notificationType.value = 'warning'
-      return
+      if (showNotifications) {
+        showNotification.value = true
+        notificationMessage.value = 'Selecciona una cuenta primero'
+        notificationType.value = 'warning'
+      }
+      return { success: false, message: 'Selecciona una cuenta primero' }
     }
 
     let response
@@ -1980,22 +2161,63 @@ const syncRelation = async (
       response = await migrationService.updateProduct(accountId, targetId, targetAccount, sourceId)
     }
 
-    showNotification.value = true
-    notificationMessage.value =
+    const successMessage =
       response.message ||
       (direction === 'outgoing'
         ? `Sincronización de ${sourceId} hacia ${targetId} iniciada`
         : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`)
-    notificationType.value = 'success'
 
-    // Recargar los datos para ver los cambios
-    await loadSyncRelations()
+    if (showNotifications) {
+      showNotification.value = true
+      notificationMessage.value = successMessage
+      notificationType.value = 'success'
+
+      // Recargar los datos para ver los cambios
+      await loadSyncRelations()
+    }
+
+    return { success: true, message: successMessage }
   } catch (error) {
     console.error(`Error al sincronizar la relación ${sourceId}-${targetId}:`, error)
-    showNotification.value = true
-    notificationMessage.value =
-      error instanceof Error ? error.message : `Error al sincronizar la relación`
-    notificationType.value = 'error'
+    
+    // Intentar extraer el payload completo del error
+    let errorPayload: unknown = null
+    let errorMessage = ''
+    
+    // Intentar obtener el payload completo del error
+    if (error instanceof Error) {
+      errorMessage = error.message
+      
+      // Intentar extraer el payload JSON si existe
+      try {
+        // Buscar un objeto JSON en el mensaje de error
+        const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          errorPayload = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        // Si no se puede parsear, usar el mensaje original
+      }
+    } else if (typeof error === 'object' && error !== null) {
+      // Si el error ya es un objeto, usarlo directamente
+      errorPayload = error;
+      errorMessage = JSON.stringify(error);
+    } else {
+      errorMessage = `Error al sincronizar la relación`;
+    }
+    
+    if (showNotifications) {
+      showNotification.value = true
+      notificationMessage.value = errorMessage
+      notificationType.value = 'error'
+    }
+    
+    // Devolver tanto el mensaje como el payload completo
+    return { 
+      success: false, 
+      message: errorMessage,
+      payload: errorPayload
+    }
   } finally {
     syncingItem.value = null
   }
@@ -2032,23 +2254,36 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
       return
     }
 
-    // Mostrar notificación de inicio
-    showNotification.value = true
-    notificationMessage.value = `Iniciando sincronización de ${relations.length} relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'}`
-    notificationType.value = 'success' // Cambiado de 'info' a 'success' para evitar error de tipo
-
+    // Inicializar el overlay con indicador de progreso
+    showProgressOverlay.value = true
+    progressMessage.value = `Sincronizando ${relations.length} relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'}...`
+    progressValue.value = 0 // Inicializar el indicador de progreso en 0
+    syncComplete.value = false
+    syncHasErrors.value = false
+    syncSuccessCount.value = 0
+    syncErrorCount.value = 0
+    syncErrorMessages.value = []
+    
     // Sincronizar cada relación una por una
     let successCount = 0
     let errorCount = 0
+    const errorMessages: string[] = [] // Almacenar mensajes de error para mostrarlos después
 
     for (const relation of relations) {
       try {
+        let result
+
         if (direction === 'outgoing') {
           // Para relaciones salientes
           // Asegurarnos de que estamos trabajando con una relación saliente
           const outgoingRelation = relation as { to_sync_id: string; to_account_id: number }
-          await syncRelation(publicationId, outgoingRelation.to_sync_id, 'outgoing')
-          successCount++
+          // Llamar a syncRelation sin mostrar notificaciones individuales
+          result = await syncRelation(
+            publicationId,
+            outgoingRelation.to_sync_id,
+            'outgoing',
+            false, // No mostrar notificaciones para cada sincronización individual
+          )
         } else {
           // Para relaciones entrantes
           // Asegurarnos de que estamos trabajando con una relación entrante
@@ -2056,35 +2291,107 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
             from_publication_id: string
             from_account_id: number
           }
-          await syncRelation(incomingRelation.from_publication_id, publicationId, 'incoming')
-          successCount++
+          // Llamar a syncRelation sin mostrar notificaciones individuales
+          result = await syncRelation(
+            incomingRelation.from_publication_id,
+            publicationId,
+            'incoming',
+            false, // No mostrar notificaciones para cada sincronización individual
+          )
         }
+
+        if (result.success) {
+          successCount++
+        } else {
+          errorCount++
+          // Guardar el payload completo o el mensaje si no hay payload
+          if (result.payload) {
+            // Si tenemos el payload completo, lo usamos
+            errorMessages.push(typeof result.payload === 'string' 
+              ? result.payload 
+              : JSON.stringify(result.payload))
+          } else {
+            // Si no hay payload, usamos el mensaje
+            errorMessages.push(result.message)
+          }
+        }
+        
+        // Actualizar el indicador de progreso después de cada sincronización
+        progressValue.value = (successCount + errorCount) / relations.length
       } catch (error) {
         console.error(`Error al sincronizar relación:`, error)
         errorCount++
+        
+        // Intentar extraer el payload completo del error
+        let errorPayload: unknown = null
+        let errorMessage = ''
+        
+        if (error instanceof Error) {
+          errorMessage = error.message
+          
+          // Intentar extraer el payload JSON si existe
+          try {
+            const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              errorPayload = JSON.parse(jsonMatch[0]);
+              errorMessages.push(JSON.stringify(errorPayload))
+            } else {
+              errorMessages.push(errorMessage)
+            }
+          } catch {
+            // Si no se puede parsear, usar el mensaje original
+            errorMessages.push(errorMessage)
+          }
+        } else if (typeof error === 'object' && error !== null) {
+          // Si el error ya es un objeto, usarlo directamente
+          errorPayload = error;
+          errorMessages.push(JSON.stringify(error))
+        } else {
+          errorMessage = 'Error desconocido';
+          errorMessages.push(errorMessage)
+        }
       }
     }
 
-    // Mostrar notificación de resultado
-    showNotification.value = true
-    if (errorCount === 0) {
-      notificationMessage.value = `Se sincronizaron correctamente ${successCount} relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'}`
-      notificationType.value = 'success'
+    // Actualizar el estado del overlay con los resultados
+    syncComplete.value = true
+    syncSuccessCount.value = successCount
+    syncErrorCount.value = errorCount
+    syncErrorMessages.value = errorMessages
+    syncHasErrors.value = errorCount > 0
+    
+    // Actualizar el mensaje de progreso con el resultado final
+    if (errorCount === 0 && successCount > 0) {
+      // Solo éxitos
+      progressMessage.value = `Se sincronizaron correctamente ${successCount} relaciones ${direction === 'outgoing' ? 'salientes' : 'entrantes'}`
+    } else if (successCount === 0 && errorCount > 0) {
+      // Solo errores
+      progressMessage.value = `No se pudo sincronizar ninguna relación`
+    } else if (successCount > 0 && errorCount > 0) {
+      // Combinación de éxitos y errores
+      progressMessage.value = `Se sincronizaron ${successCount} relaciones, pero fallaron ${errorCount}`
     } else {
-      notificationMessage.value = `Se sincronizaron ${successCount} relaciones, con ${errorCount} errores`
-      notificationType.value = errorCount < successCount ? 'warning' : 'error'
+      // Ningún resultado (no debería ocurrir normalmente)
+      progressMessage.value = `No se procesaron relaciones para sincronizar`
     }
 
     // Recargar los datos para ver los cambios
     await loadSyncRelations()
   } catch (error) {
     console.error(`Error al sincronizar relaciones ${direction}:`, error)
-    showNotification.value = true
-    notificationMessage.value =
-      error instanceof Error ? error.message : `Error al sincronizar relaciones`
-    notificationType.value = 'error'
+    
+    // Mostrar el error en el overlay
+    syncComplete.value = true
+    syncHasErrors.value = true
+    syncSuccessCount.value = 0
+    syncErrorCount.value = 1
+    const errorMessage = error instanceof Error ? error.message : `Error al sincronizar relaciones`
+    syncErrorMessages.value = [errorMessage]
+    progressMessage.value = `Error al iniciar la sincronización`
   } finally {
     syncingItem.value = null
+    // No ocultamos el overlay aquí para que el usuario pueda ver el resultado
+    // El overlay se cerrará cuando el usuario haga clic en el botón de cerrar
   }
 }
 
@@ -2116,6 +2423,135 @@ const findAccountIdByPublicationId = (publicationId: string): number | undefined
 
 // Nota: La función updateSyncRelations fue eliminada porque no se utilizaba y
 // su funcionalidad ya está cubierta por otras funciones de sincronización
+
+// Función para extraer un resumen del error
+const extractErrorSummary = (errorMsg: string): string => {
+  try {
+    // Intentar encontrar un mensaje de error estructurado
+    if (errorMsg.includes('Error 004:') || errorMsg.includes('Se ha presentado un error')) {
+      return 'Error de autorización o permisos'
+    }
+    
+    // Buscar mensajes comunes de error
+    if (errorMsg.includes('UNAUTHORIZED')) {
+      return 'Error de autorización'
+    }
+    
+    if (errorMsg.includes('timeout')) {
+      return 'Tiempo de espera agotado'
+    }
+    
+    if (errorMsg.includes('network')) {
+      return 'Error de red'
+    }
+    
+    // Si no se encuentra un patrón conocido, devolver un resumen genérico
+    return errorMsg.length > 50 ? `${errorMsg.substring(0, 50)}...` : errorMsg
+  } catch {
+    return 'Error desconocido'
+  }
+}
+
+// Función para formatear los detalles del error en formato JSON
+const formatErrorDetails = (errorMsg: string | Record<string, unknown>): string => {
+  try {
+    // Definir una interfaz para el formato de error esperado
+    interface ErrorResponse {
+      Code?: string;
+      Status?: number;
+      Message?: string;
+      TecnicalDetails?: string;
+      [key: string]: unknown;
+    }
+
+    // Función auxiliar para procesar el objeto de error
+    const processErrorObject = (errorObj: ErrorResponse): Record<string, unknown> => {
+      // Si tiene detalles técnicos, procesarlos
+      if (errorObj.TecnicalDetails && typeof errorObj.TecnicalDetails === 'string') {
+        try {
+          // Intentar parsear los detalles técnicos como JSON
+          const technicalDetails = JSON.parse(errorObj.TecnicalDetails.trim())
+          // Crear un objeto combinado para mejor visualización
+          return {
+            ...errorObj,
+            TecnicalDetails: technicalDetails
+          }
+        } catch {
+          // Si no se puede parsear, mantener el formato original
+        }
+      }
+      return errorObj
+    }
+
+    // Si ya es un objeto, procesarlo
+    if (typeof errorMsg !== 'string') {
+      return JSON.stringify(processErrorObject(errorMsg as ErrorResponse), null, 2)
+    }
+    
+    // Intentar parsear el mensaje completo como JSON
+    try {
+      const jsonObj = JSON.parse(errorMsg)
+      return JSON.stringify(processErrorObject(jsonObj), null, 2)
+    } catch {
+      // No es un JSON válido, continuar con el procesamiento
+    }
+    
+    // Buscar detalles técnicos en formato JSON
+    const technicalDetailsMatch = errorMsg.match(/TecnicalDetails:\s*"(.*?)"/) || 
+                                 errorMsg.match(/Detalles:\s*(\{.*\})/) ||
+                                 errorMsg.match(/\{"status".*\}/)
+    
+    if (technicalDetailsMatch && technicalDetailsMatch[1]) {
+      try {
+        // Intentar parsear los detalles técnicos como JSON
+        let details = technicalDetailsMatch[1]
+        // Reemplazar escape de comillas si es necesario
+        details = details.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\\"|\\"/g, '"')
+        
+        // Intentar parsear como JSON y formatear
+        const jsonDetails = JSON.parse(details)
+        
+        // Crear un objeto de error con los detalles técnicos
+        const errorObj: ErrorResponse = {
+          Message: 'Error de sincronización',
+          TecnicalDetails: jsonDetails
+        }
+        return JSON.stringify(errorObj, null, 2)
+      } catch {
+        // Si no se puede parsear, devolver los detalles tal cual
+        return technicalDetailsMatch[1]
+      }
+    }
+    
+    // Buscar un objeto JSON en el mensaje de error
+    const jsonMatch = errorMsg.match(/\{[^\{\}]*\}/) 
+    if (jsonMatch) {
+      try {
+        const jsonObj = JSON.parse(jsonMatch[0])
+        
+        // Crear un objeto de error estructurado
+        const errorObj: ErrorResponse = {
+          Message: 'Error detectado en formato JSON',
+          Details: jsonObj
+        }
+        return JSON.stringify(errorObj, null, 2)
+      } catch {
+        // Si no se puede parsear, devolver el mensaje original
+      }
+    }
+    
+    // Si llegamos aquí, devolver el mensaje original en un formato estructurado
+    return JSON.stringify({
+      Message: errorMsg,
+      Source: 'Error no estructurado'
+    }, null, 2)
+  } catch {
+    // En caso de cualquier error en el procesamiento, devolver el mensaje original
+    return typeof errorMsg === 'string' 
+      ? JSON.stringify({ Message: errorMsg }, null, 2) 
+      : JSON.stringify(errorMsg, null, 2)
+  }
+}
 
 // Función para eliminar una relación específica
 const deleteSyncRelation = async (
@@ -2389,31 +2825,52 @@ const getSortIcon = () => {
   user-select: none;
 }
 
-.sortable-header:hover {
-  color: var(--v-theme-primary);
-}
-
-.sort-icon {
-  opacity: 0.7;
-  margin-left: 4px;
-}
+/* Estilo para hover aplicado en la clase .visible-on-hover */
 
 .visible-on-hover {
   opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .sortable-header:hover .visible-on-hover {
-  opacity: 0.7;
+  opacity: 1;
 }
 
-/* Estilos para la transición suave */
 .header-content {
   min-height: 40px;
 }
 
-.search-field {
-  width: 100%;
+/* Estilos para los mensajes de error en el snackbar */
+:deep(.error-snackbar) {
+  max-width: 500px !important;
+}
+
+:deep(.error-snackbar .text-caption) {
+  white-space: normal;
+  word-break: break-word;
+  margin-top: 4px;
+  padding: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+:deep(.error-snackbar .text-subtitle-2) {
+  font-weight: 500;
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+/* Animación para el icono giratorio */
+.rotating-icon {
+  animation: rotate 1.5s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Ajustes para las transiciones */
