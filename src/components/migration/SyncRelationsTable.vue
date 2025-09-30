@@ -936,7 +936,7 @@
       scrim-class="bg-primary"
       :opacity="0.8"
     >
-      <v-card class="pa-4 rounded-xl" min-width="350" max-width="450" elevation="10">
+      <v-card class="pa-4 rounded-xl" min-width="600" max-width="800" elevation="10">
         <v-card-title class="d-flex align-center pb-1">
           <v-icon 
             :icon="syncComplete ? (syncHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle') : 'mdi-sync'" 
@@ -1003,25 +1003,44 @@
               <div v-if="syncErrorMessages.length > 0" class="mt-3">
                 <div class="d-flex align-center justify-space-between mb-2">
                   <div class="font-weight-medium">Detalles de los errores:</div>
-                  <v-chip size="small" color="error" variant="outlined">{{ syncErrorMessages.length }} errores</v-chip>
+                  <div class="d-flex align-center">
+                    <v-btn
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      prepend-icon="mdi-content-copy"
+                      @click="copyAllErrorsToClipboard"
+                      class="mr-2"
+                    >
+                      Copiar todos
+                    </v-btn>
+                    <v-chip size="small" color="error" variant="outlined">{{ syncErrorMessages.length }} errores</v-chip>
+                  </div>
                 </div>
                 
                 <v-data-table
                   :headers="[
-                    { title: '#', key: 'index', width: '50px' },
+                    { title: '#', key: 'index', width: '40px' },
+                    { title: 'ID Origen', key: 'sourceId', width: '120px' },
+                    { title: 'ID Destino', key: 'targetId', width: '120px' },
                     { title: 'Resumen', key: 'summary' },
-                    { title: 'Acciones', key: 'actions', width: '100px', sortable: false },
+                    { title: 'Acciones', key: 'actions', width: '80px', sortable: false },
                   ]"
-                  :items="syncErrorMessages.map((msg, idx) => ({
-                    index: idx + 1,
-                    message: msg,
-                    summary: extractErrorSummary(msg)
-                  }))"
-                  :items-per-page="5"
-                  :items-per-page-options="[5, 10, 20, -1]"
+                  :items="syncErrorMessages.map((msg, idx) => {
+                    const { sourceId, targetId } = extractErrorIds(msg)
+                    return {
+                      index: idx + 1,
+                      message: msg,
+                      sourceId,
+                      targetId,
+                      summary: extractErrorSummary(msg)
+                    }
+                  })"
+                  :items-per-page="10"
+                  :items-per-page-options="[5, 10, 20, 50, -1]"
                   density="compact"
                   hover
-                  class="error-table"
+                  class="error-table text-caption"
                 >
                   <template #[`item.actions`]="{ item }">
                     <v-btn
@@ -1037,17 +1056,36 @@
                 </v-data-table>
                 
                 <!-- Diálogo para mostrar detalles completos del error -->
-                <v-dialog v-model="showErrorDialog" max-width="600px">
+                <v-dialog v-model="showErrorDialog" max-width="800px" scrollable>
                   <v-card>
-                    <v-card-title class="bg-error text-white">
+                    <v-card-title class="bg-error text-white d-flex align-center">
                       <v-icon start icon="mdi-alert-circle" class="mr-2"></v-icon>
-                      Detalle del error
+                      <span>Detalle del error</span>
+                      <v-spacer></v-spacer>
+                      <v-btn icon="mdi-content-copy" variant="text" density="compact" color="white" 
+                        @click="copyErrorToClipboard(selectedError)" class="mr-2">
+                      </v-btn>
+                      <v-btn icon="mdi-close" variant="text" density="compact" color="white" 
+                        @click="showErrorDialog = false">
+                      </v-btn>
                     </v-card-title>
-                    <v-card-text class="pa-4">
-                      <pre class="error-details pa-3 rounded bg-grey-lighten-4 overflow-x-auto text-caption">
+                    <v-card-text class="pa-0">
+                      <div class="d-flex flex-column">
+                        <!-- Resumen del error -->
+                        <div class="pa-4 bg-grey-lighten-5 border-b">
+                          <div class="text-subtitle-2 mb-1">Resumen:</div>
+                          <div>{{ typeof selectedError === 'string' ? extractErrorSummary(selectedError) : extractErrorSummary(selectedError) }}</div>
+                        </div>
+                        
+                        <!-- Detalles completos del error -->
+                        <div class="pa-4">
+                          <div class="text-subtitle-2 mb-1">Detalles completos:</div>
+                          <pre class="error-details pa-3 rounded bg-grey-lighten-4 overflow-x-auto text-caption" style="max-height: 400px; font-size: 11px !important;">
 {{ formatErrorDetails(selectedError) }}</pre>
+                        </div>
+                      </div>
                     </v-card-text>
-                    <v-card-actions>
+                    <v-card-actions class="pa-4 pt-0">
                       <v-spacer></v-spacer>
                       <v-btn color="primary" variant="text" @click="showErrorDialog = false">Cerrar</v-btn>
                     </v-card-actions>
@@ -2273,14 +2311,21 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
       try {
         let result
 
+        // Definir variables para los IDs de origen y destino
+        let sourceId = ''
+        let targetId = ''
+        
         if (direction === 'outgoing') {
           // Para relaciones salientes
           // Asegurarnos de que estamos trabajando con una relación saliente
           const outgoingRelation = relation as { to_sync_id: string; to_account_id: number }
+          sourceId = publicationId
+          targetId = outgoingRelation.to_sync_id
+          
           // Llamar a syncRelation sin mostrar notificaciones individuales
           result = await syncRelation(
-            publicationId,
-            outgoingRelation.to_sync_id,
+            sourceId,
+            targetId,
             'outgoing',
             false, // No mostrar notificaciones para cada sincronización individual
           )
@@ -2291,10 +2336,13 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
             from_publication_id: string
             from_account_id: number
           }
+          sourceId = incomingRelation.from_publication_id
+          targetId = publicationId
+          
           // Llamar a syncRelation sin mostrar notificaciones individuales
           result = await syncRelation(
-            incomingRelation.from_publication_id,
-            publicationId,
+            sourceId,
+            targetId,
             'incoming',
             false, // No mostrar notificaciones para cada sincronización individual
           )
@@ -2304,16 +2352,16 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
           successCount++
         } else {
           errorCount++
-          // Guardar el payload completo o el mensaje si no hay payload
-          if (result.payload) {
-            // Si tenemos el payload completo, lo usamos
-            errorMessages.push(typeof result.payload === 'string' 
-              ? result.payload 
-              : JSON.stringify(result.payload))
-          } else {
-            // Si no hay payload, usamos el mensaje
-            errorMessages.push(result.message)
+          // Crear un objeto de error enriquecido con los IDs
+          const enrichedError = {
+            sourceId,
+            targetId,
+            message: result.message,
+            payload: result.payload
           }
+          
+          // Guardar el error enriquecido como JSON
+          errorMessages.push(JSON.stringify(enrichedError))
         }
         
         // Actualizar el indicador de progreso después de cada sincronización
@@ -2322,9 +2370,30 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
         console.error(`Error al sincronizar relación:`, error)
         errorCount++
         
-        // Intentar extraer el payload completo del error
-        let errorPayload: unknown = null
+        // Crear un objeto de error enriquecido con los IDs disponibles en este contexto
+        // Aquí usamos los IDs de la publicación actual y la dirección
+        let sourceId = ''
+        let targetId = ''
+        
+        if (direction === 'outgoing') {
+          // Para relaciones salientes
+          sourceId = publicationId
+          // Intentamos obtener el ID de destino si es posible
+          if ('to_sync_id' in relation && typeof relation.to_sync_id === 'string') {
+            targetId = relation.to_sync_id
+          }
+        } else {
+          // Para relaciones entrantes
+          targetId = publicationId
+          // Intentamos obtener el ID de origen si es posible
+          if ('from_publication_id' in relation && typeof relation.from_publication_id === 'string') {
+            sourceId = relation.from_publication_id
+          }
+        }
+        
+        // Extraer el mensaje de error
         let errorMessage = ''
+        let errorPayload: unknown = null
         
         if (error instanceof Error) {
           errorMessage = error.message
@@ -2334,22 +2403,28 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
             const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               errorPayload = JSON.parse(jsonMatch[0]);
-              errorMessages.push(JSON.stringify(errorPayload))
-            } else {
-              errorMessages.push(errorMessage)
             }
           } catch {
             // Si no se puede parsear, usar el mensaje original
-            errorMessages.push(errorMessage)
           }
         } else if (typeof error === 'object' && error !== null) {
           // Si el error ya es un objeto, usarlo directamente
           errorPayload = error;
-          errorMessages.push(JSON.stringify(error))
+          errorMessage = JSON.stringify(error);
         } else {
           errorMessage = 'Error desconocido';
-          errorMessages.push(errorMessage)
         }
+        
+        // Crear un objeto de error enriquecido
+        const enrichedError = {
+          sourceId,
+          targetId,
+          message: errorMessage,
+          payload: errorPayload
+        }
+        
+        // Guardar el error enriquecido como JSON
+        errorMessages.push(JSON.stringify(enrichedError))
       }
     }
 
@@ -2424,29 +2499,209 @@ const findAccountIdByPublicationId = (publicationId: string): number | undefined
 // Nota: La función updateSyncRelations fue eliminada porque no se utilizaba y
 // su funcionalidad ya está cubierta por otras funciones de sincronización
 
-// Función para extraer un resumen del error
-const extractErrorSummary = (errorMsg: string): string => {
+// Interfaz para los IDs extraídos
+interface ExtractedIds {
+  sourceId: string;
+  targetId: string;
+}
+
+// Interfaz para el error enriquecido
+interface EnrichedError {
+  sourceId: string;
+  targetId: string;
+  message: string;
+  payload?: unknown;
+}
+
+// Función para extraer los IDs de origen y destino de un mensaje de error
+const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedIds => {
   try {
-    // Intentar encontrar un mensaje de error estructurado
-    if (errorMsg.includes('Error 004:') || errorMsg.includes('Se ha presentado un error')) {
-      return 'Error de autorización o permisos'
+    // Si es un string, intentar parsearlo como JSON (nuestro formato enriquecido)
+    if (typeof errorMsg === 'string') {
+      try {
+        // Intentar parsear como JSON (nuestro formato enriquecido)
+        const parsedError = JSON.parse(errorMsg) as EnrichedError
+        
+        // Verificar si tiene los campos sourceId y targetId
+        if (parsedError && 'sourceId' in parsedError && 'targetId' in parsedError) {
+          return {
+            sourceId: parsedError.sourceId || 'N/A',
+            targetId: parsedError.targetId || 'N/A'
+          }
+        }
+      } catch {
+        // Si no se puede parsear como JSON, devolver valores por defecto
+      }
+    } 
+    // Si es un objeto, buscar directamente los campos sourceId y targetId
+    else if (typeof errorMsg === 'object' && errorMsg !== null) {
+      const sourceId = 'sourceId' in errorMsg && typeof errorMsg.sourceId === 'string' 
+        ? errorMsg.sourceId 
+        : 'N/A'
+        
+      const targetId = 'targetId' in errorMsg && typeof errorMsg.targetId === 'string' 
+        ? errorMsg.targetId 
+        : 'N/A'
+      
+      return { sourceId, targetId }
     }
     
-    // Buscar mensajes comunes de error
-    if (errorMsg.includes('UNAUTHORIZED')) {
-      return 'Error de autorización'
+    // Si no se encuentra nada, devolver valores por defecto
+    return {
+      sourceId: 'N/A',
+      targetId: 'N/A'
+    }
+  } catch {
+    return {
+      sourceId: 'N/A',
+      targetId: 'N/A'
+    }
+  }
+}
+
+// Función para copiar todos los errores al portapapeles
+const copyAllErrorsToClipboard = () => {
+  try {
+    // Crear un texto con todos los errores y sus IDs
+    const errorText = syncErrorMessages.value.map((msg, idx) => {
+      const { sourceId, targetId } = extractErrorIds(msg)
+      const summary = extractErrorSummary(msg)
+      const details = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
+      
+      return `Error #${idx + 1}\nID Origen: ${sourceId}\nID Destino: ${targetId}\nResumen: ${summary}\nDetalles:\n${details}\n${'='.repeat(80)}`
+    }).join('\n\n')
+    
+    navigator.clipboard.writeText(errorText)
+    
+    // Mostrar notificación de éxito
+    showNotification.value = true
+    notificationMessage.value = `${syncErrorMessages.value.length} errores copiados al portapapeles`
+    notificationType.value = 'success'
+  } catch (error) {
+    console.error('Error al copiar errores al portapapeles:', error)
+    
+    // Mostrar notificación de error
+    showNotification.value = true
+    notificationMessage.value = 'No se pudo copiar al portapapeles'
+    notificationType.value = 'error'
+  }
+}
+
+// Función para copiar el error al portapapeles
+const copyErrorToClipboard = (error: string | Record<string, unknown>) => {
+  try {
+    const textToCopy = typeof error === 'string' ? error : JSON.stringify(error, null, 2)
+    navigator.clipboard.writeText(textToCopy)
+    
+    // Mostrar notificación de éxito
+    showNotification.value = true
+    notificationMessage.value = 'Detalles del error copiados al portapapeles'
+    notificationType.value = 'success'
+  } catch (error) {
+    console.error('Error al copiar al portapapeles:', error)
+    
+    // Mostrar notificación de error
+    showNotification.value = true
+    notificationMessage.value = 'No se pudo copiar al portapapeles'
+    notificationType.value = 'error'
+  }
+}
+
+// Función para extraer un resumen del error
+const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string => {
+  try {
+    // Si es un string, intentar parsearlo como JSON (nuestro formato enriquecido)
+    if (typeof errorMsg === 'string') {
+      try {
+        // Intentar parsear como JSON (nuestro formato enriquecido)
+        const parsedError = JSON.parse(errorMsg) as EnrichedError
+        
+        // Si tiene un campo message, usarlo
+        if (parsedError && 'message' in parsedError && typeof parsedError.message === 'string') {
+          const message = parsedError.message
+          
+          // Buscar patrones comunes en el mensaje
+          if (message.includes('Error 004:') || message.includes('Se ha presentado un error')) {
+            return 'Error de autorización o permisos'
+          }
+          
+          if (message.includes('UNAUTHORIZED')) {
+            return 'Error de autorización'
+          }
+          
+          if (message.includes('timeout')) {
+            return 'Tiempo de espera agotado'
+          }
+          
+          if (message.includes('network')) {
+            return 'Error de red'
+          }
+          
+          // Si no hay patrones reconocibles, devolver un resumen del mensaje
+          return message.length > 50 ? `${message.substring(0, 50)}...` : message
+        }
+        
+        // Si tiene un payload con campos reconocibles, usarlos
+        if (parsedError.payload && typeof parsedError.payload === 'object') {
+          const payload = parsedError.payload as Record<string, unknown>
+          
+          if ('Message' in payload && typeof payload.Message === 'string') {
+            return payload.Message
+          }
+          
+          if ('message' in payload && typeof payload.message === 'string') {
+            return payload.message as string
+          }
+          
+          if ('Code' in payload && typeof payload.Code === 'string') {
+            return `Error ${payload.Code}`
+          }
+        }
+      } catch {
+        // Si no se puede parsear como JSON, tratar como string normal
+        const errorString = errorMsg
+        
+        // Buscar patrones comunes
+        if (errorString.includes('Error 004:') || errorString.includes('Se ha presentado un error')) {
+          return 'Error de autorización o permisos'
+        }
+        
+        if (errorString.includes('UNAUTHORIZED')) {
+          return 'Error de autorización'
+        }
+        
+        if (errorString.includes('timeout')) {
+          return 'Tiempo de espera agotado'
+        }
+        
+        if (errorString.includes('network')) {
+          return 'Error de red'
+        }
+        
+        // Si no hay patrones reconocibles, devolver un resumen del mensaje
+        return errorString.length > 50 ? `${errorString.substring(0, 50)}...` : errorString
+      }
+    }
+    // Si es un objeto, intentar extraer información relevante
+    else if (typeof errorMsg === 'object' && errorMsg !== null) {
+      // Si tiene un campo message, usarlo
+      if ('message' in errorMsg && typeof errorMsg.message === 'string') {
+        return errorMsg.message
+      }
+      
+      // Si tiene un campo Message, usarlo
+      if ('Message' in errorMsg && typeof errorMsg.Message === 'string') {
+        return errorMsg.Message
+      }
+      
+      // Si tiene un campo Code, usarlo
+      if ('Code' in errorMsg && typeof errorMsg.Code === 'string') {
+        return `Error ${errorMsg.Code}`
+      }
     }
     
-    if (errorMsg.includes('timeout')) {
-      return 'Tiempo de espera agotado'
-    }
-    
-    if (errorMsg.includes('network')) {
-      return 'Error de red'
-    }
-    
-    // Si no se encuentra un patrón conocido, devolver un resumen genérico
-    return errorMsg.length > 50 ? `${errorMsg.substring(0, 50)}...` : errorMsg
+    // Si no se encuentra nada relevante, devolver un valor por defecto
+    return 'Error de sincronización'
   } catch {
     return 'Error desconocido'
   }
