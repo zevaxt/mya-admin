@@ -1140,9 +1140,6 @@ const showNotification = ref(false)
 const notificationMessage = ref('')
 const notificationType = ref<'success' | 'error' | 'warning'>('success')
 
-// Estado para indicar qué publicación está actualizando sus sincronizaciones
-const updatingSyncItem = ref<string | null>(null)
-
 // Estado para el diálogo de agregar sincronización
 const showAddSyncDialog = ref(false)
 const syncDialogTitle = ref('')
@@ -1918,67 +1915,86 @@ const syncRelation = async (
   syncingItem.value = relationId
 
   try {
-    // Aquí iría la llamada a la API para sincronizar la relación específica
-    // Por ahora solo simulamos un retraso
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const accountId = accountStore.currentAccount?.ID
+    if (!accountId) {
+      showNotification.value = true
+      notificationMessage.value = 'Selecciona una cuenta primero'
+      notificationType.value = 'warning'
+      return
+    }
+
+    let response
+    if (direction === 'outgoing') {
+      // Sincronizar de sourceId hacia targetId
+      // En este caso, sourceId es la publicación de origen y targetId es la publicación de destino
+      // Necesitamos el ID de la cuenta actual como cuenta de origen
+      response = await migrationService.updateProduct(accountId, sourceId, undefined, targetId)
+    } else {
+      // 'incoming'
+      // Sincronizar de targetId hacia sourceId (inverso)
+      // En este caso, targetId es la publicación de origen y sourceId es la publicación de destino
+      // Necesitamos encontrar el ID de la cuenta a la que pertenece sourceId
+      const targetAccountId = findAccountIdByPublicationId(sourceId)
+      if (!targetAccountId) {
+        throw new Error(`No se pudo determinar la cuenta para la publicación ${sourceId}`)
+      }
+      response = await migrationService.updateProduct(
+        accountId,
+        targetId,
+        targetAccountId,
+        sourceId,
+      )
+    }
 
     showNotification.value = true
     notificationMessage.value =
-      direction === 'outgoing'
+      response.message ||
+      (direction === 'outgoing'
         ? `Sincronización de ${sourceId} hacia ${targetId} iniciada`
-        : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`
+        : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`)
     notificationType.value = 'success'
 
-    // Recargar los datos después de un tiempo para ver los cambios
-    setTimeout(() => {
-      loadSyncRelations()
-    }, 1500)
+    // Recargar los datos para ver los cambios
+    await loadSyncRelations()
   } catch (error) {
     console.error(`Error al sincronizar la relación ${sourceId}-${targetId}:`, error)
     showNotification.value = true
-    notificationMessage.value = `Error al sincronizar la relación`
+    notificationMessage.value =
+      error instanceof Error ? error.message : `Error al sincronizar la relación`
     notificationType.value = 'error'
   } finally {
     syncingItem.value = null
   }
 }
 
-// Función para actualizar todas las sincronizaciones de una publicación
-const updateSyncRelations = async (item: PublicationSyncData) => {
-  const accountId = accountStore.currentAccount?.ID
-  if (!accountId) {
-    showNotification.value = true
-    notificationMessage.value = 'Selecciona una cuenta primero'
-    notificationType.value = 'warning'
-    return
+// Función auxiliar para encontrar el ID de cuenta por ID de publicación
+const findAccountIdByPublicationId = (publicationId: string): number | undefined => {
+  // Buscar en las publicaciones cargadas
+  const publication = publications.value.find((item) => item.publication_id === publicationId)
+  if (publication) {
+    return publication.account_id
   }
 
-  // Marcar la publicación como actualizando
-  updatingSyncItem.value = item.publication_id
+  // Si no se encuentra, buscar en las sincronizaciones entrantes y salientes
+  for (const item of publications.value) {
+    // Buscar en sincronizaciones salientes
+    const outgoingSync = item.to_syncs?.find((sync) => sync.to_sync_id === publicationId)
+    if (outgoingSync) {
+      return outgoingSync.to_account_id
+    }
 
-  try {
-    // Llamar al servicio para actualizar la publicación y sus sincronizaciones
-    // Usamos la API /v1/provider/migration/update/products/one como se indicó
-    const response = await migrationService.updateProduct(accountId, item.publication_id)
-
-    // Mostrar notificación de éxito
-    showNotification.value = true
-    notificationMessage.value = response.message || 'Sincronizaciones actualizadas correctamente'
-    notificationType.value = 'success'
-
-    // Recargar los datos para mostrar las sincronizaciones actualizadas
-    await loadSyncRelations()
-  } catch (error) {
-    // Mostrar notificación de error
-    showNotification.value = true
-    notificationMessage.value = 'Error al actualizar las sincronizaciones'
-    notificationType.value = 'error'
-    console.error('Error al actualizar sincronizaciones:', error)
-  } finally {
-    // Desmarcar la publicación como actualizando
-    updatingSyncItem.value = null
+    // Buscar en sincronizaciones entrantes
+    const incomingSync = item.from_syncs?.find((sync) => sync.from_publication_id === publicationId)
+    if (incomingSync) {
+      return incomingSync.from_account_id
+    }
   }
+
+  return undefined
 }
+
+// Nota: La función updateSyncRelations fue eliminada porque no se utilizaba y
+// su funcionalidad ya está cubierta por la función syncPublication
 
 // Función para eliminar una relación específica
 const deleteSyncRelation = async (
