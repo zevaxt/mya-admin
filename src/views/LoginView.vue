@@ -2,12 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAccountStore } from '@/stores/account'
 
 // Importar computed
 import { computed } from 'vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const accountStore = useAccountStore()
 
 // Estado del formulario
 const username = ref('')
@@ -69,6 +71,9 @@ const login = async () => {
       localStorage.removeItem('remember_user')
     }
 
+    // Cargar las cuentas del usuario inmediatamente después del login exitoso
+    await accountStore.fetchUserAccounts()
+    
     // Redirigir a la página de landing después del login exitoso
     router.push('/landing')
   } else {

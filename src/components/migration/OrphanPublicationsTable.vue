@@ -133,11 +133,11 @@
             </template>
           </v-tooltip>
         </v-col>
-        
+
         <v-col cols="12" md="3">
           <v-tooltip
             location="top"
-            text="Selecciona el tipo de relación a consultar: 'Salientes' para publicaciones que no aparecen como destino, 'Entrantes' para las que no aparecen como origen, o 'Todas' para ambas"
+            text="Selecciona el tipo de sincronización que falta: 'Salientes' para publicaciones que no tienen sincronizaciones salientes, 'Entrantes' para las que no tienen sincronizaciones entrantes, o 'Todas' para las que no tienen ninguna sincronización"
           >
             <template v-slot:activator="{ props }">
               <div v-bind="props" class="w-100">
@@ -146,20 +146,22 @@
                   :items="relationQueryTypeOptions"
                   item-title="title"
                   item-value="value"
-                  label="Tipo de relación"
+                  label="No Tiene Sincronizaciones"
                   variant="outlined"
                   density="comfortable"
                   @update:model-value="loadOrphanPublications"
-                  :color="relationQueryTypeFilter !== 'outgoing' ? 'primary' : undefined"
-                  :bg-color="relationQueryTypeFilter !== 'outgoing' ? 'primary-lighten-5' : undefined"
+                  :color="relationQueryTypeFilter !== 'incoming' ? 'primary' : undefined"
+                  :bg-color="
+                    relationQueryTypeFilter !== 'incoming' ? 'primary-lighten-5' : undefined
+                  "
                 >
                   <template v-slot:append-inner>
                     <v-icon
-                      v-if="relationQueryTypeFilter !== 'outgoing'"
+                      v-if="relationQueryTypeFilter !== 'incoming'"
                       color="primary"
                       @click.stop="
                         () => {
-                          relationQueryTypeFilter = 'outgoing'
+                          relationQueryTypeFilter = 'incoming'
                           loadOrphanPublications()
                         }
                       "
@@ -179,7 +181,7 @@
               statusFilter !== 'all' ||
               soldQuantityFilter !== 'all' ||
               catalogActiveFilter !== 'all' ||
-              relationQueryTypeFilter !== 'outgoing'
+              relationQueryTypeFilter !== 'incoming'
             "
             color="secondary"
             variant="outlined"
@@ -229,7 +231,6 @@
             <span class="text-truncate">{{ item.id }}</span>
           </div>
         </template>
-
 
         <!-- Columna de Acciones -->
         <template #[`item.actions`]="{ item }">
@@ -414,7 +415,7 @@ const itemsPerPageOptions = [10, 50, 100, 300, 500, 1000]
 const statusFilter = ref<boolean | 'all'>('all')
 const soldQuantityFilter = ref<boolean | 'all'>('all')
 const catalogActiveFilter = ref<boolean | 'all'>('all')
-const relationQueryTypeFilter = ref<'outgoing' | 'incoming' | 'both'>('outgoing')
+const relationQueryTypeFilter = ref<'outgoing' | 'incoming' | 'both'>('incoming')  // Valor predeterminado: publicaciones que no tienen sincronizaciones salientes
 
 // Opciones para los filtros
 const statusOptions = [
@@ -436,9 +437,9 @@ const catalogActiveOptions = [
 ]
 
 const relationQueryTypeOptions = [
-  { title: 'Salientes', value: 'outgoing' },
-  { title: 'Entrantes', value: 'incoming' },
-  { title: 'Todas', value: 'both' },
+  { title: 'Salientes', value: 'incoming' },  // Publicaciones que no tienen sincronizaciones salientes
+  { title: 'Entrantes', value: 'outgoing' },   // Publicaciones que no tienen sincronizaciones entrantes
+  { title: 'Todas', value: 'both' },           // Publicaciones que no tienen ningún tipo de sincronización
 ]
 
 // Función para limpiar todos los filtros
@@ -446,7 +447,7 @@ const clearFilters = () => {
   statusFilter.value = 'all'
   soldQuantityFilter.value = 'all'
   catalogActiveFilter.value = 'all'
-  relationQueryTypeFilter.value = 'outgoing'
+  relationQueryTypeFilter.value = 'incoming'  // Restablecer a 'Salientes'
   loadOrphanPublications()
 }
 

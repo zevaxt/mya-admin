@@ -3,9 +3,11 @@
 import AppNavBar from './components/AppNavBar.vue'
 // El panel de depuración ahora está integrado en AppNavBar
 import { useAuthStore } from './stores/auth'
+import { useAccountStore } from './stores/account'
 import { computed, onMounted } from 'vue'
 
 const authStore = useAuthStore()
+const accountStore = useAccountStore()
 
 // Determinar si se debe mostrar la barra de navegación
 // No mostrarla en la página de login
@@ -14,8 +16,13 @@ const showNavBar = computed(() => {
 })
 
 // Inicializar la aplicación
-onMounted(() => {
-  // Cualquier inicialización necesaria puede ir aquí
+onMounted(async () => {
+  // Si el usuario ya está autenticado (por ejemplo, si refrescó la página),
+  // cargar sus cuentas automáticamente
+  if (authStore.isAuthenticated && authStore.currentUserId) {
+    console.log('Usuario ya autenticado, cargando cuentas...')
+    await accountStore.fetchUserAccounts()
+  }
 })
 </script>
 

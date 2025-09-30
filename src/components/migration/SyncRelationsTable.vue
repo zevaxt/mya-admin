@@ -1052,7 +1052,9 @@
               class="me-1"
             >
               <v-icon class="me-1">mdi-sync</v-icon>
-              <span class="font-weight-medium">Sincronizar {{ publicationsSelected ? publicationsSelected.length : 0 }}</span>
+              <span class="font-weight-medium"
+                >Sincronizar {{ publicationsSelected ? publicationsSelected.length : 0 }}</span
+              >
             </v-btn>
 
             <v-divider vertical class="mx-1"></v-divider>
@@ -1122,7 +1124,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import migrationService, { type PublicationSyncData, type SyncAllPublicationsResponse } from '@/services/migrationService'
+import migrationService, {
+  type PublicationSyncData,
+  type SyncAllPublicationsResponse,
+} from '@/services/migrationService'
 import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 
 // Estado
@@ -1183,8 +1188,8 @@ const dataTable = ref<any>(null)
 // Opciones para los filtros
 const syncStatusOptions = [
   { title: 'Todos', value: 'all' },
-  { title: 'Origen', value: 'origin' },
-  { title: 'Destino', value: 'destination' },
+  { title: 'Salientes', value: 'origin' },
+  { title: 'Entrantes', value: 'destination' },
   { title: 'Ambos', value: 'both' },
   { title: 'Ninguno', value: 'none' },
 ]
@@ -1796,7 +1801,10 @@ const syncAllPublications = async () => {
     // Usamos Promise.race con un timeout para evitar esperar demasiado tiempo
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: true, message: 'Sincronización iniciada. Este proceso puede tardar varios minutos.' })
+        resolve({
+          success: true,
+          message: 'Sincronización iniciada. Este proceso puede tardar varios minutos.',
+        })
       }, 5000) // Esperamos máximo 5 segundos por una respuesta inicial
     })
 
@@ -1804,10 +1812,15 @@ const syncAllPublications = async () => {
     const syncPromise = migrationService.syncAllPublications(accountId)
 
     // Esperamos solo la confirmación de inicio o el timeout, lo que ocurra primero
-    const result = await Promise.race([syncPromise, timeoutPromise]) as { success: boolean; message: string; data?: SyncAllPublicationsResponse }
+    const result = (await Promise.race([syncPromise, timeoutPromise])) as {
+      success: boolean
+      message: string
+      data?: SyncAllPublicationsResponse
+    }
 
     showNotification.value = true
-    notificationMessage.value = result.message || 'Sincronización de todas las publicaciones iniciada'
+    notificationMessage.value =
+      result.message || 'Sincronización de todas las publicaciones iniciada'
     notificationType.value = 'success'
 
     // Recargar los datos después de un tiempo para ver los cambios iniciales
@@ -1816,7 +1829,8 @@ const syncAllPublications = async () => {
 
       // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
       showNotification.value = true
-      notificationMessage.value = 'La sincronización continuará en segundo plano. Puedes seguir usando la aplicación.'
+      notificationMessage.value =
+        'La sincronización continuará en segundo plano. Puedes seguir usando la aplicación.'
       notificationType.value = 'success' // Usamos success en lugar de info que no es un tipo válido
     }, 3000)
 
@@ -1827,7 +1841,8 @@ const syncAllPublications = async () => {
   } catch (error) {
     console.error('Error al iniciar la sincronización de publicaciones:', error)
     showNotification.value = true
-    notificationMessage.value = error instanceof Error ? error.message : 'Error al sincronizar todas las publicaciones'
+    notificationMessage.value =
+      error instanceof Error ? error.message : 'Error al sincronizar todas las publicaciones'
     notificationType.value = 'error'
   } finally {
     syncingAll.value = false
@@ -2088,7 +2103,8 @@ const deleteSelectedSyncRelations = async () => {
       notificationType.value = 'success'
     } else {
       notificationMessage.value = `${response.total_deleted || response.deleted_relations || 0} relaciones eliminadas, ${response.total_failed || 0} con errores`
-      notificationType.value = (response.total_deleted || response.deleted_relations || 0) > 0 ? 'warning' : 'error'
+      notificationType.value =
+        (response.total_deleted || response.deleted_relations || 0) > 0 ? 'warning' : 'error'
     }
 
     // Recargar los datos para ver los cambios
