@@ -471,6 +471,11 @@ const loadOrphanPublications = async () => {
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver las publicaciones huérfanas'
     emit('error', error.value)
+    
+    // Mostrar notificación cuando no hay cuenta seleccionada
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta para ver las publicaciones huérfanas'
+    notificationType.value = 'warning'
     return
   }
 
@@ -491,12 +496,31 @@ const loadOrphanPublications = async () => {
     total.value = response.count || 0
   } catch (err) {
     console.error('Error al cargar publicaciones huérfanas:', err)
+    
+    // Extraer mensaje de error más detallado
+    let errorMessage = 'Error al cargar publicaciones huérfanas'
+    
     if (err instanceof Error) {
-      error.value = `Error al cargar publicaciones huérfanas: ${err.message}`
-    } else {
-      error.value = 'Error al cargar publicaciones huérfanas'
+      errorMessage = `Error al cargar publicaciones huérfanas: ${err.message}`
+    } else if (typeof err === 'object' && err !== null && 'response' in err) {
+      // Error de Axios
+      const axiosError = err as { response?: { status?: number; data?: any } }
+      if (axiosError.response?.status === 502) {
+        errorMessage = 'El servidor no está disponible (Error 502). Por favor, intenta más tarde.'
+      } else if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message
+      } else if (axiosError.response?.data?.Message) {
+        errorMessage = axiosError.response.data.Message
+      }
     }
+    
+    error.value = errorMessage
     emit('error', error.value)
+    
+    // Mostrar notificación de error
+    showNotification.value = true
+    notificationMessage.value = errorMessage
+    notificationType.value = 'error'
   } finally {
     emit('update:loading', false)
   }

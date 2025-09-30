@@ -251,6 +251,11 @@ const loadDeprecatedPublications = async () => {
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver las publicaciones deprecadas'
     emit('error', error.value)
+    
+    // Mostrar notificación cuando no hay cuenta seleccionada
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta para ver las publicaciones deprecadas'
+    notificationType.value = 'warning'
     return
   }
 
@@ -265,18 +270,35 @@ const loadDeprecatedPublications = async () => {
     }
 
     const response = await compareService.getDeprecatedPublications(accountId.value, options)
-    console.log('Respuesta recibida en componente:', response)
     deprecatedPublicationIds.value = response.deprecated_publication_ids || []
-    console.log('IDs de publicaciones deprecadas:', deprecatedPublicationIds.value)
     total.value = response.total || 0
   } catch (err) {
     console.error('Error al cargar publicaciones deprecadas:', err)
+    
+    // Extraer mensaje de error más detallado
+    let errorMessage = 'Error al cargar publicaciones deprecadas'
+    
     if (err instanceof Error) {
-      error.value = `Error al cargar publicaciones deprecadas: ${err.message}`
-    } else {
-      error.value = 'Error al cargar publicaciones deprecadas'
+      errorMessage = `Error al cargar publicaciones deprecadas: ${err.message}`
+    } else if (typeof err === 'object' && err !== null && 'response' in err) {
+      // Error de Axios
+      const axiosError = err as { response?: { status?: number; data?: any } }
+      if (axiosError.response?.status === 502) {
+        errorMessage = 'El servidor no está disponible (Error 502). Por favor, intenta más tarde.'
+      } else if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message
+      } else if (axiosError.response?.data?.Message) {
+        errorMessage = axiosError.response.data.Message
+      }
     }
+    
+    error.value = errorMessage
     emit('error', error.value)
+    
+    // Mostrar notificación de error
+    showNotification.value = true
+    notificationMessage.value = errorMessage
+    notificationType.value = 'error'
   } finally {
     emit('update:loading', false)
   }

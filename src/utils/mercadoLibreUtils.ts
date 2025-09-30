@@ -53,7 +53,7 @@ export const openInMercadoLibre = (productId: string): void => {
     case 'mec': // Ecuador
       url = `https://articulo.mercadolibre.com.ec/${siteId}-${numericId}`
       break
-    case 'mlc': // Costa Rica
+    case 'mcr': // Costa Rica
       url = `https://articulo.mercadolibre.co.cr/${siteId}-${numericId}`
       break
     default:

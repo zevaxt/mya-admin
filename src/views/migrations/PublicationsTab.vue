@@ -696,6 +696,10 @@ const filteredProductIds = computed(() => {
 const loadProductIds = async () => {
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver los productos'
+    // Mostrar notificación cuando no hay cuenta seleccionada
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta para ver los productos'
+    notificationType.value = 'warning'
     return
   }
 
@@ -716,14 +720,37 @@ const loadProductIds = async () => {
       totalProductIds.value = response.total
     } else {
       error.value = 'Error al cargar IDs de productos'
+      // Mostrar notificación de error
+      showNotification.value = true
+      notificationMessage.value = 'Error al cargar IDs de productos'
+      notificationType.value = 'error'
     }
   } catch (err) {
     console.error('Error al cargar IDs de productos:', err)
+    
+    // Extraer mensaje de error más detallado
+    let errorMessage = 'Error al cargar IDs de productos'
+    
     if (err instanceof Error) {
-      error.value = `Error al cargar IDs de productos: ${err.message}`
-    } else {
-      error.value = 'Error al cargar IDs de productos'
+      errorMessage = `Error al cargar IDs de productos: ${err.message}`
+    } else if (typeof err === 'object' && err !== null && 'response' in err) {
+      // Error de Axios
+      const axiosError = err as { response?: { status?: number; data?: any } }
+      if (axiosError.response?.status === 502) {
+        errorMessage = 'El servidor no está disponible (Error 502). Por favor, intenta más tarde.'
+      } else if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message
+      } else if (axiosError.response?.data?.Message) {
+        errorMessage = axiosError.response.data.Message
+      }
     }
+    
+    error.value = errorMessage
+    
+    // Mostrar notificación de error
+    showNotification.value = true
+    notificationMessage.value = errorMessage
+    notificationType.value = 'error'
   } finally {
     loading.value = false
   }
