@@ -2564,11 +2564,50 @@ const copyAllErrorsToClipboard = () => {
   try {
     // Crear un texto con todos los errores y sus IDs
     const errorText = syncErrorMessages.value.map((msg, idx) => {
+      // Extraer IDs y resumen
       const { sourceId, targetId } = extractErrorIds(msg)
       const summary = extractErrorSummary(msg)
-      const details = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
       
-      return `Error #${idx + 1}\nID Origen: ${sourceId}\nID Destino: ${targetId}\nResumen: ${summary}\nDetalles:\n${details}\n${'='.repeat(80)}`
+      // Formatear los detalles técnicos sin duplicación
+      let formattedDetails = ''
+      
+      try {
+        // Si es un string, intentar parsearlo como JSON
+        if (typeof msg === 'string') {
+          try {
+            // Intentar parsear como JSON (nuestro formato enriquecido)
+            const parsedError = JSON.parse(msg)
+            
+            // Si tiene un payload, usar solo ese payload formateado
+            if (parsedError.payload) {
+              formattedDetails = formatPayload(parsedError.payload)
+            } else if (parsedError.message) {
+              // Si no tiene payload pero tiene mensaje, intentar parsearlo
+              try {
+                const messageObj = JSON.parse(parsedError.message)
+                formattedDetails = formatPayload(messageObj)
+              } catch {
+                // Si no se puede parsear, usar el mensaje original
+                formattedDetails = parsedError.message
+              }
+            } else {
+              // Si no tiene ni payload ni mensaje, usar el objeto completo
+              formattedDetails = JSON.stringify(parsedError, null, 2)
+            }
+          } catch {
+            // Si no se puede parsear como JSON, usar el string original
+            formattedDetails = msg
+          }
+        } else {
+          // Si no es un string, formatearlo directamente
+          formattedDetails = formatPayload(msg)
+        }
+      } catch {
+        // En caso de error, usar un formato simple
+        formattedDetails = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
+      }
+      
+      return `Error #${idx + 1}\nID Origen: ${sourceId}\nID Destino: ${targetId}\nResumen: ${summary}\nDetalles:\n${formattedDetails}\n${'='.repeat(80)}`
     }).join('\n\n')
     
     navigator.clipboard.writeText(errorText)
@@ -2645,10 +2684,18 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
         if (parsedError.payload && typeof parsedError.payload === 'object') {
           const payload = parsedError.payload as Record<string, unknown>
           
+          // Priorizar el campo Message del payload (formato estándar de la API)
           if ('Message' in payload && typeof payload.Message === 'string') {
-            return payload.Message
+            // Evitar mostrar detalles técnicos duplicados
+            const message = payload.Message as string
+            if (message === 'Se ha presentado un error procesando su solicitud' && 
+                'TecnicalDetails' in payload && payload.TecnicalDetails) {
+              return message
+            }
+            return message
           }
           
+          // Alternativas si no hay campo Message
           if ('message' in payload && typeof payload.message === 'string') {
             return payload.message as string
           }
@@ -2710,101 +2757,120 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
 // Función para formatear los detalles del error en formato JSON
 const formatErrorDetails = (errorMsg: string | Record<string, unknown>): string => {
   try {
-    // Definir una interfaz para el formato de error esperado
-    interface ErrorResponse {
-      Code?: string;
-      Status?: number;
-      Message?: string;
-      TecnicalDetails?: string;
-      [key: string]: unknown;
+    // Si es un string, intentar parsearlo como JSON (nuestro formato enriquecido)
+    if (typeof errorMsg === 'string') {
+      try {
+        // Intentar parsear como JSON (nuestro formato enriquecido)
+        const parsedError = JSON.parse(errorMsg) as EnrichedError
+        
+        // Si tiene un payload, formatearlo
+        if (parsedError.payload) {
+          return formatPayload(parsedError.payload)
+        }
+        
+        // Si no tiene payload pero tiene mensaje, devolverlo
+        if (parsedError.message) {
+          return parsedError.message
+        }
+        
+        // Si solo tiene IDs, mostrarlos junto con el mensaje
+        return JSON.stringify({
+          sourceId: parsedError.sourceId,
+          targetId: parsedError.targetId,
+          message: 'Error de sincronización'
+        }, null, 2)
+      } catch {
+        // Si no se puede parsear como JSON, devolver el string original
+        return errorMsg
+      }
     }
+    
+    // Si es un objeto, formatearlo directamente
+    return formatPayload(errorMsg)
+  } catch (_error) {
+    // Ignoramos el error y simplemente devolvemos el mensaje original
+    return typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg, null, 2)
+  }
+}
 
-    // Función auxiliar para procesar el objeto de error
-    const processErrorObject = (errorObj: ErrorResponse): Record<string, unknown> => {
+// Función auxiliar para formatear el payload de error
+const formatPayload = (payload: unknown): string => {
+  // Definir una interfaz para el formato de error esperado
+  interface ErrorResponse {
+    Code?: string;
+    Status?: number;
+    Message?: string;
+    TecnicalDetails?: string;
+    Details?: unknown;
+    [key: string]: unknown;
+  }
+
+  try {
+    // Si es un string, intentar parsearlo como JSON
+    if (typeof payload === 'string') {
+      try {
+        // Intentar parsear como JSON
+        const jsonObj = JSON.parse(payload)
+        
+        // Si tiene detalles técnicos, procesarlos
+        if (jsonObj.TecnicalDetails && typeof jsonObj.TecnicalDetails === 'string') {
+          try {
+            // Intentar parsear los detalles técnicos como JSON
+            const technicalDetails = JSON.parse(jsonObj.TecnicalDetails.trim())
+            // Crear un objeto combinado para mejor visualización
+            const processedObj = {
+              ...jsonObj,
+              TecnicalDetails: technicalDetails
+            }
+            return JSON.stringify(processedObj, null, 2)
+          } catch {
+            // Si no se puede parsear, mantener el formato original
+          }
+        }
+        
+        // Si no tiene detalles técnicos o no se pudieron parsear, devolver el objeto tal cual
+        return JSON.stringify(jsonObj, null, 2)
+      } catch {
+        // Si no se puede parsear como JSON, devolver el string formateado
+        return JSON.stringify({
+          Message: payload,
+          Source: 'Error en formato texto'
+        }, null, 2)
+      }
+    }
+    
+    // Si es un objeto, procesarlo directamente
+    if (payload && typeof payload === 'object') {
+      const errorObj = payload as ErrorResponse
+      
       // Si tiene detalles técnicos, procesarlos
       if (errorObj.TecnicalDetails && typeof errorObj.TecnicalDetails === 'string') {
         try {
           // Intentar parsear los detalles técnicos como JSON
           const technicalDetails = JSON.parse(errorObj.TecnicalDetails.trim())
           // Crear un objeto combinado para mejor visualización
-          return {
+          const processedObj = {
             ...errorObj,
             TecnicalDetails: technicalDetails
           }
+          return JSON.stringify(processedObj, null, 2)
         } catch {
           // Si no se puede parsear, mantener el formato original
         }
       }
-      return errorObj
-    }
-
-    // Si ya es un objeto, procesarlo
-    if (typeof errorMsg !== 'string') {
-      return JSON.stringify(processErrorObject(errorMsg as ErrorResponse), null, 2)
+      
+      // Si no tiene detalles técnicos o no se pudieron parsear, devolver el objeto tal cual
+      return JSON.stringify(errorObj, null, 2)
     }
     
-    // Intentar parsear el mensaje completo como JSON
-    try {
-      const jsonObj = JSON.parse(errorMsg)
-      return JSON.stringify(processErrorObject(jsonObj), null, 2)
-    } catch {
-      // No es un JSON válido, continuar con el procesamiento
-    }
-    
-    // Buscar detalles técnicos en formato JSON
-    const technicalDetailsMatch = errorMsg.match(/TecnicalDetails:\s*"(.*?)"/) || 
-                                 errorMsg.match(/Detalles:\s*(\{.*\})/) ||
-                                 errorMsg.match(/\{"status".*\}/)
-    
-    if (technicalDetailsMatch && technicalDetailsMatch[1]) {
-      try {
-        // Intentar parsear los detalles técnicos como JSON
-        let details = technicalDetailsMatch[1]
-        // Reemplazar escape de comillas si es necesario
-        details = details.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\\"|\\"/g, '"')
-        
-        // Intentar parsear como JSON y formatear
-        const jsonDetails = JSON.parse(details)
-        
-        // Crear un objeto de error con los detalles técnicos
-        const errorObj: ErrorResponse = {
-          Message: 'Error de sincronización',
-          TecnicalDetails: jsonDetails
-        }
-        return JSON.stringify(errorObj, null, 2)
-      } catch {
-        // Si no se puede parsear, devolver los detalles tal cual
-        return technicalDetailsMatch[1]
-      }
-    }
-    
-    // Buscar un objeto JSON en el mensaje de error
-    const jsonMatch = errorMsg.match(/\{[^\{\}]*\}/) 
-    if (jsonMatch) {
-      try {
-        const jsonObj = JSON.parse(jsonMatch[0])
-        
-        // Crear un objeto de error estructurado
-        const errorObj: ErrorResponse = {
-          Message: 'Error detectado en formato JSON',
-          Details: jsonObj
-        }
-        return JSON.stringify(errorObj, null, 2)
-      } catch {
-        // Si no se puede parsear, devolver el mensaje original
-      }
-    }
-    
-    // Si llegamos aquí, devolver el mensaje original en un formato estructurado
+    // Para cualquier otro tipo, convertirlo a string
     return JSON.stringify({
-      Message: errorMsg,
-      Source: 'Error no estructurado'
+      Message: String(payload),
+      Source: 'Error desconocido'
     }, null, 2)
-  } catch {
-    // En caso de cualquier error en el procesamiento, devolver el mensaje original
-    return typeof errorMsg === 'string' 
-      ? JSON.stringify({ Message: errorMsg }, null, 2) 
-      : JSON.stringify(errorMsg, null, 2)
+  } catch (error) {
+    // En caso de cualquier error, devolver el payload como string
+    return typeof payload === 'string' ? payload : String(payload)
   }
 }
 
