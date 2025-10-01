@@ -3717,6 +3717,18 @@ paths:
                           type: integer
                           description: ID de la cuenta a la que pertenece la publicación
                           example: 123
+                        status_ml:
+                          type: string
+                          description: Estado de la publicación en Mercado Libre (active, inactive, paused, etc.)
+                          example: 'active'
+                        is_populate:
+                          type: boolean
+                          description: Indica si la publicación ha sido poblada con datos completos
+                          example: true
+                        catalog_active:
+                          type: boolean
+                          description: Indica si la publicación está activa en el catálogo
+                          example: true
                         to_syncs:
                           type: array
                           description: Publicaciones a las que se ha sincronizado esta publicación
@@ -3731,6 +3743,14 @@ paths:
                                 type: integer
                                 description: ID de la cuenta destino
                                 example: 456
+                              status_ml:
+                                type: string
+                                description: Estado de la publicación destino en Mercado Libre
+                                example: 'active'
+                              is_populate:
+                                type: boolean
+                                description: Indica si la publicación destino ha sido poblada con datos completos
+                                example: true
                         from_syncs:
                           type: array
                           description: Publicaciones desde las que se ha sincronizado esta publicación
@@ -3745,6 +3765,14 @@ paths:
                                 type: integer
                                 description: ID de la cuenta origen
                                 example: 789
+                              status_ml:
+                                type: string
+                                description: Estado de la publicación origen en Mercado Libre
+                                example: 'active'
+                              is_populate:
+                                type: boolean
+                                description: Indica si la publicación origen ha sido poblada con datos completos
+                                example: true
   /v1/migration/products/sync/relations:
     post:
       tags:
