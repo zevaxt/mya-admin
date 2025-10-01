@@ -267,13 +267,7 @@
           </div>
         </template>
 
-        <template #[`item.price`]="{ item }">
-          <div class="d-flex align-center justify-end w-100">
-            <span :class="{ 'font-weight-medium': item.price, 'price-text': true }">
-              {{ formatPrice(item.price) }}
-            </span>
-          </div>
-        </template>
+        <!-- Columna de precio eliminada -->
 
         <template #[`item.SyncActive`]="{ item }">
           <div class="d-flex align-center justify-center w-100">
@@ -591,7 +585,6 @@ const allColumns = [
     filterable: true,
     required: true,
   },
-  { title: 'Precio', key: 'price', sortable: true, class: 'text-right', required: false },
   { title: 'Sync', key: 'SyncActive', sortable: true, class: 'text-center', required: false },
   { title: 'Catálogo', key: 'CatalogActive', sortable: true, required: false },
   { title: 'Estado', key: 'Status', sortable: true, required: false },
@@ -1105,24 +1098,7 @@ const loadColumnPreferences = () => {
   }
 }
 
-// Formatear precio
-const formatPrice = (price: number | null | undefined) => {
-  if (price === null || price === undefined) return 'No disponible'
-
-  try {
-    // Formatear el precio con separador de miles y sin decimales
-    const formattedPrice = new Intl.NumberFormat('es-ES', {
-      style: 'decimal', // Cambiado de 'currency' a 'decimal' para evitar el símbolo de moneda automático
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price)
-
-    // Añadir el símbolo $ al principio
-    return `$${formattedPrice}`
-  } catch (_) {
-    return `$${price}`
-  }
-}
+// La función formatPrice ha sido eliminada
 
 // Determinar el color del chip según el estado
 const getStatusColor = (status: string | undefined): string => {
@@ -1391,25 +1367,6 @@ onMounted(() => {
 .sort-icon {
   opacity: 0.7;
   margin-left: 4px;
-}
-
-/* Estilo para el texto del precio */
-.price-text {
-  font-family:
-    'Inter',
-    'SF Pro Display',
-    'Segoe UI',
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  font-feature-settings:
-    'tnum' on,
-    'lnum' on; /* Activa números tabulares y lineales */
-  text-align: right;
-  width: 100%;
-  padding-right: 8px;
-  font-weight: 500; /* Semi-bold para mejor legibilidad */
-  letter-spacing: -0.01em; /* Ligero ajuste de espaciado para mejor apariencia */
 }
 
 .visible-on-hover {

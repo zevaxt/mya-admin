@@ -6,6 +6,54 @@ servers:
   - url: http://localhost:4200
 components:
   schemas:
+    Publication:
+      type: object
+      properties:
+        ID:
+          type: string
+          description: ID único de la publicación
+        AccountID:
+          type: integer
+          format: uint
+          description: ID de la cuenta a la que pertenece la publicación
+        SyncActive:
+          type: boolean
+          description: Indica si la sincronización está activa
+        CatalogActive:
+          type: boolean
+          description: Indica si es una publicación de catálogo
+        Status:
+          type: boolean
+          description: Estado de la publicación
+        IsPopulate:
+          type: boolean
+          description: Indica si la publicación ha sido poblada con datos completos
+        StatusML:
+          type: string
+          description: Estado de la publicación en Mercado Libre (active, inactive, paused, etc.)
+        ExtCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Fecha de creación en la plataforma externa (Mercado Libre)
+        ExtUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Fecha de última actualización en la plataforma externa (Mercado Libre)
+        CreatedAt:
+          type: string
+          format: date-time
+          description: Fecha de creación en la base de datos
+        UpdatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización en la base de datos
+        DeletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Fecha de eliminación (soft delete)
     Account:
       type: object
       properties:
@@ -255,16 +303,16 @@ paths:
                 properties:
                   Code:
                     type: string
-                    example: "003"
+                    example: '003'
                   Status:
                     type: integer
                     example: 401
                   Message:
                     type: string
-                    example: "Sus datos de autenticacion son invalidos por favor intente nuevamente"
+                    example: 'Sus datos de autenticacion son invalidos por favor intente nuevamente'
                   TecnicalDetails:
                     type: string
-                    example: "Token inválido o expirado: el token ha expirado"
+                    example: 'Token inválido o expirado: el token ha expirado'
   /v1/signin:
     post:
       tags:
@@ -568,13 +616,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           example: 'active'
         - name: channels
           in: header
@@ -689,13 +737,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           example: 'active'
         - name: channels
           in: header
@@ -823,161 +871,79 @@ paths:
       description: >-
         ### Request Description
 
-
-        This API endpoint retrieves a list of products that have been migrated
-        to the database. It is used to consult all stored publications.
-
-
-        ### Request Format
-
-
-        - **Method:** GET
-
-        - **Endpoint:** `{{sv}}/v1/migration/products`
-
-
-        ### Response Structure
-
-
-        The response is a JSON object containing the following fields:
-
-
-        - **products**: Array of product objects, each containing:
-          - **ID**: Unique identifier for the product.
-        - **total**: Total number of products available for the account.
-        - **offset**: The offset used in the request.
-        - **limit**: The limit used in the request.
-            - **tags**: Array of tags associated with the product.
-
-            - **price**: Price of the product.
-
-            - **title**: Title of the product.
-
-            - **health**: Health status of the product.
-
-            - **status**: Current status of the product.
-
-            - **site_id**: Identifier for the site.
-
-            - **channels**: Array of channels where the product is listed.
-
-            - **deal_ids**: Array of deal identifiers.
-
-            - **end_time**: End time of the product listing.
-
-            - **location**: Object containing location details.
-
-            - **pictures**: Array of picture objects with details such as id, url, size, quality, and secure_url.
-
-            - **shipping**: Object containing shipping details including mode, tags, methods, dimensions, and shipping options.
-
-            - **subtitle**: Subtitle of the product (if any).
-
-            - **video_id**: Video identifier (if applicable).
-
-            - **warnings**: Array of warnings related to the product.
-
-            - **warranty**: Warranty information.
-
-            - **condition**: Condition of the product.
-
-            - **domain_id**: Identifier for the domain.
-
-            - **permalink**: Permalink for the product.
-
-            - **seller_id**: Identifier for the seller.
-
-            - **stop_time**: Stop time for the product listing.
-
-            - **thumbnail**: Thumbnail image of the product.
-
-            - **attributes**: Array of attribute objects detailing product characteristics.
-
-            - **base_price**: Base price of the product.
-
-            - **sale_terms**: Array of sale term objects.
-
-            - **start_time**: Start time for the product listing.
-
-            - **sub_status**: Array of sub-statuses.
-
-            - **variations**: Array of product variations.
-
-            - **buying_mode**: Buying mode for the product.
-
-            - **category_id**: Identifier for the product category.
-
-            - **currency_id**: Currency identifier.
-
-            - **geolocation**: Object containing latitude and longitude.
-
-            - **date_created**: Creation date of the product listing.
-
-            - **descriptions**: Array of product descriptions.
-
-            - **inventory_id**: Identifier for the inventory.
-
-            - **last_updated**: Last updated timestamp.
-
-            - **thumbnail_id**: Identifier for the thumbnail.
-
-            - **sold_quantity**: Quantity sold.
-
-            - **coverage_areas**: Array of coverage areas.
-
-            - **item_relations**: Array of item relation objects.
-
-            - **listing_source**: Source of the listing.
-
-            - **original_price**: Original price of the product.
-
-            - **parent_item_id**: Identifier for the parent item (if applicable).
-
-            - **seller_address**: Object containing seller's address details.
-
-            - **seller_contact**: Seller contact information (if available).
-
-            - **catalog_listing**: Boolean indicating if it's a catalog listing.
-
-            - **expiration_time**: Expiration time for the listing.
-
-            - **listing_type_id**: Identifier for the listing type.
-
-            - **automatic_relist**: Boolean indicating if the product should be automatically relisted.
-
-            - **initial_quantity**: Initial quantity of the product.
-
-            - **secure_thumbnail**: Secure thumbnail URL.
-
-            - **official_store_id**: Identifier for the official store (if applicable).
-
-            - **available_quantity**: Quantity available for sale.
-
-            - **catalog_product_id**: Identifier for the catalog product.
-
-            - **accepts_mercadopago**: Boolean indicating if MercadoPago is accepted.
-
-            - **seller_custom_field**: Custom field for the seller (if applicable).
-
-            - **differential_pricing**: Differential pricing information (if applicable).
-
-            - **international_delivery_mode**: Mode for international delivery.
-
-            - **non_mercado_pago_payment_methods**: Array of non-MercadoPago payment methods.
+        - **products**: Array de objetos de publicación, cada uno contiene:
+          - **ID**: Identificador único de la publicación.
+          - **AccountID**: ID de la cuenta a la que pertenece la publicación.
+          - **SyncActive**: Indica si la sincronización está activa.
+          - **CatalogActive**: Indica si es una publicación de catálogo.
+          - **Status**: Estado de la publicación.
+          - **IsPopulate**: Indica si la publicación ha sido poblada con datos completos.
+          - **StatusML**: Estado de la publicación en Mercado Libre (active, inactive, paused, etc.).
+          - **ExtCreatedAt**: Fecha de creación en la plataforma externa (Mercado Libre).
+          - **ExtUpdatedAt**: Fecha de última actualización en la plataforma externa (Mercado Libre).
+          - **CreatedAt**: Fecha de creación en la base de datos.
+          - **UpdatedAt**: Fecha de última actualización en la base de datos.
+          - **DeletedAt**: Fecha de eliminación (soft delete).
+        - **total**: Número total de publicaciones disponibles para la cuenta.
+        - **offset**: El offset utilizado en la solicitud.
+        - **limit**: El límite utilizado en la solicitud.
+
+
+        ### Notas importantes
+
+
+        - Este endpoint NO devuelve el campo `Attributes` para optimizar el rendimiento.
+        - Si necesita acceder a los atributos completos de una publicación, use el endpoint `/v1/migration/product/{id}`.
+        - Si no se proporcionan parámetros de paginación, se devolverán todas las publicaciones.
 
 
         ### Response Code
 
 
-        - **200 OK**: Indicates that the request was successful and the product
-        data is returned.
+        - **200 OK**: Indica que la solicitud fue exitosa y se devuelven los datos de las publicaciones.
+        - **409 Conflict**: Indica que hubo un error al procesar la solicitud.
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Successful response
+          description: Lista de publicaciones obtenida exitosamente
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Publication'
+                  total:
+                    type: integer
+                    description: Número total de publicaciones disponibles
+                  offset:
+                    type: integer
+                    description: Offset utilizado en la consulta
+                  limit:
+                    type: integer
+                    description: Límite utilizado en la consulta
+        '409':
+          description: Error al procesar la solicitud
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Code:
+                    type: string
+                    example: '001'
+                  Status:
+                    type: integer
+                    example: 409
+                  Message:
+                    type: string
+                    example: 'Error fetching publications'
+                  TecnicalDetails:
+                    type: string
+                    example: 'Error al consultar la base de datos'
   /v1/migration/product/{id}:
     get:
       tags:
@@ -1969,13 +1935,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           example: 'active'
         - name: channels
           in: header
@@ -1995,7 +1961,7 @@ paths:
             almacenad los ids
           example: 'true'
       responses:
-        "200":
+        '200':
           description: Successful response
           content:
             application/json:
@@ -2003,14 +1969,14 @@ paths:
                 type: array
                 items:
                   type: string
-                  example: "MCO1587970801"
+                  example: 'MCO1587970801'
               example:
-                - "MCO1587970801"
-                - "MCO3151961416"
-                - "MCO3151002798"
-                - "MCO3150875244"
-                - "MCO1681369851"
-                - "MCO1678235879"
+                - 'MCO1587970801'
+                - 'MCO3151961416'
+                - 'MCO3151002798'
+                - 'MCO3150875244'
+                - 'MCO1681369851'
+                - 'MCO1678235879'
   /v1/migration/delete/products/ids:
     get:
       tags:
@@ -2067,13 +2033,13 @@ paths:
           schema:
             type: string
             enum:
-                - active
-                - inactive
-                - paused
-                - deleted
-                - inactive
-                - closed
-                - ''
+              - active
+              - inactive
+              - paused
+              - deleted
+              - inactive
+              - closed
+              - ''
           description: active, o vacio
 
         - name: channels
@@ -2467,7 +2433,7 @@ paths:
                     description: Lista de IDs de publicaciones
                     items:
                       type: string
-                    example: ["MCO2944805032", "MCO577635904"]
+                    example: ['MCO2944805032', 'MCO577635904']
   /v1/migration/update/products/populate/{id}:
     post:
       tags:
@@ -3640,17 +3606,17 @@ paths:
         - migration tag
       summary: /v1/migration/products/orphans
       description: >
-         NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
-         Este handler identifica publicaciones que:
-         1. Pertenecen a una cuenta específica (account-id)
-         2. No están sincronizadas con otras cuentas según el tipo de relación especificado:
-            - Si relation-query-type es "outgoing": No aparecen como to_sync_id (salientes)
-            - Si relation-query-type es "incoming": No aparecen como publication_id (entrantes)
-            - Si relation-query-type es "both": No aparecen ni como to_sync_id ni como publication_id
-         3. Por defecto, no están activas en el catálogo (catalog_active = false)
-         4. Opcionalmente, filtradas por estado (true/false/all)
-         5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
-         6. Opcionalmente, filtradas por catalog_active (true/false/all)
+        NoSyncPublicationOrphan obtiene los IDs de las publicaciones que no están sincronizadas y son huérfanas
+        Este handler identifica publicaciones que:
+        1. Pertenecen a una cuenta específica (account-id)
+        2. No están sincronizadas con otras cuentas según el tipo de relación especificado:
+           - Si relation-query-type es "outgoing": No aparecen como to_sync_id (salientes)
+           - Si relation-query-type es "incoming": No aparecen como publication_id (entrantes)
+           - Si relation-query-type es "both": No aparecen ni como to_sync_id ni como publication_id
+        3. Por defecto, no están activas en el catálogo (catalog_active = false)
+        4. Opcionalmente, filtradas por estado (true/false/all)
+        5. Opcionalmente, filtradas por cantidad vendida (con/sin ventas)
+        6. Opcionalmente, filtradas por catalog_active (true/false/all)
       security:
         - bearerAuth: []
       parameters:
@@ -3701,18 +3667,18 @@ paths:
                     description: Lista de IDs de publicaciones huérfanas
                     items:
                       type: string
-                    example: ["MCO1033211161", "MCO1034750110", "MCO1034933991"]
+                    example: ['MCO1033211161', 'MCO1034750110', 'MCO1034933991']
   /v1/migration/products/sync/stats:
     get:
       tags:
         - migration tag
       summary: /v1/migration/products/sync/stats
       description: >
-         Obtiene estadísticas de sincronización de publicaciones para una cuenta específica.
-         Este endpoint identifica:
-         1. Las publicaciones de la cuenta
-         2. Las relaciones de sincronización de cada publicación (entrantes y salientes)
-         3. El total de publicaciones
+        Obtiene estadísticas de sincronización de publicaciones para una cuenta específica.
+        Este endpoint identifica:
+        1. Las publicaciones de la cuenta
+        2. Las relaciones de sincronización de cada publicación (entrantes y salientes)
+        3. El total de publicaciones
       parameters:
         - name: account-id
           in: header
@@ -3746,7 +3712,7 @@ paths:
                         publication_id:
                           type: string
                           description: ID de la publicación
-                          example: "MCO123456789"
+                          example: 'MCO123456789'
                         account_id:
                           type: integer
                           description: ID de la cuenta a la que pertenece la publicación
@@ -3760,7 +3726,7 @@ paths:
                               to_sync_id:
                                 type: string
                                 description: ID de la publicación sincronizada
-                                example: "MCO987654321"
+                                example: 'MCO987654321'
                               to_account_id:
                                 type: integer
                                 description: ID de la cuenta destino
@@ -3774,7 +3740,7 @@ paths:
                               from_publication_id:
                                 type: string
                                 description: ID de la publicación origen
-                                example: "MCO111222333"
+                                example: 'MCO111222333'
                               from_account_id:
                                 type: integer
                                 description: ID de la cuenta origen
@@ -3785,9 +3751,9 @@ paths:
         - migration tag
       summary: /v1/migration/products/sync/relations
       description: >
-         Crea relaciones de sincronización entre publicaciones.
-         Este endpoint permite crear una o múltiples relaciones de sincronización entre publicaciones.
-         Cada relación conecta una publicación origen con una publicación destino.
+        Crea relaciones de sincronización entre publicaciones.
+        Este endpoint permite crear una o múltiples relaciones de sincronización entre publicaciones.
+        Cada relación conecta una publicación origen con una publicación destino.
       requestBody:
         required: true
         content:
@@ -3804,11 +3770,11 @@ paths:
                       publication_id:
                         type: string
                         description: ID de la publicación origen
-                        example: "MCO123456789"
+                        example: 'MCO123456789'
                       to_sync_id:
                         type: string
                         description: ID de la publicación destino
-                        example: "MCO987654321"
+                        example: 'MCO987654321'
                       account_id_to:
                         type: integer
                         description: ID de la cuenta destino (opcional, se puede inferir de to_sync_id)
@@ -3842,15 +3808,15 @@ paths:
                         publication_id:
                           type: string
                           description: ID de la publicación origen que falló
-                          example: "MCO123456789"
+                          example: 'MCO123456789'
                         to_sync_id:
                           type: string
                           description: ID de la publicación destino que falló
-                          example: "MCO987654321"
+                          example: 'MCO987654321'
                         message:
                           type: string
                           description: Mensaje de error
-                          example: "Relation already exists"
+                          example: 'Relation already exists'
         '400':
           description: Bad request
           content:
@@ -3879,23 +3845,23 @@ paths:
                         publication_id:
                           type: string
                           description: ID de la publicación origen que falló
-                          example: "MCO123456789"
+                          example: 'MCO123456789'
                         to_sync_id:
                           type: string
                           description: ID de la publicación destino que falló
-                          example: "MCO987654321"
+                          example: 'MCO987654321'
                         message:
                           type: string
                           description: Mensaje de error
-                          example: "Publication origin not found"
+                          example: 'Publication origin not found'
     delete:
       tags:
         - migration tag
       summary: /v1/migration/products/sync/relations
       description: >
-         Elimina relaciones de sincronización entre publicaciones.
-         Este endpoint permite eliminar una o múltiples relaciones de sincronización entre publicaciones.
-         Cada relación se identifica por el par de IDs publication_id y to_sync_id.
+        Elimina relaciones de sincronización entre publicaciones.
+        Este endpoint permite eliminar una o múltiples relaciones de sincronización entre publicaciones.
+        Cada relación se identifica por el par de IDs publication_id y to_sync_id.
       requestBody:
         required: true
         content:
@@ -3912,14 +3878,14 @@ paths:
                       publication_id:
                         type: string
                         description: ID de la publicación origen
-                        example: "MCO123456789"
+                        example: 'MCO123456789'
                       to_sync_id:
                         type: string
                         description: ID de la publicación destino
-                        example: "MCO987654321"
+                        example: 'MCO987654321'
       responses:
         '200':
-          description:Deleted successfully
+          description: Deleted successfully
           content:
             application/json:
               schema:
@@ -3946,15 +3912,15 @@ paths:
                         publication_id:
                           type: string
                           description: ID de la publicación origen que falló
-                          example: "MCO123456789"
+                          example: 'MCO123456789'
                         to_sync_id:
                           type: string
                           description: ID de la publicación destino que falló
-                          example: "MCO987654321"
+                          example: 'MCO987654321'
                         message:
                           type: string
                           description: Mensaje de error
-                          example: "Relation does not exist"
+                          example: 'Relation does not exist'
         '400':
           description: Bad request
           content:
@@ -3983,15 +3949,15 @@ paths:
                         publication_id:
                           type: string
                           description: ID de la publicación origen que falló
-                          example: "MCO123456789"
+                          example: 'MCO123456789'
                         to_sync_id:
                           type: string
                           description: ID de la publicación destino que falló
-                          example: "MCO987654321"
+                          example: 'MCO987654321'
                         message:
                           type: string
                           description: Mensaje de error
-                          example: "Relation does not exist"
+                          example: 'Relation does not exist'
   /v1/migration/products/orphans/matching-title:
     get:
       tags:
