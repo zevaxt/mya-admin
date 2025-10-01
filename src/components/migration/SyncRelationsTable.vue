@@ -577,8 +577,8 @@
 
         <!-- Columna de Estado de la Publicación -->
         <template #[`item.status`]="slotProps">
-          <v-chip :color="getStatusColor(slotProps.item.status)" size="small" variant="flat">
-            {{ getStatusText(slotProps.item.status) }}
+          <v-chip :color="getStatusColor(slotProps.item.status_ml)" size="small" variant="flat">
+            {{ getStatusText(slotProps.item.status_ml) }}
           </v-chip>
         </template>
 
@@ -1560,37 +1560,16 @@ const loadSyncRelations = async () => {
   loading.value = true
 
   try {
-    // Primero, obtener las estadísticas de sincronización
+    // Obtener las estadísticas de sincronización que ya incluyen status_ml
     const syncResponse = await migrationService.getSyncStats(accountId)
 
-    // Obtener los detalles de todas las publicaciones en una sola llamada
-    const productsResponse = await migrationService.getProductIds(
-      accountId,
-      undefined,
-      0,
-      syncResponse.publications.length,
-    )
-
-    // Crear un mapa para buscar rápidamente los detalles de cada publicación por ID
-    const productDetailsMap = new Map()
-    productsResponse.products.forEach((product) => {
-      // Usar directamente los campos de la respuesta
-      const isCatalogListing = product.CatalogActive || false
-
-      productDetailsMap.set(product.ID, {
-        isCatalogListing,
-        status: product.Status, // Estado booleano (activo/inactivo)
-        publicationStatus: product.StatusML || 'unknown', // Status de la publicación (active, paused, etc.)
-      })
-    })
-
-    // Combinar los datos de sincronización con los detalles de las publicaciones
+    // Procesar los datos directamente sin necesidad de una llamada adicional
     const allPublicationsWithDetails = syncResponse.publications.map((pub) => {
-      const details = productDetailsMap.get(pub.publication_id)
       return {
         ...pub,
-        is_catalog_listing: details ? details.isCatalogListing : false,
-        status: details ? details.publicationStatus : 'unknown',
+        // Usar valores predeterminados o datos de la respuesta
+        is_catalog_listing: pub.is_catalog_listing || false,
+        // Ya no necesitamos asignar status porque usaremos status_ml directamente
       }
     })
 
@@ -1666,9 +1645,9 @@ const loadSyncRelations = async () => {
     // Filtrar por status de la publicación
     if (statusFilter.value !== 'all') {
       filteredPublications = filteredPublications.filter((item) => {
-        if (!item.status) return false
+        if (!item.status_ml) return false
 
-        const status = item.status.toLowerCase()
+        const status = item.status_ml.toLowerCase()
 
         switch (statusFilter.value) {
           case 'active':
