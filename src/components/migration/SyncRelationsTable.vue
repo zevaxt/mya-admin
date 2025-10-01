@@ -621,7 +621,7 @@
                         <tr>
                           <th>ID Publicación</th>
                           <th>Cuenta Destino</th>
-                          <th>Acciones</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -658,91 +658,70 @@
                             </v-chip>
                           </td>
                           <td>
-                            <div class="d-flex">
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
+                            <div class="d-flex align-center">
+                              <!-- Menú único con todas las acciones -->
+                              <v-menu location="bottom">
+                                <template v-slot:activator="{ props }">
                                   <v-btn
                                     v-bind="props"
                                     size="x-small"
                                     icon
                                     variant="text"
                                     color="primary"
+                                    class="ml-1"
+                                    :loading="
+                                      syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}` ||
+                                      syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`
+                                    "
+                                  >
+                                    <v-icon size="small">mdi-dots-vertical</v-icon>
+                                  </v-btn>
+                                </template>
+                                
+                                <v-list density="compact" nav>
+                                  <!-- Acciones de visualización -->
+                                  <v-list-item
                                     @click="viewProductDetails(sync.to_sync_id)"
                                   >
-                                    <v-icon size="small">mdi-eye</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Ver detalles</span>
-                              </v-tooltip>
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
-                                  <v-btn
-                                    v-bind="props"
-                                    size="x-small"
-                                    icon
-                                    variant="text"
-                                    color="primary"
+                                    <template v-slot:prepend>
+                                      <v-icon color="primary" size="small">mdi-eye</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Ver detalles</v-list-item-title>
+                                  </v-list-item>
+                                  
+                                  <v-list-item
                                     @click="openInMercadoLibre(sync.to_sync_id)"
                                   >
-                                    <v-icon size="small">mdi-open-in-new</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Ver en Mercado Libre</span>
-                              </v-tooltip>
-
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
-                                  <v-btn
-                                    v-bind="props"
-                                    size="x-small"
-                                    icon
-                                    variant="elevated"
-                                    color="warning"
-                                    class="ml-1"
-                                    :loading="
-                                      syncingItem ===
-                                      `${slotProps.item.publication_id}-${sync.to_sync_id}`
-                                    "
-                                    @click="
-                                      syncRelation(
-                                        slotProps.item.publication_id,
-                                        sync.to_sync_id,
-                                        'outgoing',
-                                      )
-                                    "
+                                    <template v-slot:prepend>
+                                      <v-icon color="primary" size="small">mdi-open-in-new</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Ver en Mercado Libre</v-list-item-title>
+                                  </v-list-item>
+                                  
+                                  <v-divider class="my-1"></v-divider>
+                                  
+                                  <!-- Acciones de sincronización -->
+                                  <v-list-item
+                                    @click="syncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
+                                    :disabled="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}`"
                                   >
-                                    <v-icon size="small">mdi-sync</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Sincronizar esta relación</span>
-                              </v-tooltip>
-
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
-                                  <v-btn
-                                    v-bind="props"
-                                    size="x-small"
-                                    icon
-                                    variant="elevated"
-                                    color="error"
-                                    class="ml-1"
-                                    :loading="
-                                      syncingItem ===
-                                      `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`
-                                    "
-                                    @click="
-                                      deleteSyncRelation(
-                                        slotProps.item.publication_id,
-                                        sync.to_sync_id,
-                                        'outgoing',
-                                      )
-                                    "
+                                    <template v-slot:prepend>
+                                      <v-icon color="warning" size="small">mdi-sync</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Sincronizar</v-list-item-title>
+                                  </v-list-item>
+                                  
+                                  <v-list-item
+                                    @click="deleteSyncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
+                                    :disabled="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`"
                                   >
-                                    <v-icon size="small">mdi-link-variant-remove</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Eliminar esta relación</span>
-                              </v-tooltip>
+                                    <template v-slot:prepend>
+                                      <v-icon color="error" size="small">mdi-link-variant-remove</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Eliminar relación</v-list-item-title>
+                                  </v-list-item>
+                                </v-list>
+                              </v-menu>
                             </div>
                           </td>
                         </tr>
@@ -771,7 +750,7 @@
                         <tr>
                           <th>ID Publicación</th>
                           <th>Cuenta Origen</th>
-                          <th>Acciones</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -811,91 +790,70 @@
                             </v-chip>
                           </td>
                           <td>
-                            <div class="d-flex">
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
+                            <div class="d-flex align-center">
+                              <!-- Menú único con todas las acciones -->
+                              <v-menu location="bottom">
+                                <template v-slot:activator="{ props }">
                                   <v-btn
                                     v-bind="props"
                                     size="x-small"
                                     icon
                                     variant="text"
                                     color="success"
+                                    class="ml-1"
+                                    :loading="
+                                      syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}` ||
+                                      syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`
+                                    "
+                                  >
+                                    <v-icon size="small">mdi-dots-vertical</v-icon>
+                                  </v-btn>
+                                </template>
+                                
+                                <v-list density="compact" nav>
+                                  <!-- Acciones de visualización -->
+                                  <v-list-item
                                     @click="viewProductDetails(sync.from_publication_id)"
                                   >
-                                    <v-icon size="small">mdi-eye</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Ver detalles</span>
-                              </v-tooltip>
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
-                                  <v-btn
-                                    v-bind="props"
-                                    size="x-small"
-                                    icon
-                                    variant="text"
-                                    color="success"
+                                    <template v-slot:prepend>
+                                      <v-icon color="success" size="small">mdi-eye</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Ver detalles</v-list-item-title>
+                                  </v-list-item>
+                                  
+                                  <v-list-item
                                     @click="openInMercadoLibre(sync.from_publication_id)"
                                   >
-                                    <v-icon size="small">mdi-open-in-new</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Ver en Mercado Libre</span>
-                              </v-tooltip>
-
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
-                                  <v-btn
-                                    v-bind="props"
-                                    size="x-small"
-                                    icon
-                                    variant="elevated"
-                                    color="warning"
-                                    class="ml-1"
-                                    :loading="
-                                      syncingItem ===
-                                      `${sync.from_publication_id}-${slotProps.item.publication_id}`
-                                    "
-                                    @click="
-                                      syncRelation(
-                                        sync.from_publication_id,
-                                        slotProps.item.publication_id,
-                                        'incoming',
-                                      )
-                                    "
+                                    <template v-slot:prepend>
+                                      <v-icon color="success" size="small">mdi-open-in-new</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Ver en Mercado Libre</v-list-item-title>
+                                  </v-list-item>
+                                  
+                                  <v-divider class="my-1"></v-divider>
+                                  
+                                  <!-- Acciones de sincronización -->
+                                  <v-list-item
+                                    @click="syncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
+                                    :disabled="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}`"
                                   >
-                                    <v-icon size="small">mdi-sync</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Sincronizar esta relación</span>
-                              </v-tooltip>
-
-                              <v-tooltip location="top">
-                                <template #activator="{ props }">
-                                  <v-btn
-                                    v-bind="props"
-                                    size="x-small"
-                                    icon
-                                    variant="elevated"
-                                    color="error"
-                                    class="ml-1"
-                                    :loading="
-                                      syncingItem ===
-                                      `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`
-                                    "
-                                    @click="
-                                      deleteSyncRelation(
-                                        sync.from_publication_id,
-                                        slotProps.item.publication_id,
-                                        'incoming',
-                                      )
-                                    "
+                                    <template v-slot:prepend>
+                                      <v-icon color="warning" size="small">mdi-sync</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Sincronizar</v-list-item-title>
+                                  </v-list-item>
+                                  
+                                  <v-list-item
+                                    @click="deleteSyncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
+                                    :disabled="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`"
                                   >
-                                    <v-icon size="small">mdi-link-variant-remove</v-icon>
-                                  </v-btn>
-                                </template>
-                                <span>Eliminar esta relación</span>
-                              </v-tooltip>
+                                    <template v-slot:prepend>
+                                      <v-icon color="error" size="small">mdi-link-variant-remove</v-icon>
+                                    </template>
+                                    <v-list-item-title class="text-caption">Eliminar relación</v-list-item-title>
+                                  </v-list-item>
+                                </v-list>
+                              </v-menu>
                             </div>
                           </td>
                         </tr>
