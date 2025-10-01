@@ -117,61 +117,211 @@
               <v-col cols="12" md="6">
                 <h2 class="text-h4 mb-4">{{ product.Attributes?.title || 'Sin título' }}</h2>
 
-                <v-list density="compact" class="bg-grey-lighten-5 rounded mb-4">
-                  <v-list-item>
-                    <v-list-item-title>Precio</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ formatPrice(product.Attributes?.price || 0) }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
+                <v-card class="mb-4">
+                  <v-card-title class="text-subtitle-1 py-3 px-4 bg-grey-lighten-4">
+                    Información del Producto
+                  </v-card-title>
+                  <v-table density="compact" class="product-details-table">
+                    <tbody>
+                      <!-- Precio -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3" width="180">Precio</td>
+                        <td>{{ formatPrice(product.Attributes?.price || 0) }}</td>
+                      </tr>
+                      
+                      <!-- Cuenta -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Cuenta</td>
+                        <td>
+                          <v-chip color="primary" size="small">
+                            {{ getAccountName(product.AccountID) }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Estado -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Estado</td>
+                        <td>
+                          <v-chip
+                            :color="product.Attributes?.status === 'active' ? 'success' : 'error'"
+                            size="small"
+                          >
+                            {{ product.Attributes?.status === 'active' ? 'Activo' : 'Inactivo' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Catálogo -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Catálogo</td>
+                        <td>
+                          <v-chip
+                            :color="product.Attributes?.catalog_listing ? 'success' : 'grey-darken-1'"
+                            size="small"
+                          >
+                            {{ product.Attributes?.catalog_listing ? 'Sí' : 'No' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Catálogo Activo -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Catálogo Activo</td>
+                        <td>
+                          <v-chip
+                            :color="product.Attributes?.CatalogActive ? 'success' : 'grey-darken-1'"
+                            size="small"
+                          >
+                            {{ product.Attributes?.CatalogActive ? 'Sí' : 'No' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- ID Producto Catálogo -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">ID Producto Catálogo</td>
+                        <td>
+                          <template v-if="product.Attributes?.catalog_product_id">
+                            <v-chip
+                              color="purple"
+                              size="small"
+                              class="text-truncate"
+                              style="max-width: 200px"
+                            >
+                              {{ product.Attributes?.catalog_product_id }}
+                            </v-chip>
+                            <v-btn
+                              icon="mdi-content-copy"
+                              size="x-small"
+                              variant="text"
+                              color="grey"
+                              class="ml-1"
+                              @click="copyToClipboard(product.Attributes?.catalog_product_id)"
+                            ></v-btn>
+                          </template>
+                          <template v-else>
+                            <v-chip color="grey-lighten-1" size="small">N/A</v-chip>
+                          </template>
+                        </td>
+                      </tr>
+                      
+                      <!-- Publicaciones Relacionadas -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Publicaciones Relacionadas</td>
+                        <td>
+                          <template v-if="product.Attributes?.catalog_listing && product.Attributes?.item_relations?.length > 0">
+                            <v-chip color="info" size="small">
+                              {{ product.Attributes.item_relations.length }} relacionadas
+                            </v-chip>
+                          </template>
+                          <template v-else-if="product.Attributes?.catalog_listing">
+                            <v-chip color="warning" size="small">Sin relaciones</v-chip>
+                          </template>
+                          <template v-else>
+                            <v-chip color="grey-lighten-1" size="small">N/A</v-chip>
+                          </template>
+                        </td>
+                      </tr>
+                      
+                      <!-- Condición -->
+                      <tr v-if="product.Attributes?.condition">
+                        <td class="font-weight-medium text-grey-darken-3">Condición</td>
+                        <td>
+                          <v-chip
+                            :color="product.Attributes?.condition === 'new' ? 'success' : 'blue'"
+                            size="small"
+                          >
+                            {{ product.Attributes?.condition === 'new' ? 'Nuevo' : 'Usado' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Cantidad disponible -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Cantidad disponible</td>
+                        <td>
+                          <v-chip color="blue-grey" size="small">
+                            {{ product.Attributes?.available_quantity || 0 }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Salud del producto -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Salud del producto</td>
+                        <td>
+                          <v-chip :color="getHealthColor(product.Attributes?.health)" size="small">
+                            {{ formatHealthPercentage(product.Attributes?.health) }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Canales -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Canales</td>
+                        <td>
+                          <template v-if="product.Attributes?.channels && product.Attributes.channels.length > 0">
+                            <v-chip
+                              v-for="(channel, index) in product.Attributes.channels"
+                              :key="index"
+                              color="blue-grey"
+                              size="small"
+                              class="mr-1 mb-1"
+                            >
+                              {{ channel }}
+                            </v-chip>
+                          </template>
+                          <template v-else>
+                            <v-chip color="grey-lighten-1" size="small">N/A</v-chip>
+                          </template>
+                        </td>
+                      </tr>
+                      
+                      <!-- Fecha de creación -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Fecha de creación</td>
+                        <td>
+                          <v-chip color="blue-grey-lighten-2" size="small">
+                            {{ formatDate(product.Attributes?.date_created) }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Cantidad vendida -->
+                      <tr v-if="product.Attributes?.sold_quantity !== undefined">
+                        <td class="font-weight-medium text-grey-darken-3">Cantidad vendida</td>
+                        <td>
+                          <v-chip color="blue-grey" size="small">
+                            {{ product.Attributes?.sold_quantity || 0 }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Categoría -->
+                      <tr>
+                        <td class="font-weight-medium text-grey-darken-3">Categoría</td>
+                        <td>
+                          <v-chip color="blue-grey-lighten-3" size="small">
+                            {{ product.Attributes?.category_id || '-' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                      
+                      <!-- Garantía -->
+                      <tr v-if="product.Attributes?.warranty">
+                        <td class="font-weight-medium text-grey-darken-3">Garantía</td>
+                        <td>
+                          <v-chip color="blue-grey-lighten-3" size="small">
+                            {{ product.Attributes?.warranty || 'Sin garantía' }}
+                          </v-chip>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </v-card>
 
-                  <v-list-item>
-                    <v-list-item-title>Estado</v-list-item-title>
-                    <v-list-item-subtitle>
-                      <v-chip
-                        :color="product.Attributes?.status === 'active' ? 'success' : 'error'"
-                        size="small"
-                      >
-                        {{ product.Attributes?.status === 'active' ? 'Activo' : 'Inactivo' }}
-                      </v-chip>
-                    </v-list-item-subtitle>
-                  </v-list-item>
-
-                  <v-list-item v-if="product.Attributes?.condition">
-                    <v-list-item-title>Condición</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ product.Attributes?.condition === 'new' ? 'Nuevo' : 'Usado' }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-
-                  <v-list-item>
-                    <v-list-item-title>Cantidad disponible</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ product.Attributes?.available_quantity || 0 }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-
-                  <v-list-item v-if="product.Attributes?.sold_quantity !== undefined">
-                    <v-list-item-title>Cantidad vendida</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ product.Attributes?.sold_quantity || 0 }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-
-                  <v-list-item>
-                    <v-list-item-title>Categoría</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ product.Attributes?.category_id || '-' }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-
-                  <v-list-item v-if="product.Attributes?.warranty">
-                    <v-list-item-title>Garantía</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ product.Attributes?.warranty || 'Sin garantía' }}
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
+                <!-- Botón para ver en Mercado Libre -->
 
                 <v-btn
                   v-if="product.Attributes?.permalink"
@@ -697,6 +847,59 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(price)
 }
 
+// Función para obtener el nombre de la cuenta
+const getAccountName = (accountId: number | undefined) => {
+  if (!accountId) return 'Desconocida'
+  
+  // Buscar en las cuentas disponibles
+  const accounts = accountStore.accounts
+  const account = accounts.find((acc) => acc.ID === accountId)
+  
+  if (account) {
+    return account.Nickname || account.Email || `Cuenta #${accountId}`
+  }
+  
+  return `Cuenta #${accountId}`
+}
+
+// Función para formatear el valor de salud como porcentaje
+const formatHealthPercentage = (health: number | undefined) => {
+  if (health === undefined || health === null) return 'N/A'
+  
+  // Convertir el valor decimal a porcentaje (0-100%)
+  const percentage = Math.round(health * 100)
+  return `${percentage}%`
+}
+
+// Función para determinar el color según el valor de salud
+const getHealthColor = (health: number | undefined) => {
+  if (health === undefined || health === null) return 'grey'
+  
+  // Determinar el color según el rango de salud
+  if (health >= 0.8) return 'success'
+  if (health >= 0.5) return 'warning'
+  return 'error'
+}
+
+// Función para formatear la fecha
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return 'N/A'
+  
+  try {
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat('es-ES', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date)
+  } catch (error) {
+    console.error('Error al formatear la fecha:', error)
+    return dateString
+  }
+}
+
 // Funciones para la navegación de imágenes
 const selectImage = (index: number) => {
   if (
@@ -797,6 +1000,25 @@ const decreaseFontSize = () => {
   }
 }
 </script>
+
+<style scoped>
+.product-details-table {
+  border-collapse: collapse;
+}
+
+.product-details-table tr td {
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.product-details-table tr:last-child td {
+  border-bottom: none;
+}
+
+.product-details-table tr:hover {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+</style>
 
 <style scoped>
 .thumbnail-container {
