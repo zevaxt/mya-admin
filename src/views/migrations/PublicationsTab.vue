@@ -519,10 +519,16 @@
         </v-card-text>
 
         <v-divider></v-divider>
-        
+
         <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" size="small" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            size="small"
+            @click="showConfirmDialog = false"
+            >Cancelar</v-btn
+          >
           <v-btn
             color="primary"
             variant="text"
@@ -546,11 +552,14 @@
         <v-card-title class="text-subtitle-1 pa-4 pb-0">
           {{ progressDialogTitle }}
         </v-card-title>
-        
+
         <v-card-text class="pa-4">
           <p class="text-body-2 text-medium-emphasis mb-4">{{ progressDialogMessage }}</p>
-          
-          <div class="progress-container pa-3 rounded-lg" style="background: rgba(0,0,0,0.02); position: relative;">
+
+          <div
+            class="progress-container pa-3 rounded-lg"
+            style="background: rgba(0, 0, 0, 0.02); position: relative"
+          >
             <v-progress-linear
               v-model="progressValue"
               color="primary"
@@ -558,26 +567,28 @@
               rounded
               bg-opacity="0.1"
             ></v-progress-linear>
-            <div class="text-caption text-center mt-2" style="color: rgba(0,0,0,0.6);">
+            <div class="text-caption text-center mt-2" style="color: rgba(0, 0, 0, 0.6)">
               {{ Math.ceil(progressValue) }}%
             </div>
           </div>
-          
+
           <div class="d-flex justify-space-between mt-3 text-caption text-medium-emphasis">
             <span>Procesados: {{ processedCount }} de {{ totalItemsToProcess }}</span>
             <span>Exitosos: {{ successCount }}</span>
           </div>
         </v-card-text>
-        
+
         <v-divider v-if="!isProcessing"></v-divider>
-        
+
         <v-card-actions v-if="!isProcessing" class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="primary" variant="text" size="small" @click="showProgressDialog = false">Cerrar</v-btn>
+          <v-btn color="primary" variant="text" size="small" @click="showProgressDialog = false"
+            >Cerrar</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
-    
+
     <!-- Notificación de éxito o error -->
     <v-snackbar v-model="showNotification" :color="notificationType" :timeout="3000" location="top">
       {{ notificationMessage }}
@@ -592,148 +603,188 @@
       class="align-center justify-center"
       persistent
       :scrim="true"
-      scrim-class="bg-primary"
-      :opacity="0.8"
+      scrim-class="bg-white"
+      :opacity="0.3"
     >
-      <v-card class="pa-4 rounded-xl" min-width="600" max-width="800" elevation="10">
-        <v-card-title class="d-flex align-center pb-1">
-          <v-icon
-            :icon="populateHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle'"
-            class="mr-2"
-            :color="populateHasErrors ? 'error' : 'success'"
-            size="small"
-          ></v-icon>
-          <span class="text-h6">
-            {{ populateHasErrors ? 'Populate con errores' : 'Populate completado' }}
+      <v-card class="pa-3" min-width="600" max-width="800" elevation="8" rounded="lg">
+        <v-card-title class="d-flex align-center py-2 px-3">
+          <span class="text-subtitle-2 font-weight-medium">
+            {{ resultsMessage }}
           </span>
 
           <!-- Botón de cerrar -->
           <v-spacer></v-spacer>
-          <v-btn icon="mdi-close" variant="text" density="compact" @click="showResultsOverlay = false"></v-btn>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            density="compact"
+            size="small"
+            color="grey-darken-1"
+            @click="showResultsOverlay = false"
+          ></v-btn>
         </v-card-title>
 
-        <v-card-text class="pt-2">
-          <!-- Mensaje de resultados -->
-          <p class="text-body-1 mb-4">{{ resultsMessage }}</p>
+        <v-divider></v-divider>
 
-          <!-- Resultados del populate -->
-          <v-alert
-            v-if="successCount > 0"
-            type="success"
-            variant="tonal"
-            density="compact"
-            class="mb-3"
+        <v-card-text class="pa-3">
+          <!-- Resultados del populate en formato minimalista -->
+          <div
+            class="d-flex align-center mb-3 pa-2"
+            style="background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50"
           >
-            <strong>{{ successCount }}</strong> publicaciones procesadas correctamente
-          </v-alert>
+            <v-icon color="success" size="small" class="mr-2">mdi-check</v-icon>
+            <span class="text-caption"
+              >{{ successCount }} publicaciones procesadas correctamente</span
+            >
+          </div>
 
-          <v-alert
-            v-if="failedCount > 0"
-            type="error"
-            variant="tonal"
-            density="compact"
-            class="mb-3"
-          >
-            <strong>{{ failedCount }}</strong> publicaciones fallaron
+          <div v-if="failedCount > 0" class="mb-4">
+            <div
+              class="d-flex align-center mb-2 pa-2"
+              style="background: rgba(244, 67, 54, 0.05); border-left: 3px solid #f44336"
+            >
+              <v-icon color="error" size="small" class="mr-2">mdi-close</v-icon>
+              <span class="text-caption">{{ failedCount }} publicaciones fallaron</span>
+            </div>
 
-            <!-- Mostrar los detalles de los errores en una tabla con paginación -->
+            <!-- Mostrar los detalles de los errores en una tabla minimalista -->
             <div v-if="errorResults.length > 0" class="mt-3">
               <div class="d-flex align-center justify-space-between mb-2">
-                <div class="font-weight-medium">Detalles de los errores:</div>
+                <div class="text-body-2">Detalles de los errores:</div>
                 <div class="d-flex align-center">
                   <v-btn
                     size="small"
-                    variant="text"
-                    color="primary"
+                    variant="outlined"
+                    color="grey-darken-1"
                     prepend-icon="mdi-content-copy"
                     @click="copyAllErrorsToClipboard"
                     class="mr-2"
+                    density="comfortable"
                   >
                     Copiar todos
                   </v-btn>
-                  <v-chip size="small" color="error" variant="outlined">{{ errorResults.length }} errores</v-chip>
+                  <span class="text-caption">{{ errorResults.length }} errores</span>
                 </div>
               </div>
 
               <v-data-table
                 :headers="[
-                  { title: '#', key: 'index', width: '40px' },
+                  { title: '#', key: 'index', width: '30px' },
                   { title: 'ID', key: 'id', width: '120px' },
                   { title: 'Resumen', key: 'summary' },
-                  { title: 'Acciones', key: 'actions', width: '80px', sortable: false },
+                  { title: '', key: 'actions', width: '40px', sortable: false },
                 ]"
-                :items="errorResults.map((item, idx) => ({
-                  index: idx + 1,
-                  id: item.id,
-                  summary: item.message ? item.message.substring(0, 100) + (item.message.length > 100 ? '...' : '') : 'Error desconocido',
-                  error: item,
-                }))"
+                :items="
+                  errorResults.map((item, idx) => ({
+                    index: idx + 1,
+                    id: item.id,
+                    summary: item.message
+                      ? item.message.substring(0, 100) + (item.message.length > 100 ? '...' : '')
+                      : 'Error desconocido',
+                    error: item,
+                  }))
+                "
                 density="compact"
                 hover
-                class="error-table"
+                class="error-table text-caption"
               >
                 <template #item.actions="{ item }">
                   <v-btn
                     icon
                     size="x-small"
-                    color="info"
+                    color="grey-darken-1"
                     variant="text"
                     @click="viewErrorDetails(item.error)"
                   >
                     <v-icon size="small">mdi-eye</v-icon>
+                    <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
                   </v-btn>
                 </template>
               </v-data-table>
             </div>
-          </v-alert>
+          </div>
         </v-card-text>
 
-        <v-card-actions class="pt-0">
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-2">
           <v-spacer></v-spacer>
-          <v-btn color="primary" variant="text" @click="showResultsOverlay = false">Cerrar</v-btn>
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            size="small"
+            @click="showResultsOverlay = false"
+            >Cerrar</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-overlay>
 
     <!-- Diálogo para mostrar detalles completos del error -->
-    <v-dialog v-model="showErrorDialog" max-width="700" content-class="elevation-0" scrollable>
-      <v-card class="rounded-lg" elevation="3">
-        <v-card-title class="text-subtitle-1 pa-4 pb-0 d-flex align-center">
-          <v-icon start icon="mdi-alert-circle" color="error" size="small" class="mr-2"></v-icon>
-          <span>Detalle del error</span>
+    <v-dialog v-model="showErrorDialog" max-width="650" scrollable content-class="bg-overlay-minimal">
+      <v-card class="rounded-lg" elevation="8">
+        <v-card-title class="d-flex align-center py-2 px-3">
+          <span class="text-subtitle-2">Detalle del error</span>
           <v-spacer></v-spacer>
-          <v-btn icon="mdi-content-copy" variant="text" density="compact" size="small" color="grey-darken-1"
-            @click="copyErrorToClipboard(selectedError)">
+          <v-btn
+            prepend-icon="mdi-content-copy"
+            variant="outlined"
+            density="comfortable"
+            size="small"
+            color="grey-darken-1"
+            @click="copyErrorToClipboard(selectedError)"
+            class="mr-2"
+          >
+            Copiar
           </v-btn>
-          <v-btn icon="mdi-close" variant="text" density="compact" size="small" color="grey-darken-1"
-            @click="showErrorDialog = false">
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            density="compact"
+            size="small"
+            color="grey-darken-1"
+            @click="showErrorDialog = false"
+          >
           </v-btn>
         </v-card-title>
-        <v-card-text class="pa-4">
+
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-3">
           <div class="d-flex flex-column">
             <!-- Resumen del error -->
-            <v-alert
-              type="error"
-              class="mb-4"
-              density="compact"
-              variant="tonal"
-              border="start"
+            <div
+              class="mb-3 pa-3"
+              style="background: rgba(244, 67, 54, 0.05); border-left: 3px solid #f44336"
             >
-              {{ typeof selectedError === 'string' ? selectedError : selectedError?.message || 'Error desconocido' }}
-            </v-alert>
+              <p class="text-body-2 mb-0">
+                {{
+                  typeof selectedError === 'string'
+                    ? selectedError
+                    : selectedError?.message || 'Error desconocido'
+                }}
+              </p>
+            </div>
 
             <!-- Detalles completos del error -->
             <div class="mt-2">
-              <p class="text-caption text-medium-emphasis mb-1">Detalles completos:</p>
-              <pre class="error-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto text-caption" style="max-height: 350px; font-size: 11px !important;">
-{{ formatErrorDetails(selectedError) }}</pre>
+              <p class="text-caption mb-1">Detalles completos:</p>
+              <pre
+                class="error-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto"
+                style="max-height: 300px; font-size: 12px; line-height: 1.5"
+                >{{ formatErrorDetails(selectedError) }}</pre
+              >
             </div>
           </div>
         </v-card-text>
+
         <v-divider></v-divider>
+
         <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" size="small" @click="showErrorDialog = false">Cerrar</v-btn>
+          <v-btn color="grey-darken-1" variant="text" size="small" @click="showErrorDialog = false"
+            >Cerrar</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -1208,21 +1259,21 @@ const populateSelectedItems = async () => {
     failedCount.value = 0
     totalItemsToProcess.value = selectedItems.value.length
     errorResults.value = []
-    
+
     // Convertir los IDs seleccionados a strings si es necesario
     const productIds = selectedItems.value.map((id) => id.toString())
-    
+
     // Procesar cada producto individualmente para mostrar el progreso
     let successfulCount = 0
     let failedItemsCount = 0
-    
+
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i]
-      
+
       try {
         // Llamar al API para cada producto
         const result = await migrationService.updateProductPopulate(accountId.value, productId)
-        
+
         if (result.success) {
           successfulCount++
           successCount.value = successfulCount
@@ -1237,7 +1288,7 @@ const populateSelectedItems = async () => {
             message: result.message || result.Message || 'Error desconocido',
             Code: result.Code,
             Status: result.Status,
-            TecnicalDetails: result.TecnicalDetails
+            TecnicalDetails: result.TecnicalDetails,
           })
         }
       } catch (error) {
@@ -1245,7 +1296,7 @@ const populateSelectedItems = async () => {
         failedCount.value = failedItemsCount
         // Guardar el error para mostrarlo en el overlay
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-        
+
         // Intentar extraer más información si es un error de API
         const apiError = error as any
         errorResults.value.push({
@@ -1254,23 +1305,24 @@ const populateSelectedItems = async () => {
           message: errorMessage,
           Code: apiError?.Code || apiError?.code,
           Status: apiError?.Status || apiError?.status,
-          TecnicalDetails: apiError?.TecnicalDetails || apiError?.tecnicalDetails || apiError?.details
+          TecnicalDetails:
+            apiError?.TecnicalDetails || apiError?.tecnicalDetails || apiError?.details,
         })
       }
-      
+
       // Actualizar el progreso
       processedCount.value = i + 1
       progressValue.value = ((i + 1) / productIds.length) * 100
     }
-    
+
     // Cerrar el diálogo de progreso
     showProgressDialog.value = false
-    
+
     // Preparar y mostrar el overlay de resultados
     populateHasErrors.value = failedCount.value > 0
     resultsMessage.value = `Proceso completado: ${successCount.value} exitosos, ${failedCount.value} fallidos de ${productIds.length} totales`
     showResultsOverlay.value = true
-    
+
     // Recargar los datos y deseleccionar publicaciones
     await loadProductIds()
     selectedItems.value = [] // Deseleccionar todas las publicaciones
@@ -1278,24 +1330,27 @@ const populateSelectedItems = async () => {
     console.error('Error al hacer populate de productos seleccionados:', err)
     progressDialogMessage.value = 'Error al procesar las publicaciones'
     showProgressDialog.value = false
-    
+
     // Mostrar el error en el overlay
     populateHasErrors.value = true
     resultsMessage.value = 'Error al procesar las publicaciones'
-    
+
     // Extraer detalles del error
     const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
     const apiError = err as any
-    
-    errorResults.value = [{
-      id: 'general',
-      success: false,
-      message: errorMessage,
-      Code: apiError?.Code || apiError?.code,
-      Status: apiError?.Status || apiError?.status,
-      TecnicalDetails: apiError?.TecnicalDetails || apiError?.tecnicalDetails || apiError?.details
-    }]
-    
+
+    errorResults.value = [
+      {
+        id: 'general',
+        success: false,
+        message: errorMessage,
+        Code: apiError?.Code || apiError?.code,
+        Status: apiError?.Status || apiError?.status,
+        TecnicalDetails:
+          apiError?.TecnicalDetails || apiError?.tecnicalDetails || apiError?.details,
+      },
+    ]
+
     showResultsOverlay.value = true
   } finally {
     processingPopulateMultiple.value = false
@@ -1420,94 +1475,98 @@ const viewErrorDetails = (error: ErrorResult) => {
 
 const copyErrorToClipboard = (error: ErrorResult | null) => {
   if (!error) return
-  
+
   const errorText = formatErrorDetails(error)
-  navigator.clipboard.writeText(errorText)
+  navigator.clipboard
+    .writeText(errorText)
     .then(() => {
       // Opcional: mostrar alguna notificación de éxito
       console.log('Error copiado al portapapeles')
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('Error al copiar al portapapeles:', err)
     })
 }
 
 const copyAllErrorsToClipboard = () => {
-  const allErrors = errorResults.value.map((item, index) => {
-    return `Error #${index + 1} - ID: ${item.id}\n${formatErrorDetails(item)}`
-  }).join('\n\n' + '-'.repeat(50) + '\n\n')
-  
-  navigator.clipboard.writeText(allErrors)
+  const allErrors = errorResults.value
+    .map((item, index) => {
+      return `Error #${index + 1} - ID: ${item.id}\n${formatErrorDetails(item)}`
+    })
+    .join('\n\n' + '-'.repeat(50) + '\n\n')
+
+  navigator.clipboard
+    .writeText(allErrors)
     .then(() => {
       console.log('Todos los errores copiados al portapapeles')
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('Error al copiar al portapapeles:', err)
     })
 }
 
 const formatErrorDetails = (error: ErrorResult | null | unknown): string => {
   if (!error) return 'No hay detalles disponibles'
-  
+
   if (typeof error === 'string') {
     return error
   }
-  
+
   // Convertir a objeto para facilitar el acceso a las propiedades
   const errorObj = error as Record<string, any>
-  
+
   // Manejar la estructura específica de error del endpoint /v1/migration/update/products/populate/{id}
   // ErrorCustom struct { Code string, Status int, Message string, TecnicalDetails string }
   if (errorObj.Code || errorObj.Status || errorObj.TecnicalDetails) {
     let details = ''
-    
+
     if (errorObj.Message) {
       details += `Mensaje: ${errorObj.Message}\n`
     }
-    
+
     if (errorObj.Code) {
       details += `Código: ${errorObj.Code}\n`
     }
-    
+
     if (errorObj.Status) {
       details += `Estado: ${errorObj.Status}\n`
     }
-    
+
     if (errorObj.TecnicalDetails) {
       details += `\nDetalles técnicos:\n${errorObj.TecnicalDetails}`
     }
-    
+
     if (errorObj.id) {
       details += `\nID: ${errorObj.id}`
     }
-    
+
     return details
   }
-  
+
   // Manejo genérico para otros formatos de error
   if (errorObj.message) {
     let details = `Mensaje: ${errorObj.message}\n`
-    
+
     if (errorObj.id) {
       details += `ID: ${errorObj.id}\n`
     }
-    
+
     // Si hay más detalles en el objeto error, mostrarlos
     try {
-      const otherDetails = {...errorObj}
+      const otherDetails = { ...errorObj }
       delete otherDetails.message
       delete otherDetails.id
-      
+
       if (Object.keys(otherDetails).length > 0) {
         details += `\nDetalles adicionales:\n${JSON.stringify(otherDetails, null, 2)}`
       }
     } catch (e) {
       // Si no se puede clonar el objeto, simplemente ignorar
     }
-    
+
     return details
   }
-  
+
   // Si nada más funciona, intentar convertir a JSON
   try {
     return JSON.stringify(error, null, 2)
@@ -1881,5 +1940,10 @@ onMounted(() => {
 .v-fade-transition-enter-from,
 .v-fade-transition-leave-to {
   opacity: 0;
+}
+
+/* Estilo para el fondo del diálogo de errores */
+.bg-overlay-minimal {
+  background-color: rgba(255, 255, 255, 0.3) !important;
 }
 </style>
