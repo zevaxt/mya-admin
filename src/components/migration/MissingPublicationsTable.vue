@@ -811,19 +811,25 @@ defineExpose({
     </v-snackbar>
 
     <!-- Diálogo de confirmación -->
-    <v-dialog v-model="showConfirmDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">{{ confirmDialogTitle }}</v-card-title>
-        <v-card-text>{{ confirmDialogMessage }}</v-card-text>
-        <v-card-actions>
+    <v-dialog v-model="showConfirmDialog" max-width="450" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">{{ confirmDialogTitle }}</v-card-title>
+        <v-card-text class="pa-4">
+          <p class="text-body-2 text-medium-emphasis">{{ confirmDialogMessage }}</p>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn color="grey-darken-1" variant="text" size="small" @click="showConfirmDialog = false">Cancelar</v-btn>
           <v-btn
             color="primary"
-            variant="elevated"
+            variant="text"
+            size="small"
             @click="
-              showConfirmDialog = false;
-              confirmDialogAction();
+              async () => {
+                showConfirmDialog = false
+                await confirmDialogAction()
+              }
             "
           >
             Confirmar
@@ -831,43 +837,42 @@ defineExpose({
         </v-card-actions>
       </v-card>
     </v-dialog>
-
+    
     <!-- Diálogo para mostrar los IDs sincronizados en modo lectura -->
-    <v-dialog v-model="showIdsDialog" max-width="800px">
-      <v-card>
-        <v-card-title class="text-h6">
-          <v-icon class="mr-2" color="info">mdi-information-outline</v-icon>
-          IDs de publicaciones encontradas (modo solo lectura)
+    <v-dialog v-model="showIdsDialog" max-width="700" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">
+          <v-icon class="mr-2" color="info" size="small">mdi-information-outline</v-icon>
+          IDs de publicaciones encontradas
         </v-card-title>
-        <v-card-text>
-          <p class="mb-4">
-            Se encontraron <strong>{{ syncedPublicationIds.length }}</strong> publicaciones en Mercado Libre que no están en la base de datos.
-          </p>
-          
+        <v-card-text class="pa-4">
+          <p class="text-caption text-medium-emphasis mb-2">Modo solo lectura</p>
           <v-textarea
-            :model-value="syncedPublicationIds.join('\n')"
-            label="IDs de publicaciones"
+            v-model="syncIds"
             readonly
-            auto-grow
             rows="10"
+            auto-grow
+            hide-details
+            density="compact"
             variant="outlined"
-            class="mb-4"
+            bg-color="grey-lighten-5"
           ></v-textarea>
-          
-          <div class="d-flex justify-end">
-            <v-btn 
-              color="primary" 
-              @click="copyToClipboard"
-              variant="text"
-              prepend-icon="mdi-content-copy"
-            >
-              Copiar al portapapeles
-            </v-btn>
-          </div>
         </v-card-text>
-        <v-card-actions>
+        <v-divider></v-divider>
+        <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="primary" @click="showIdsDialog = false">Cerrar</v-btn>
+          <v-btn
+            color="info"
+            variant="text"
+            size="small"
+            @click="copyToClipboard"
+            :loading="copyingToClipboard"
+            :disabled="copyingToClipboard"
+          >
+            <v-icon start size="small">mdi-content-copy</v-icon>
+            Copiar
+          </v-btn>
+          <v-btn color="grey-darken-1" variant="text" size="small" @click="showIdsDialog = false">Cerrar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

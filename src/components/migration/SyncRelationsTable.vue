@@ -1056,38 +1056,44 @@
                 </v-data-table>
 
                 <!-- Diálogo para mostrar detalles completos del error -->
-                <v-dialog v-model="showErrorDialog" max-width="800px" scrollable>
-                  <v-card>
-                    <v-card-title class="bg-error text-white d-flex align-center">
-                      <v-icon start icon="mdi-alert-circle" class="mr-2"></v-icon>
+                <v-dialog v-model="showErrorDialog" max-width="700" content-class="elevation-0" scrollable>
+                  <v-card class="rounded-lg" elevation="3">
+                    <v-card-title class="text-subtitle-1 pa-4 pb-0 d-flex align-center">
+                      <v-icon start icon="mdi-alert-circle" color="error" size="small" class="mr-2"></v-icon>
                       <span>Detalle del error</span>
                       <v-spacer></v-spacer>
-                      <v-btn icon="mdi-content-copy" variant="text" density="compact" color="white"
-                        @click="copyErrorToClipboard(selectedError)" class="mr-2">
+                      <v-btn icon="mdi-content-copy" variant="text" density="compact" size="small" color="grey-darken-1"
+                        @click="copyErrorToClipboard(selectedError)">
                       </v-btn>
-                      <v-btn icon="mdi-close" variant="text" density="compact" color="white"
+                      <v-btn icon="mdi-close" variant="text" density="compact" size="small" color="grey-darken-1"
                         @click="showErrorDialog = false">
                       </v-btn>
                     </v-card-title>
-                    <v-card-text class="pa-0">
+                    <v-card-text class="pa-4">
                       <div class="d-flex flex-column">
                         <!-- Resumen del error -->
-                        <div class="pa-4 bg-grey-lighten-5 border-b">
-                          <div class="text-subtitle-2 mb-1">Resumen:</div>
-                          <div>{{ typeof selectedError === 'string' ? extractErrorSummary(selectedError) : extractErrorSummary(selectedError) }}</div>
-                        </div>
+                        <v-alert
+                          type="error"
+                          class="mb-4"
+                          density="compact"
+                          variant="tonal"
+                          border="start"
+                        >
+                          {{ typeof selectedError === 'string' ? extractErrorSummary(selectedError) : extractErrorSummary(selectedError) }}
+                        </v-alert>
 
                         <!-- Detalles completos del error -->
-                        <div class="pa-4">
-                          <div class="text-subtitle-2 mb-1">Detalles completos:</div>
-                          <pre class="error-details pa-3 rounded bg-grey-lighten-4 overflow-x-auto text-caption" style="max-height: 400px; font-size: 11px !important;">
+                        <div class="mt-2">
+                          <p class="text-caption text-medium-emphasis mb-1">Detalles completos:</p>
+                          <pre class="error-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto text-caption" style="max-height: 350px; font-size: 11px !important;">
 {{ formatErrorDetails(selectedError) }}</pre>
                         </div>
                       </div>
                     </v-card-text>
-                    <v-card-actions class="pa-4 pt-0">
+                    <v-divider></v-divider>
+                    <v-card-actions class="pa-3">
                       <v-spacer></v-spacer>
-                      <v-btn color="primary" variant="text" @click="showErrorDialog = false">Cerrar</v-btn>
+                      <v-btn color="grey-darken-1" variant="text" size="small" @click="showErrorDialog = false">Cerrar</v-btn>
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
@@ -1109,13 +1115,13 @@
     </v-overlay>
 
     <!-- Diálogo para agregar sincronización -->
-    <v-dialog v-model="showAddSyncDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h5 bg-primary text-white">
+    <v-dialog v-model="showAddSyncDialog" max-width="500" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">
           {{ syncDialogTitle }}
         </v-card-title>
 
-        <v-card-text class="pt-4">
+        <v-card-text class="pa-4">
           <!-- Mostrar el ID de la publicación de origen -->
           <div class="d-flex align-center mb-4 pa-2 border rounded">
             <v-icon
@@ -1256,12 +1262,14 @@
           </v-form>
         </v-card-text>
 
-        <v-card-actions>
+        <v-divider></v-divider>
+        <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showAddSyncDialog = false"> Cancelar </v-btn>
+          <v-btn color="grey-darken-1" variant="text" size="small" @click="showAddSyncDialog = false">Cancelar</v-btn>
           <v-btn
             color="primary"
-            variant="elevated"
+            variant="text"
+            size="small"
             :loading="addingSyncRelation"
             @click="submitAddSync"
           >

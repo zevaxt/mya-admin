@@ -155,22 +155,25 @@
     </v-snackbar>
 
     <!-- Diálogo de confirmación -->
-    <v-dialog v-model="showConfirmDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h5">
+    <v-dialog v-model="showConfirmDialog" max-width="450" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">
           {{ confirmDialogTitle }}
         </v-card-title>
 
-        <v-card-text>
-          {{ confirmDialogMessage }}
+        <v-card-text class="pa-4">
+          <p class="text-body-2 text-medium-emphasis">{{ confirmDialogMessage }}</p>
         </v-card-text>
 
-        <v-card-actions>
+        <v-divider></v-divider>
+        
+        <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn color="grey-darken-1" variant="text" size="small" @click="showConfirmDialog = false">Cancelar</v-btn>
           <v-btn
-            color="error"
-            variant="elevated"
+            color="primary"
+            variant="text"
+            size="small"
             @click="
               async () => {
                 showConfirmDialog = false

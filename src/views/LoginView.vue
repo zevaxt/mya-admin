@@ -243,16 +243,16 @@ const handleForgotPassword = async () => {
     </v-row>
     
     <!-- Diálogo de recuperación de contraseña -->
-    <v-dialog v-model="showForgotPasswordDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5 pb-2">
-          <v-icon start color="primary" class="me-2">mdi-lock-reset</v-icon>
+    <v-dialog v-model="showForgotPasswordDialog" max-width="450" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0 d-flex align-center">
+          <v-icon start color="primary" size="small" class="mr-2">mdi-lock-reset</v-icon>
           Recuperar contraseña
         </v-card-title>
         
-        <v-card-text>
+        <v-card-text class="pa-4">
           <div v-if="!forgotPasswordSubmitted">
-            <p class="text-body-2 mb-4">
+            <p class="text-body-2 text-medium-emphasis mb-4">
               Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.
             </p>
             
@@ -263,27 +263,31 @@ const handleForgotPassword = async () => {
                 label="Correo electrónico"
                 prepend-inner-icon="mdi-email"
                 variant="outlined"
+                density="comfortable"
                 required
                 autocomplete="email"
               />
             </v-form>
           </div>
           
-          <div v-else class="text-center py-4">
-            <v-icon color="success" size="large" class="mb-4">mdi-check-circle</v-icon>
-            <h3 class="text-h6 mb-2">Solicitud enviada</h3>
-            <p class="text-body-2">
+          <div v-else class="text-center py-2">
+            <v-icon color="success" size="large" class="mb-3">mdi-check-circle</v-icon>
+            <h3 class="text-subtitle-1 mb-2">Solicitud enviada</h3>
+            <p class="text-body-2 text-medium-emphasis">
               Hemos enviado un correo electrónico con instrucciones para restablecer tu contraseña.
               Por favor, revisa tu bandeja de entrada.
             </p>
           </div>
         </v-card-text>
         
-        <v-card-actions>
+        <v-divider></v-divider>
+        
+        <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
           <v-btn
-            color="grey"
+            color="grey-darken-1"
             variant="text"
+            size="small"
             @click="showForgotPasswordDialog = false"
             :disabled="forgotPasswordLoading"
           >
@@ -292,7 +296,8 @@ const handleForgotPassword = async () => {
           <v-btn
             v-if="!forgotPasswordSubmitted"
             color="primary"
-            variant="elevated"
+            variant="text"
+            size="small"
             @click="handleForgotPassword"
             :loading="forgotPasswordLoading"
             :disabled="!forgotPasswordEmail || !/.+@.+\..+/.test(forgotPasswordEmail)"
