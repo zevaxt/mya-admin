@@ -30,7 +30,8 @@ const selectedItems = ref<string[]>([])
 const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 
 // Filtros
-const statusFilter = ref<'active' | 'paused' | 'inactive' | 'closed' | ''>('')
+const statusFilter = ref<'active' | 'paused' | 'inactive' | 'closed' | ''>('active')
+const isDefaultStatusFilter = ref(true)
 const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace')
 const isDefaultChannelsFilter = ref(true)
 
@@ -56,12 +57,13 @@ const hasAccount = computed(() => !!currentAccount.value)
 
 // Verificar si hay filtros activos
 const hasActiveFilters = computed(() => {
-  return statusFilter.value !== '' || !isDefaultChannelsFilter.value
+  return !isDefaultStatusFilter.value || !isDefaultChannelsFilter.value
 })
 
 // Función para limpiar todos los filtros
 const clearAllFilters = () => {
-  statusFilter.value = ''
+  statusFilter.value = 'active'
+  isDefaultStatusFilter.value = true
   channelsFilter.value = 'marketplace'
   isDefaultChannelsFilter.value = true
   loadMissingPublications()
@@ -166,6 +168,11 @@ const handlePageChange = () => {
   loadMissingPublications()
 }
 
+const handleStatusFilterChange = () => {
+  isDefaultStatusFilter.value = statusFilter.value === 'active'
+  loadMissingPublications()
+}
+
 const handleChannelsFilterChange = () => {
   isDefaultChannelsFilter.value = channelsFilter.value === 'marketplace'
   loadMissingPublications()
@@ -174,6 +181,12 @@ const handleChannelsFilterChange = () => {
 const resetChannelsFilter = () => {
   channelsFilter.value = 'marketplace'
   isDefaultChannelsFilter.value = true
+  loadMissingPublications()
+}
+
+const resetStatusFilter = () => {
+  statusFilter.value = 'active'
+  isDefaultStatusFilter.value = true
   loadMissingPublications()
 }
 
@@ -594,16 +607,23 @@ defineExpose({
           :items="statusOptions"
           item-title="title"
           item-value="value"
-          label="Estatus"
+          label="Estado de publicaciones"
           variant="outlined"
           density="comfortable"
           hide-details
-          @update:model-value="loadMissingPublications"
-          :color="statusFilter ? getStatusColor(statusFilter) : undefined"
-          :bg-color="statusFilter ? `${getStatusColor(statusFilter)}-lighten-5` : undefined"
+          @update:model-value="handleStatusFilterChange"
+          :color="isDefaultStatusFilter ? undefined : getStatusColor(statusFilter)"
+          :bg-color="
+            isDefaultStatusFilter ? undefined : `${getStatusColor(statusFilter)}-lighten-5`
+          "
         >
           <template v-slot:append-inner>
-            <v-icon v-if="statusFilter !== ''" :color="getStatusColor(statusFilter)" @click.stop="statusFilter = ''; loadMissingPublications()">mdi-close</v-icon>
+            <v-icon
+              v-if="!isDefaultStatusFilter"
+              :color="getStatusColor(statusFilter)"
+              @click.stop="resetStatusFilter"
+              >mdi-close</v-icon
+            >
           </template>
         </v-select>
       </v-col>

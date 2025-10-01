@@ -5,8 +5,8 @@
       <div>
         <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
         <p class="text-caption text-grey">
-          Publicaciones que no están sincronizadas, (Es decir no estan como una publicacion destino
-          de sincronizacion)
+          Publicaciones que tiene sincronizaciones asociadas, (Es decir no estan como una
+          publicacion Saliente o Entrantes de sincronizacion)
         </p>
       </div>
       <div class="d-flex gap-2">
@@ -41,20 +41,15 @@
                   label="Filtrar por estado"
                   variant="outlined"
                   density="comfortable"
-                  @update:model-value="loadOrphanPublications"
-                  :color="statusFilter !== 'all' ? 'primary' : undefined"
-                  :bg-color="statusFilter !== 'all' ? 'primary-lighten-5' : undefined"
+                  @update:model-value="handleStatusFilterChange"
+                  :color="isDefaultStatusFilter ? undefined : 'primary'"
+                  :bg-color="isDefaultStatusFilter ? undefined : 'primary-lighten-5'"
                 >
                   <template v-slot:append-inner>
                     <v-icon
-                      v-if="statusFilter !== 'all'"
+                      v-if="!isDefaultStatusFilter"
                       color="primary"
-                      @click.stop="
-                        () => {
-                          statusFilter = 'all'
-                          loadOrphanPublications()
-                        }
-                      "
+                      @click.stop="resetStatusFilter"
                     >
                       mdi-close
                     </v-icon>
@@ -178,7 +173,7 @@
         <v-col cols="12" md="6" class="d-flex justify-start align-center gap-2">
           <v-btn
             v-if="
-              statusFilter !== 'all' ||
+              !isDefaultStatusFilter ||
               soldQuantityFilter !== 'all' ||
               catalogActiveFilter !== 'all' ||
               relationQueryTypeFilter !== 'incoming'
@@ -438,7 +433,8 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 
 // Filtros
-const statusFilter = ref<boolean | 'all'>('all')
+const statusFilter = ref<boolean | 'all'>(true)
+const isDefaultStatusFilter = ref(true)
 const soldQuantityFilter = ref<boolean | 'all'>('all')
 const catalogActiveFilter = ref<boolean | 'all'>('all')
 const relationQueryTypeFilter = ref<'outgoing' | 'incoming' | 'both'>('incoming') // Valor predeterminado: publicaciones que no tienen sincronizaciones salientes
@@ -451,7 +447,7 @@ const statusOptions = [
 ]
 
 const soldQuantityOptions = [
-  { title: 'Todas las ventas', value: 'all' },
+  { title: 'Todas', value: 'all' },
   { title: 'Con ventas', value: true },
   { title: 'Sin ventas', value: false },
 ]
@@ -470,7 +466,8 @@ const relationQueryTypeOptions = [
 
 // Función para limpiar todos los filtros
 const clearFilters = () => {
-  statusFilter.value = 'all'
+  statusFilter.value = true
+  isDefaultStatusFilter.value = true
   soldQuantityFilter.value = 'all'
   catalogActiveFilter.value = 'all'
   relationQueryTypeFilter.value = 'incoming' // Restablecer a 'Salientes'
@@ -554,6 +551,17 @@ const loadOrphanPublications = async () => {
 
 // Manejar cambio de página
 const handlePageChange = () => {
+  loadOrphanPublications()
+}
+
+const handleStatusFilterChange = () => {
+  isDefaultStatusFilter.value = statusFilter.value === true
+  loadOrphanPublications()
+}
+
+const resetStatusFilter = () => {
+  statusFilter.value = true
+  isDefaultStatusFilter.value = true
   loadOrphanPublications()
 }
 
