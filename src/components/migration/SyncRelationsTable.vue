@@ -153,6 +153,7 @@
             </template>
           </v-select>
         </v-col>
+
       </v-row>
     </div>
 
@@ -577,21 +578,21 @@
 
         <!-- Columna de Estado de la Publicación -->
         <template #[`item.status`]="slotProps">
-          <v-chip :color="getStatusColor(slotProps.item.status_ml)" size="small" variant="flat">
-            {{ getStatusText(slotProps.item.status_ml) }}
+          <v-chip :color="getStatusColor(slotProps.item.status_ml)" size="small" class="text-capitalize">
+            {{ slotProps.item.status_ml || 'unknown' }}
           </v-chip>
         </template>
 
         <!-- Columna de Catálogo -->
         <template #[`item.catalog`]="slotProps">
           <v-chip
-            :color="slotProps.item.is_catalog_listing ? 'purple' : 'grey-lighten-1'"
+            :color="slotProps.item.catalog_active ? 'success' : 'error'"
             size="small"
-            variant="flat"
           >
-            {{ slotProps.item.is_catalog_listing ? 'SÍ' : 'NO' }}
+            {{ slotProps.item.catalog_active ? 'Sí' : 'No' }}
           </v-chip>
         </template>
+
 
         <!-- La columna de Acciones ha sido eliminada y sus botones movidos a las columnas de sincronizaciones -->
 
@@ -649,10 +650,10 @@
                           </td>
                           <td>
                             <v-chip
-                              size="small"
-                              color="primary"
+                              size="x-small"
+                              color="grey-darken-1"
                               variant="flat"
-                              class="font-weight-medium"
+                              class="text-caption"
                             >
                               {{ getAccountName(sync.to_account_id) }}
                             </v-chip>
@@ -677,7 +678,7 @@
                                     <v-icon size="small">mdi-dots-vertical</v-icon>
                                   </v-btn>
                                 </template>
-                                
+
                                 <v-list density="compact" nav>
                                   <!-- Acciones de visualización -->
                                   <v-list-item
@@ -688,7 +689,7 @@
                                     </template>
                                     <v-list-item-title class="text-caption">Ver detalles</v-list-item-title>
                                   </v-list-item>
-                                  
+
                                   <v-list-item
                                     @click="openInMercadoLibre(sync.to_sync_id)"
                                   >
@@ -697,9 +698,9 @@
                                     </template>
                                     <v-list-item-title class="text-caption">Ver en Mercado Libre</v-list-item-title>
                                   </v-list-item>
-                                  
+
                                   <v-divider class="my-1"></v-divider>
-                                  
+
                                   <!-- Acciones de sincronización -->
                                   <v-list-item
                                     @click="syncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
@@ -710,7 +711,7 @@
                                     </template>
                                     <v-list-item-title class="text-caption">Sincronizar</v-list-item-title>
                                   </v-list-item>
-                                  
+
                                   <v-list-item
                                     @click="deleteSyncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
                                     :disabled="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`"
@@ -783,8 +784,6 @@
                             <v-chip
                               size="small"
                               color="success"
-                              variant="flat"
-                              class="font-weight-medium"
                             >
                               {{ getAccountName(sync.from_account_id) }}
                             </v-chip>
@@ -809,7 +808,7 @@
                                     <v-icon size="small">mdi-dots-vertical</v-icon>
                                   </v-btn>
                                 </template>
-                                
+
                                 <v-list density="compact" nav>
                                   <!-- Acciones de visualización -->
                                   <v-list-item
@@ -820,7 +819,7 @@
                                     </template>
                                     <v-list-item-title class="text-caption">Ver detalles</v-list-item-title>
                                   </v-list-item>
-                                  
+
                                   <v-list-item
                                     @click="openInMercadoLibre(sync.from_publication_id)"
                                   >
@@ -829,9 +828,9 @@
                                     </template>
                                     <v-list-item-title class="text-caption">Ver en Mercado Libre</v-list-item-title>
                                   </v-list-item>
-                                  
+
                                   <v-divider class="my-1"></v-divider>
-                                  
+
                                   <!-- Acciones de sincronización -->
                                   <v-list-item
                                     @click="syncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
@@ -842,7 +841,7 @@
                                     </template>
                                     <v-list-item-title class="text-caption">Sincronizar</v-list-item-title>
                                   </v-list-item>
-                                  
+
                                   <v-list-item
                                     @click="deleteSyncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
                                     :disabled="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`"
@@ -1432,6 +1431,7 @@ const statusOptions = [
   { title: 'Otros', value: 'other' },
 ]
 
+
 // Encabezados de la tabla
 const headers = [
   { title: 'ID', key: 'publication_id', sortable: true },
@@ -1473,12 +1473,12 @@ const noneCount = computed(() => {
 
 // Contador para publicaciones de catálogo
 const catalogCount = computed(() => {
-  return allPublications.value.filter((item) => item.is_catalog_listing === true).length
+  return allPublications.value.filter((item) => item.catalog_active === true).length
 })
 
 // Contador para publicaciones estándar (no catálogo)
 const nonCatalogCount = computed(() => {
-  return allPublications.value.filter((item) => item.is_catalog_listing === false).length
+  return allPublications.value.filter((item) => item.catalog_active === false || item.catalog_active === undefined).length
 })
 
 // Contadores para los diferentes estados de publicación
@@ -1521,15 +1521,9 @@ const loadSyncRelations = async () => {
     // Obtener las estadísticas de sincronización que ya incluyen status_ml
     const syncResponse = await migrationService.getSyncStats(accountId)
 
-    // Procesar los datos directamente sin necesidad de una llamada adicional
-    const allPublicationsWithDetails = syncResponse.publications.map((pub) => {
-      return {
-        ...pub,
-        // Usar valores predeterminados o datos de la respuesta
-        is_catalog_listing: pub.is_catalog_listing || false,
-        // Ya no necesitamos asignar status porque usaremos status_ml directamente
-      }
-    })
+    // Usar los datos directamente de la respuesta sin necesidad de procesamiento adicional
+    // Ya contiene status_ml e is_populate
+    const allPublicationsWithDetails = syncResponse.publications
 
     // Guardar todas las publicaciones para estadísticas
     allPublications.value = allPublicationsWithDetails
@@ -1591,9 +1585,9 @@ const loadSyncRelations = async () => {
       filteredPublications = filteredPublications.filter((item) => {
         switch (catalogFilter.value) {
           case 'yes':
-            return item.is_catalog_listing === true
+            return item.catalog_active === true
           case 'no':
-            return item.is_catalog_listing === false
+            return item.catalog_active === false || item.catalog_active === undefined
           default:
             return true
         }
@@ -1621,6 +1615,7 @@ const loadSyncRelations = async () => {
         }
       })
     }
+
 
     // Actualizar el total de publicaciones filtradas
     totalPublications.value = filteredPublications.length
@@ -1679,35 +1674,14 @@ const getStatusColor = (status: string | undefined) => {
       return 'warning'
     case 'closed':
       return 'error'
-    case 'under_review':
-      return 'info'
+    case 'inactive':
+      return 'grey-darken-1'
     default:
-      // Para otros estados, usar un color distintivo
-      return 'deep-purple-lighten-3' // Color distintivo para estados no estándar
+      return 'grey'
   }
 }
 
-// Función para obtener el texto según el status de la publicación
-const getStatusText = (status: string | undefined) => {
-  if (!status) return 'Desconocido'
-
-  // Convertir a minúsculas para la comparación
-  const statusLower = status.toLowerCase()
-
-  switch (statusLower) {
-    case 'active':
-      return 'Activo'
-    case 'paused':
-      return 'Pausado'
-    case 'closed':
-      return 'Cerrado'
-    case 'under_review':
-      return 'En revisión'
-    default:
-      // Para otros estados, mostrar el valor original con la primera letra en mayúscula
-      return status.charAt(0).toUpperCase() + status.slice(1)
-  }
-}
+// La función getStatusText ha sido eliminada para mostrar directamente el valor de status_ml
 
 const getAccountName = (accountId: number) => {
   // Buscar en las cuentas disponibles

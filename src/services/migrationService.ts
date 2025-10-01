@@ -235,11 +235,15 @@ export interface OrphanProductsResponse {
 export interface SyncToItem {
   to_sync_id: string
   to_account_id: number
+  status_ml?: string // Status en Mercado Libre (active, paused, closed, etc.)
+  is_populate?: boolean // Indica si la publicación ha sido poblada con datos completos
 }
 
 export interface SyncFromItem {
   from_publication_id: string
   from_account_id: number
+  status_ml?: string // Status en Mercado Libre (active, paused, closed, etc.)
+  is_populate?: boolean // Indica si la publicación ha sido poblada con datos completos
 }
 
 export interface PublicationSyncData {
@@ -247,8 +251,10 @@ export interface PublicationSyncData {
   account_id: number
   to_syncs: SyncToItem[]
   from_syncs: SyncFromItem[]
-  is_catalog_listing?: boolean
+  catalog_active?: boolean // Indica si la publicación está en catálogo
   status?: string // Campo para el status de la publicación (active, paused, etc.)
+  status_ml?: string // Status en Mercado Libre (active, paused, closed, etc.)
+  is_populate?: boolean // Indica si la publicación ha sido poblada con datos completos
 }
 
 export interface SyncStatsResponse {
