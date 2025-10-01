@@ -622,6 +622,7 @@
                         <tr>
                           <th>ID Publicación</th>
                           <th>Cuenta Destino</th>
+                          <th>Estado</th>
                           <th></th>
                         </tr>
                       </thead>
@@ -650,12 +651,15 @@
                           </td>
                           <td>
                             <v-chip
-                              size="x-small"
-                              color="grey-darken-1"
-                              variant="flat"
-                              class="text-caption"
+                              size="small"
+                              color="primary"
                             >
                               {{ getAccountName(sync.to_account_id) }}
+                            </v-chip>
+                          </td>
+                          <td>
+                            <v-chip :color="getStatusColor(sync.status_ml)" size="small" class="text-capitalize">
+                              {{ sync.status_ml || 'unknown' }}
                             </v-chip>
                           </td>
                           <td>
@@ -751,6 +755,7 @@
                         <tr>
                           <th>ID Publicación</th>
                           <th>Cuenta Origen</th>
+                          <th>Estado</th>
                           <th></th>
                         </tr>
                       </thead>
@@ -786,6 +791,11 @@
                               color="success"
                             >
                               {{ getAccountName(sync.from_account_id) }}
+                            </v-chip>
+                          </td>
+                          <td>
+                            <v-chip :color="getStatusColor(sync.status_ml)" size="small" class="text-capitalize">
+                              {{ sync.status_ml || 'unknown' }}
                             </v-chip>
                           </td>
                           <td>
