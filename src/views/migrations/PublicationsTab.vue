@@ -174,19 +174,9 @@
       </div>
 
       <!-- Botón para gestionar columnas visibles -->
-      <v-menu
-        v-model="showColumnsMenu"
-        :close-on-content-click="false"
-        location="bottom"
-        offset-y
-      >
+      <v-menu v-model="showColumnsMenu" :close-on-content-click="false" location="bottom" offset-y>
         <template v-slot:activator="{ props }">
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="secondary"
-            v-bind="props"
-          >
+          <v-btn size="small" variant="outlined" color="secondary" v-bind="props">
             <v-icon start>mdi-eye-settings</v-icon>
             Columnas
           </v-btn>
@@ -203,9 +193,12 @@
 
           <v-divider></v-divider>
 
-          <v-card-text style="max-height: 300px; overflow-y: auto;" class="pa-0">
+          <v-card-text style="max-height: 300px; overflow-y: auto" class="pa-0">
             <v-list density="compact">
-              <v-list-item v-for="column in allColumns.filter(col => !col.required && col.title)" :key="column.key">
+              <v-list-item
+                v-for="column in allColumns.filter((col) => !col.required && col.title)"
+                :key="column.key"
+              >
                 <template v-slot:prepend>
                   <v-checkbox
                     v-model="visibleColumns"
@@ -224,9 +217,13 @@
           <v-divider></v-divider>
 
           <v-card-actions class="pa-3">
-            <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns">Por defecto</v-btn>
+            <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns"
+              >Por defecto</v-btn
+            >
             <v-spacer></v-spacer>
-            <v-btn color="primary" variant="text" size="small" @click="resetColumns">Mostrar todas</v-btn>
+            <v-btn color="primary" variant="text" size="small" @click="resetColumns"
+              >Mostrar todas</v-btn
+            >
           </v-card-actions>
         </v-card>
       </v-menu>
@@ -392,8 +389,16 @@
                   :disabled="loading || processingDeleteId === item.ID"
                 >
                   <template v-slot:prepend>
-                    <v-icon color="error" size="small" v-if="processingDeleteId !== item.ID">mdi-delete</v-icon>
-                    <v-progress-circular v-else indeterminate size="16" color="error" class="mr-2"></v-progress-circular>
+                    <v-icon color="error" size="small" v-if="processingDeleteId !== item.ID"
+                      >mdi-delete</v-icon
+                    >
+                    <v-progress-circular
+                      v-else
+                      indeterminate
+                      size="16"
+                      color="error"
+                      class="mr-2"
+                    ></v-progress-circular>
                   </template>
                   <v-list-item-title class="text-body-2">Eliminar publicación</v-list-item-title>
                 </v-list-item>
@@ -404,8 +409,16 @@
                   :disabled="loading || processingPopulateId === item.ID"
                 >
                   <template v-slot:prepend>
-                    <v-icon color="success" size="small" v-if="processingPopulateId !== item.ID">mdi-database-import</v-icon>
-                    <v-progress-circular v-else indeterminate size="16" color="success" class="mr-2"></v-progress-circular>
+                    <v-icon color="success" size="small" v-if="processingPopulateId !== item.ID"
+                      >mdi-database-import</v-icon
+                    >
+                    <v-progress-circular
+                      v-else
+                      indeterminate
+                      size="16"
+                      color="success"
+                      class="mr-2"
+                    ></v-progress-circular>
                   </template>
                   <v-list-item-title class="text-body-2">Populate</v-list-item-title>
                 </v-list-item>
@@ -632,7 +645,7 @@ const defaultColumns = [
   'CatalogActive',
   'Status',
   'StatusML',
-  'actions' // Siempre incluir la columna de acciones
+  'actions', // Siempre incluir la columna de acciones
 ]
 
 // Estado para las columnas visibles (inicialmente las columnas por defecto)
@@ -640,7 +653,7 @@ const visibleColumns = ref<string[]>([])
 
 // Cabeceras de tabla para IDs de productos (filtradas según las columnas visibles)
 const productIdsHeaders = computed(() => {
-  return allColumns.filter(col => visibleColumns.value.includes(col.key) || col.required)
+  return allColumns.filter((col) => visibleColumns.value.includes(col.key) || col.required)
 })
 
 // Estado para el filtro de búsqueda en la tabla
@@ -1016,7 +1029,7 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
       setTimeout(() => {
         resolve({
           success: true,
-          message: `Proceso de populate ${isEmpty ? 'para publicaciones sin atributos' : 'para todas las publicaciones'} iniciado. Este proceso puede tardar varios minutos.`
+          message: `Proceso de populate ${isEmpty ? 'para publicaciones sin atributos' : 'para todas las publicaciones'} iniciado. Este proceso puede tardar varios minutos.`,
         })
       }, 3000) // Esperamos máximo 3 segundos por una respuesta inicial
     })
@@ -1034,11 +1047,10 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
 
     // Recargar los datos después de un tiempo para ver los cambios iniciales
     setTimeout(() => {
-      loadProductIds()
-
       // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
       showNotification.value = true
-      notificationMessage.value = 'El proceso de populate continuará en segundo plano. Puedes seguir usando la aplicación.'
+      notificationMessage.value =
+        'El proceso de populate continuará en segundo plano. Puedes seguir usando la aplicación.'
       notificationType.value = 'success'
     }, 3000)
 
@@ -1048,6 +1060,7 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
         // Cuando finalmente termine, mostramos el resultado completo
         if (finalResult.count && finalResult.count > 0) {
           setTimeout(() => {
+            loadProductIds()
             showNotification.value = true
             notificationMessage.value = `Proceso de populate completado: ${finalResult.count} publicaciones procesadas.`
 
@@ -1101,12 +1114,12 @@ const formatDate = (dateString: string | null | undefined) => {
 // Funciones para gestionar columnas visibles
 const toggleColumnVisibility = (key: string) => {
   // No permitir ocultar columnas requeridas
-  const column = allColumns.find(col => col.key === key)
+  const column = allColumns.find((col) => col.key === key)
   if (column?.required) return
 
   // Alternar visibilidad
   if (visibleColumns.value.includes(key)) {
-    visibleColumns.value = visibleColumns.value.filter(k => k !== key)
+    visibleColumns.value = visibleColumns.value.filter((k) => k !== key)
   } else {
     visibleColumns.value.push(key)
   }
@@ -1118,10 +1131,10 @@ const toggleColumnVisibility = (key: string) => {
 // Establecer columnas por defecto
 const selectDefaultColumns = () => {
   // Asegurarse de que las columnas requeridas siempre estén incluidas
-  const requiredKeys = allColumns.filter(col => col.required).map(col => col.key)
+  const requiredKeys = allColumns.filter((col) => col.required).map((col) => col.key)
   // Crear un array con valores únicos sin usar Set para evitar problemas de TypeScript
   const uniqueColumns = [...defaultColumns]
-  requiredKeys.forEach(key => {
+  requiredKeys.forEach((key) => {
     if (!uniqueColumns.includes(key)) {
       uniqueColumns.push(key)
     }
@@ -1133,7 +1146,7 @@ const selectDefaultColumns = () => {
 
 // Restablecer columnas visibles a mostrar todas
 const resetColumns = () => {
-  visibleColumns.value = allColumns.map(col => col.key)
+  visibleColumns.value = allColumns.map((col) => col.key)
   localStorage.setItem('publicationsTableColumns', JSON.stringify(visibleColumns.value))
   showColumnsMenu.value = false // Cerrar el menú después de aplicar los cambios
 }
@@ -1145,10 +1158,10 @@ const loadColumnPreferences = () => {
     try {
       const parsedColumns = JSON.parse(savedColumns)
       // Asegurarse de que las columnas requeridas siempre estén incluidas
-      const requiredKeys = allColumns.filter(col => col.required).map(col => col.key)
+      const requiredKeys = allColumns.filter((col) => col.required).map((col) => col.key)
       // Crear un array con valores únicos sin usar Set para evitar problemas de TypeScript
       const uniqueColumns = [...parsedColumns]
-      requiredKeys.forEach(key => {
+      requiredKeys.forEach((key) => {
         if (!uniqueColumns.includes(key)) {
           uniqueColumns.push(key)
         }
