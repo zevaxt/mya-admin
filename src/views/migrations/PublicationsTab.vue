@@ -508,22 +508,25 @@
     </div>
 
     <!-- Diálogo de confirmación -->
-    <v-dialog v-model="showConfirmDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h5">
+    <v-dialog v-model="showConfirmDialog" max-width="450" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">
           {{ confirmDialogTitle }}
         </v-card-title>
 
-        <v-card-text>
-          {{ confirmDialogMessage }}
+        <v-card-text class="pa-4">
+          <p class="text-body-2 text-medium-emphasis">{{ confirmDialogMessage }}</p>
         </v-card-text>
 
-        <v-card-actions>
+        <v-divider></v-divider>
+        
+        <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn color="grey-darken-1" variant="text" size="small" @click="showConfirmDialog = false">Cancelar</v-btn>
           <v-btn
-            color="error"
-            variant="elevated"
+            color="primary"
+            variant="text"
+            size="small"
             @click="
               async () => {
                 showConfirmDialog = false
@@ -537,6 +540,44 @@
       </v-card>
     </v-dialog>
 
+    <!-- Diálogo de progreso para populate múltiple -->
+    <v-dialog v-model="showProgressDialog" persistent max-width="450" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">
+          {{ progressDialogTitle }}
+        </v-card-title>
+        
+        <v-card-text class="pa-4">
+          <p class="text-body-2 text-medium-emphasis mb-4">{{ progressDialogMessage }}</p>
+          
+          <div class="progress-container pa-3 rounded-lg" style="background: rgba(0,0,0,0.02); position: relative;">
+            <v-progress-linear
+              v-model="progressValue"
+              color="primary"
+              height="6"
+              rounded
+              bg-opacity="0.1"
+            ></v-progress-linear>
+            <div class="text-caption text-center mt-2" style="color: rgba(0,0,0,0.6);">
+              {{ Math.ceil(progressValue) }}%
+            </div>
+          </div>
+          
+          <div class="d-flex justify-space-between mt-3 text-caption text-medium-emphasis">
+            <span>Procesados: {{ processedCount }} de {{ totalItemsToProcess }}</span>
+            <span>Exitosos: {{ successCount }}</span>
+          </div>
+        </v-card-text>
+        
+        <v-divider v-if="!isProcessing"></v-divider>
+        
+        <v-card-actions v-if="!isProcessing" class="pa-3">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" variant="text" size="small" @click="showProgressDialog = false">Cerrar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    
     <!-- Notificación de éxito o error -->
     <v-snackbar v-model="showNotification" :color="notificationType" :timeout="3000" location="top">
       {{ notificationMessage }}
@@ -592,6 +633,17 @@ const showConfirmDialog = ref(false)
 const confirmDialogTitle = ref('')
 const confirmDialogMessage = ref('')
 const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
+
+// Estado para el diálogo de progreso
+const showProgressDialog = ref(false)
+const progressDialogTitle = ref('')
+const progressDialogMessage = ref('')
+const progressValue = ref(0)
+const processedCount = ref(0)
+const successCount = ref(0)
+const failedCount = ref(0)
+const totalItemsToProcess = ref(0)
+const isProcessing = ref(false)
 
 // Opciones para items por página
 const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
@@ -971,34 +1023,75 @@ const populateSelectedItems = async () => {
   if (!hasAccount.value || selectedItems.value.length === 0) return
 
   try {
+    // Inicializar variables de progreso
     processingPopulateMultiple.value = true
-
+    isProcessing.value = true
+    showProgressDialog.value = true
+    progressDialogTitle.value = 'Procesando publicaciones'
+    progressDialogMessage.value = 'Realizando populate de las publicaciones seleccionadas...'
+    progressValue.value = 0
+    processedCount.value = 0
+    successCount.value = 0
+    failedCount.value = 0
+    totalItemsToProcess.value = selectedItems.value.length
+    
     // Convertir los IDs seleccionados a strings si es necesario
     const productIds = selectedItems.value.map((id) => id.toString())
-
-    // Usar el nuevo método que procesa múltiples productos en una sola llamada
-    const result = await migrationService.updateMultipleProductsPopulate(
-      accountId.value,
-      productIds,
-    )
-
+    
+    // Procesar cada producto individualmente para mostrar el progreso
+    const results = []
+    let successfulCount = 0
+    let failedItemsCount = 0
+    
+    for (let i = 0; i < productIds.length; i++) {
+      const productId = productIds[i]
+      
+      try {
+        // Llamar al API para cada producto
+        const result = await migrationService.updateProductPopulate(accountId.value, productId)
+        
+        if (result.success) {
+          successfulCount++
+          successCount.value = successfulCount
+        } else {
+          failedItemsCount++
+          failedCount.value = failedItemsCount
+        }
+        
+        results.push({
+          id: productId,
+          success: result.success,
+          message: result.message
+        })
+      } catch (error) {
+        failedItemsCount++
+        failedCount.value = failedItemsCount
+        results.push({
+          id: productId,
+          success: false,
+          message: error instanceof Error ? error.message : 'Error desconocido'
+        })
+      }
+      
+      // Actualizar el progreso
+      processedCount.value = i + 1
+      progressValue.value = ((i + 1) / productIds.length) * 100
+    }
+    
     // Mostrar mensaje de resultado
-    notificationMessage.value = result.message
-    notificationType.value = result.success
-      ? 'success'
-      : result.results.some((r) => r.success)
-        ? 'warning'
-        : 'error'
-
-    // Recargar los datos para reflejar los cambios
+    const summary = `Proceso completado: ${successCount.value} exitosos, ${failedCount.value} fallidos de ${productIds.length} totales`
+    
+    progressDialogMessage.value = summary
+    
+    // Recargar los datos y deseleccionar publicaciones
     await loadProductIds()
+    selectedItems.value = [] // Deseleccionar todas las publicaciones
   } catch (err) {
     console.error('Error al hacer populate de productos seleccionados:', err)
-    notificationMessage.value = 'Error al hacer populate de las publicaciones seleccionadas'
-    notificationType.value = 'error'
+    progressDialogMessage.value = 'Error al procesar las publicaciones'
   } finally {
-    showNotification.value = true
     processingPopulateMultiple.value = false
+    isProcessing.value = false
   }
 }
 
