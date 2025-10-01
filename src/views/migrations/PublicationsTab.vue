@@ -174,15 +174,62 @@
       </div>
       
       <!-- Botón para gestionar columnas visibles -->
-      <v-btn
-        size="small"
-        variant="outlined"
-        color="secondary"
-        @click="showColumnsDialog = true"
+      <v-menu
+        v-model="showColumnsMenu"
+        :close-on-content-click="false"
+        location="bottom"
+        offset-y
       >
-        <v-icon start>mdi-eye-settings</v-icon>
-        Columnas
-      </v-btn>
+        <template v-slot:activator="{ props }">
+          <v-btn
+            size="small"
+            variant="outlined"
+            color="secondary"
+            v-bind="props"
+          >
+            <v-icon start>mdi-eye-settings</v-icon>
+            Columnas
+          </v-btn>
+        </template>
+        
+        <v-card min-width="300" max-width="400" class="elevation-8">
+          <v-card-title class="text-subtitle-1 d-flex align-center pa-3">
+            <span>Columnas visibles</span>
+            <v-spacer></v-spacer>
+            <v-btn icon size="small" @click="showColumnsMenu = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          
+          <v-divider></v-divider>
+          
+          <v-card-text style="max-height: 300px; overflow-y: auto;" class="pa-0">
+            <v-list density="compact">
+              <v-list-item v-for="column in allColumns.filter(col => !col.required && col.title)" :key="column.key">
+                <template v-slot:prepend>
+                  <v-checkbox
+                    v-model="visibleColumns"
+                    :value="column.key"
+                    :disabled="column.required"
+                    hide-details
+                    density="compact"
+                    @click="toggleColumnVisibility(column.key)"
+                  ></v-checkbox>
+                </template>
+                <v-list-item-title class="text-body-2">{{ column.title }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+          
+          <v-divider></v-divider>
+          
+          <v-card-actions class="pa-3">
+            <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns">Por defecto</v-btn>
+            <v-spacer></v-spacer>
+            <v-btn color="primary" variant="text" size="small" @click="resetColumns">Mostrar todas</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-menu>
     </div>
 
     <!-- Tabla de IDs de productos -->
@@ -291,14 +338,14 @@
         </template>
 
         <template #[`item.Status`]="{ item }">
-          <v-chip :color="getStatusColor(item.status)" size="small" class="text-capitalize">
-            {{ item.status || (item.Status ? 'active' : 'inactive') }}
+          <v-chip :color="getStatusColor(item.StatusML)" size="small" class="text-capitalize">
+            {{ item.StatusML || (item.Status ? 'active' : 'inactive') }}
           </v-chip>
         </template>
 
-        <template #[`item.Populate`]="{ item }">
-          <v-chip :color="item.Populate ? 'success' : 'grey'" size="small">
-            {{ item.Populate ? 'Sí' : 'No' }}
+        <template #[`item.IsPopulate`]="{ item }">
+          <v-chip :color="item.IsPopulate ? 'success' : 'grey'" size="small">
+            {{ item.IsPopulate ? 'Sí' : 'No' }}
           </v-chip>
         </template>
 
@@ -306,12 +353,12 @@
           {{ formatDate(item.updated_at) }}
         </template>
 
-        <template #[`item.last_updated`]="{ item }">
-          {{ item.last_updated ? formatDate(item.last_updated) : 'No disponible' }}
+        <template #[`item.ExtUpdatedAt`]="{ item }">
+          {{ item.ExtUpdatedAt ? formatDate(item.ExtUpdatedAt) : 'No disponible' }}
         </template>
 
-        <template #[`item.date_created`]="{ item }">
-          {{ item.date_created ? formatDate(item.date_created) : 'No disponible' }}
+        <template #[`item.ExtCreatedAt`]="{ item }">
+          {{ item.ExtCreatedAt ? formatDate(item.ExtCreatedAt) : 'No disponible' }}
         </template>
 
         <template #[`item.actions`]="{ item }">
@@ -471,39 +518,7 @@
       </template>
     </v-snackbar>
     
-    <!-- Diálogo para gestionar columnas visibles -->
-    <v-dialog v-model="showColumnsDialog" max-width="500">
-      <v-card>
-        <v-card-title class="text-h5">
-          Gestionar columnas visibles
-        </v-card-title>
-        
-        <v-card-text>
-          <p class="mb-4">Selecciona las columnas que deseas mostrar en la tabla:</p>
-          
-          <v-list>
-            <v-list-item v-for="column in allColumns.filter(col => !col.required && col.title)" :key="column.key">
-              <template v-slot:prepend>
-                <v-checkbox
-                  v-model="visibleColumns"
-                  :value="column.key"
-                  :disabled="column.required"
-                  hide-details
-                  @click="toggleColumnVisibility(column.key)"
-                ></v-checkbox>
-              </template>
-              <v-list-item-title>{{ column.title }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-card-text>
-        
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="grey" variant="text" @click="showColumnsDialog = false">Cerrar</v-btn>
-          <v-btn color="primary" variant="elevated" @click="resetColumns">Restablecer</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- El menú desplegable está ahora en la barra de herramientas -->
   </div>
 </template>
 
@@ -572,8 +587,8 @@ const booleanFilterOptions = [
 // Estado para los elementos seleccionados
 const selectedItems = ref<ProductId[]>([])
 
-// Estado para el diálogo de columnas visibles
-const showColumnsDialog = ref(false)
+// Estado para el menú de columnas visibles
+const showColumnsMenu = ref(false)
 
 // Definición de todas las columnas disponibles
 const allColumns = [
@@ -588,15 +603,26 @@ const allColumns = [
   { title: 'Sync', key: 'SyncActive', sortable: true, class: 'text-center', required: false },
   { title: 'Catálogo', key: 'CatalogActive', sortable: true, required: false },
   { title: 'Estado', key: 'Status', sortable: true, required: false },
-  { title: 'Populate', key: 'Populate', sortable: true, required: false },
+  { title: 'Populate', key: 'IsPopulate', sortable: true, required: false },
   { title: 'F. Populated', key: 'updated_at', sortable: true, required: false },
-  { title: 'F. Updated', key: 'last_updated', sortable: true, required: false },
-  { title: 'F. Created', key: 'date_created', sortable: true, required: false },
+  { title: 'F. Updated', key: 'ExtUpdatedAt', sortable: true, required: false },
+  { title: 'F. Created', key: 'ExtCreatedAt', sortable: true, required: false },
   { title: 'Acciones', key: 'actions', sortable: false, required: true },
 ]
 
-// Estado para las columnas visibles (inicialmente todas)
-const visibleColumns = ref<string[]>(allColumns.map(col => col.key))
+// Definir las columnas que se mostrarán por defecto
+const defaultColumns = [
+  'select', // Siempre incluir la columna de selección
+  'ID',
+  'SyncActive',
+  'CatalogActive',
+  'Status',
+  'StatusML',
+  'actions' // Siempre incluir la columna de acciones
+]
+
+// Estado para las columnas visibles (inicialmente las columnas por defecto)
+const visibleColumns = ref<string[]>([])
 
 // Cabeceras de tabla para IDs de productos (filtradas según las columnas visibles)
 const productIdsHeaders = computed(() => {
@@ -643,22 +669,22 @@ const filteredProductIds = computed(() => {
       // Filtrar solo los productos con estado 'active'
       filtered = filtered.filter(
         (item) =>
-          item.status?.toLowerCase() === 'active' ||
-          (item.status === undefined && item.Status === true),
+          item.StatusML?.toLowerCase() === 'active' ||
+          (item.StatusML === undefined && item.Status === true),
       )
     } else if (filterValue === 'inactive') {
       // Filtrar todos los productos con estado diferente a 'active'
       filtered = filtered.filter(
         (item) =>
-          item.status?.toLowerCase() !== 'active' &&
-          !(item.status === undefined && item.Status === true),
+          item.StatusML?.toLowerCase() !== 'active' &&
+          !(item.StatusML === undefined && item.Status === true),
       )
     } else if (filterValue === 'paused') {
       // Filtrar solo los productos con estado 'paused'
-      filtered = filtered.filter((item) => item.status?.toLowerCase() === 'paused')
+      filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'paused')
     } else if (filterValue === 'closed') {
       // Filtrar solo los productos con estado 'closed'
-      filtered = filtered.filter((item) => item.status?.toLowerCase() === 'closed')
+      filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'closed')
     }
   }
 
@@ -1075,10 +1101,27 @@ const toggleColumnVisibility = (key: string) => {
   localStorage.setItem('publicationsTableColumns', JSON.stringify(visibleColumns.value))
 }
 
-// Restablecer columnas visibles a su estado predeterminado
+// Establecer columnas por defecto
+const selectDefaultColumns = () => {
+  // Asegurarse de que las columnas requeridas siempre estén incluidas
+  const requiredKeys = allColumns.filter(col => col.required).map(col => col.key)
+  // Crear un array con valores únicos sin usar Set para evitar problemas de TypeScript
+  const uniqueColumns = [...defaultColumns]
+  requiredKeys.forEach(key => {
+    if (!uniqueColumns.includes(key)) {
+      uniqueColumns.push(key)
+    }
+  })
+  visibleColumns.value = uniqueColumns
+  localStorage.setItem('publicationsTableColumns', JSON.stringify(visibleColumns.value))
+  showColumnsMenu.value = false // Cerrar el menú después de aplicar los cambios
+}
+
+// Restablecer columnas visibles a mostrar todas
 const resetColumns = () => {
   visibleColumns.value = allColumns.map(col => col.key)
   localStorage.setItem('publicationsTableColumns', JSON.stringify(visibleColumns.value))
+  showColumnsMenu.value = false // Cerrar el menú después de aplicar los cambios
 }
 
 // Cargar preferencias de columnas desde localStorage al iniciar
@@ -1089,32 +1132,42 @@ const loadColumnPreferences = () => {
       const parsedColumns = JSON.parse(savedColumns)
       // Asegurarse de que las columnas requeridas siempre estén incluidas
       const requiredKeys = allColumns.filter(col => col.required).map(col => col.key)
-      visibleColumns.value = [...new Set([...parsedColumns, ...requiredKeys])]
+      // Crear un array con valores únicos sin usar Set para evitar problemas de TypeScript
+      const uniqueColumns = [...parsedColumns]
+      requiredKeys.forEach(key => {
+        if (!uniqueColumns.includes(key)) {
+          uniqueColumns.push(key)
+        }
+      })
+      visibleColumns.value = uniqueColumns
     } catch (error) {
       console.error('Error al cargar preferencias de columnas:', error)
-      // Si hay un error, usar todas las columnas
-      visibleColumns.value = allColumns.map(col => col.key)
+      // Si hay un error, usar las columnas por defecto
+      selectDefaultColumns()
     }
+  } else {
+    // Si no hay preferencias guardadas, usar las columnas por defecto
+    selectDefaultColumns()
   }
 }
 
 // La función formatPrice ha sido eliminada
 
 // Determinar el color del chip según el estado
-const getStatusColor = (status: string | undefined): string => {
-  if (!status) return 'grey'
+const getStatusColor = (statusML: string | undefined): string => {
+  if (!statusML) return 'grey'
 
-  status = status.toLowerCase()
+  statusML = statusML.toLowerCase()
 
-  switch (status) {
+  switch (statusML) {
     case 'active':
       return 'success'
     case 'paused':
       return 'warning'
     case 'closed':
       return 'error'
-    case 'under_review':
-      return 'info'
+    case 'inactive':
+      return 'grey-darken-1'
     default:
       return 'grey'
   }

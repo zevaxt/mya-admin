@@ -926,7 +926,7 @@
         <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
-    
+
     <!-- Overlay con indicador de progreso y resultados -->
     <v-overlay
       v-model="showProgressOverlay"
@@ -938,32 +938,32 @@
     >
       <v-card class="pa-4 rounded-xl" min-width="600" max-width="800" elevation="10">
         <v-card-title class="d-flex align-center pb-1">
-          <v-icon 
-            :icon="syncComplete ? (syncHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle') : 'mdi-sync'" 
-            :class="{'mr-2 rotating-icon': !syncComplete, 'mr-2': syncComplete}" 
-            :color="syncComplete ? (syncHasErrors ? 'error' : 'success') : 'primary'" 
+          <v-icon
+            :icon="syncComplete ? (syncHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle') : 'mdi-sync'"
+            :class="{'mr-2 rotating-icon': !syncComplete, 'mr-2': syncComplete}"
+            :color="syncComplete ? (syncHasErrors ? 'error' : 'success') : 'primary'"
             size="small"
           ></v-icon>
           <span class="text-h6">
             {{ syncComplete ? (syncHasErrors ? 'Sincronización con errores' : 'Sincronización completada') : 'Sincronizando' }}
           </span>
-          
+
           <!-- Botón de cerrar solo visible cuando se completa la sincronización -->
           <v-spacer></v-spacer>
           <v-btn v-if="syncComplete" icon="mdi-close" variant="text" density="compact" @click="showProgressOverlay = false"></v-btn>
         </v-card-title>
-        
+
         <v-card-text class="pt-2">
           <!-- Mensaje de progreso -->
           <p class="text-body-1 mb-4">{{ progressMessage }}</p>
-          
+
           <!-- Barra de progreso -->
           <template v-if="!syncComplete">
             <div class="d-flex align-center mb-1">
               <span class="text-caption text-medium-emphasis">Progreso:</span>
               <span class="ml-auto font-weight-bold">{{ Math.round(progressValue * 100) }}%</span>
             </div>
-            
+
             <v-progress-linear
               v-model="progressValue"
               color="primary"
@@ -972,12 +972,12 @@
               striped
               rounded
             ></v-progress-linear>
-            
+
             <p class="text-caption text-medium-emphasis mt-3 text-center">
               Por favor, espere mientras se completa el proceso...
             </p>
           </template>
-          
+
           <!-- Resultados cuando se completa la sincronización -->
           <template v-else>
             <v-alert
@@ -989,7 +989,7 @@
             >
               <strong>{{ syncSuccessCount }}</strong> relaciones sincronizadas correctamente
             </v-alert>
-            
+
             <v-alert
               v-if="syncErrorCount > 0"
               type="error"
@@ -998,7 +998,7 @@
               class="mb-3"
             >
               <strong>{{ syncErrorCount }}</strong> relaciones fallaron
-              
+
               <!-- Mostrar los detalles de los errores en una tabla con paginación -->
               <div v-if="syncErrorMessages.length > 0" class="mt-3">
                 <div class="d-flex align-center justify-space-between mb-2">
@@ -1017,7 +1017,7 @@
                     <v-chip size="small" color="error" variant="outlined">{{ syncErrorMessages.length }} errores</v-chip>
                   </div>
                 </div>
-                
+
                 <v-data-table
                   :headers="[
                     { title: '#', key: 'index', width: '40px' },
@@ -1054,7 +1054,7 @@
                     </v-btn>
                   </template>
                 </v-data-table>
-                
+
                 <!-- Diálogo para mostrar detalles completos del error -->
                 <v-dialog v-model="showErrorDialog" max-width="800px" scrollable>
                   <v-card>
@@ -1062,10 +1062,10 @@
                       <v-icon start icon="mdi-alert-circle" class="mr-2"></v-icon>
                       <span>Detalle del error</span>
                       <v-spacer></v-spacer>
-                      <v-btn icon="mdi-content-copy" variant="text" density="compact" color="white" 
+                      <v-btn icon="mdi-content-copy" variant="text" density="compact" color="white"
                         @click="copyErrorToClipboard(selectedError)" class="mr-2">
                       </v-btn>
-                      <v-btn icon="mdi-close" variant="text" density="compact" color="white" 
+                      <v-btn icon="mdi-close" variant="text" density="compact" color="white"
                         @click="showErrorDialog = false">
                       </v-btn>
                     </v-card-title>
@@ -1076,7 +1076,7 @@
                           <div class="text-subtitle-2 mb-1">Resumen:</div>
                           <div>{{ typeof selectedError === 'string' ? extractErrorSummary(selectedError) : extractErrorSummary(selectedError) }}</div>
                         </div>
-                        
+
                         <!-- Detalles completos del error -->
                         <div class="pa-4">
                           <div class="text-subtitle-2 mb-1">Detalles completos:</div>
@@ -1093,7 +1093,7 @@
                 </v-dialog>
               </div>
             </v-alert>
-            
+
             <div class="d-flex justify-end mt-4">
               <v-btn
                 color="primary"
@@ -1566,27 +1566,13 @@ const loadSyncRelations = async () => {
     // Crear un mapa para buscar rápidamente los detalles de cada publicación por ID
     const productDetailsMap = new Map()
     productsResponse.products.forEach((product) => {
-      // Verificar si es una publicación de catálogo
-      const isCatalogListing =
-        product.Attributes &&
-        typeof product.Attributes === 'object' &&
-        'catalog_listing' in product.Attributes
-          ? Boolean(product.Attributes.catalog_listing)
-          : false
-
-      // Extraer el status de los atributos
-      const publicationStatus =
-        product.Attributes &&
-        typeof product.Attributes === 'object' &&
-        'status' in product.Attributes
-          ? String(product.Attributes.status)
-          : 'unknown'
+      // Usar directamente los campos de la respuesta
+      const isCatalogListing = product.CatalogActive || false
 
       productDetailsMap.set(product.ID, {
         isCatalogListing,
         status: product.Status, // Estado booleano (activo/inactivo)
-        publicationStatus: publicationStatus, // Status de la publicación (active, paused, etc.)
-        title: (product.Attributes?.title as string) || '',
+        publicationStatus: product.StatusML || 'unknown', // Status de la publicación (active, paused, etc.)
       })
     })
 
@@ -1850,7 +1836,7 @@ const loadPublicationsForAccount = async (accountId: number | null) => {
     // Transformar los datos al formato que necesitamos
     accountPublications.value = response.products.map((product) => ({
       id: product.ID,
-      title: (product.Attributes?.title as string) || '',
+      title: product.ID, // Ya no tenemos acceso al título, usamos el ID como título
       status: product.Status,
     }))
   } catch (error) {
@@ -2093,7 +2079,7 @@ const syncSelectedPublications = async () => {
   if (!publicationsSelected.value || publicationsSelected.value.length === 0) return
 
   syncingSelected.value = true
-  
+
   // Mostrar el overlay de progreso
   showProgressOverlay.value = true
   progressMessage.value = `Sincronizando ${publicationsSelected.value.length} publicaciones...`
@@ -2115,14 +2101,14 @@ const syncSelectedPublications = async () => {
       try {
         const accountId = accountStore.currentAccount?.ID
         if (!accountId) continue
-        
+
         // Encontrar la publicación en la lista para obtener sus relaciones
         const publication = publications.value.find(item => item.publication_id === publicationId)
         if (!publication) {
           console.warn(`No se encontró la publicación ${publicationId} en la lista`)
           continue
         }
-        
+
         // Procesar sincronizaciones salientes
         if (publication.to_syncs && publication.to_syncs.length > 0) {
           for (const toSync of publication.to_syncs) {
@@ -2130,52 +2116,52 @@ const syncSelectedPublications = async () => {
               // Buscar la cuenta a la que pertenece el destino
               const targetAccountId = toSync.to_account_id
               const targetPublicationId = toSync.to_sync_id
-              
+
               // Sincronizar de publicationId hacia targetPublicationId
               console.log(
                 `Sincronización saliente: accountId=${accountId}, publicationId=${publicationId}, targetAccountId=${targetAccountId}, targetPublicationId=${targetPublicationId}`,
               )
-              
+
               await migrationService.updateProduct(accountId, publicationId, targetAccountId, targetPublicationId)
               successCount++
             } catch (syncError) {
               console.error(`Error en sincronización saliente de ${publicationId} a ${toSync.to_sync_id}:`, syncError)
               errorCount++
-              
+
               // Crear un objeto de error enriquecido
               const enrichedError = createEnrichedError(syncError, publicationId, toSync.to_sync_id)
               errorMessages.push(JSON.stringify(enrichedError))
             }
           }
         }
-        
+
         // Procesar sincronizaciones entrantes
         if (publication.from_syncs && publication.from_syncs.length > 0) {
           for (const fromSync of publication.from_syncs) {
             try {
               const sourceAccountId = fromSync.from_account_id
               const sourcePublicationId = fromSync.from_publication_id
-              
+
               // Sincronizar de sourcePublicationId hacia publicationId
               console.log(
                 `Sincronización entrante: accountId=${sourceAccountId}, publicationId=${sourcePublicationId}, targetAccountId=${accountId}, targetPublicationId=${publicationId}`,
               )
-              
+
               await migrationService.updateProduct(sourceAccountId, sourcePublicationId, accountId, publicationId)
               successCount++
             } catch (syncError) {
               console.error(`Error en sincronización entrante de ${fromSync.from_publication_id} a ${publicationId}:`, syncError)
               errorCount++
-              
+
               // Crear un objeto de error enriquecido
               const enrichedError = createEnrichedError(syncError, fromSync.from_publication_id, publicationId)
               errorMessages.push(JSON.stringify(enrichedError))
             }
           }
         }
-        
+
         // Si no hay relaciones, sincronizar la publicación consigo misma
-        if ((!publication.to_syncs || publication.to_syncs.length === 0) && 
+        if ((!publication.to_syncs || publication.to_syncs.length === 0) &&
             (!publication.from_syncs || publication.from_syncs.length === 0)) {
           try {
             // Sincronizar la publicación consigo misma para actualizar sus datos
@@ -2184,7 +2170,7 @@ const syncSelectedPublications = async () => {
           } catch (syncError) {
             console.error(`Error al sincronizar la publicación ${publicationId}:`, syncError)
             errorCount++
-            
+
             // Crear un objeto de error enriquecido
             const enrichedError = createEnrichedError(syncError, publicationId, 'N/A')
             errorMessages.push(JSON.stringify(enrichedError))
@@ -2193,7 +2179,7 @@ const syncSelectedPublications = async () => {
       } catch (error) {
         console.error(`Error general al procesar la publicación ${publicationId}:`, error)
         errorCount++
-        
+
         // Crear un objeto de error enriquecido
         const enrichedError = createEnrichedError(error, publicationId, 'N/A')
         errorMessages.push(JSON.stringify(enrichedError))
@@ -2315,15 +2301,15 @@ const syncRelation = async (
     return { success: true, message: successMessage }
   } catch (error) {
     console.error(`Error al sincronizar la relación ${sourceId}-${targetId}:`, error)
-    
+
     // Intentar extraer el payload completo del error
     let errorPayload: unknown = null
     let errorMessage = ''
-    
+
     // Intentar obtener el payload completo del error
     if (error instanceof Error) {
       errorMessage = error.message
-      
+
       // Intentar extraer el payload JSON si existe
       try {
         // Buscar un objeto JSON en el mensaje de error
@@ -2341,16 +2327,16 @@ const syncRelation = async (
     } else {
       errorMessage = `Error al sincronizar la relación`;
     }
-    
+
     if (showNotifications) {
       showNotification.value = true
       notificationMessage.value = errorMessage
       notificationType.value = 'error'
     }
-    
+
     // Devolver tanto el mensaje como el payload completo
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: errorMessage,
       payload: errorPayload
     }
@@ -2399,7 +2385,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
     syncSuccessCount.value = 0
     syncErrorCount.value = 0
     syncErrorMessages.value = []
-    
+
     // Sincronizar cada relación una por una
     let successCount = 0
     let errorCount = 0
@@ -2412,14 +2398,14 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
         // Definir variables para los IDs de origen y destino
         let sourceId = ''
         let targetId = ''
-        
+
         if (direction === 'outgoing') {
           // Para relaciones salientes
           // Asegurarnos de que estamos trabajando con una relación saliente
           const outgoingRelation = relation as { to_sync_id: string; to_account_id: number }
           sourceId = publicationId
           targetId = outgoingRelation.to_sync_id
-          
+
           // Llamar a syncRelation sin mostrar notificaciones individuales
           result = await syncRelation(
             sourceId,
@@ -2436,7 +2422,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
           }
           sourceId = incomingRelation.from_publication_id
           targetId = publicationId
-          
+
           // Llamar a syncRelation sin mostrar notificaciones individuales
           result = await syncRelation(
             sourceId,
@@ -2457,22 +2443,22 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
             message: result.message,
             payload: result.payload
           }
-          
+
           // Guardar el error enriquecido como JSON
           errorMessages.push(JSON.stringify(enrichedError))
         }
-        
+
         // Actualizar el indicador de progreso después de cada sincronización
         progressValue.value = (successCount + errorCount) / relations.length
       } catch (error) {
         console.error(`Error al sincronizar relación:`, error)
         errorCount++
-        
+
         // Crear un objeto de error enriquecido con los IDs disponibles en este contexto
         // Aquí usamos los IDs de la publicación actual y la dirección
         let sourceId = ''
         let targetId = ''
-        
+
         if (direction === 'outgoing') {
           // Para relaciones salientes
           sourceId = publicationId
@@ -2488,14 +2474,14 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
             sourceId = relation.from_publication_id
           }
         }
-        
+
         // Extraer el mensaje de error
         let errorMessage = ''
         let errorPayload: unknown = null
-        
+
         if (error instanceof Error) {
           errorMessage = error.message
-          
+
           // Intentar extraer el payload JSON si existe
           try {
             const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
@@ -2512,7 +2498,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
         } else {
           errorMessage = 'Error desconocido';
         }
-        
+
         // Crear un objeto de error enriquecido
         const enrichedError = {
           sourceId,
@@ -2520,7 +2506,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
           message: errorMessage,
           payload: errorPayload
         }
-        
+
         // Guardar el error enriquecido como JSON
         errorMessages.push(JSON.stringify(enrichedError))
       }
@@ -2532,7 +2518,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
     syncErrorCount.value = errorCount
     syncErrorMessages.value = errorMessages
     syncHasErrors.value = errorCount > 0
-    
+
     // Actualizar el mensaje de progreso con el resultado final
     if (errorCount === 0 && successCount > 0) {
       // Solo éxitos
@@ -2552,7 +2538,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
     await loadSyncRelations()
   } catch (error) {
     console.error(`Error al sincronizar relaciones ${direction}:`, error)
-    
+
     // Mostrar el error en el overlay
     syncComplete.value = true
     syncHasErrors.value = true
@@ -2615,11 +2601,11 @@ interface EnrichedError {
 const createEnrichedError = (error: unknown, sourceId: string, targetId: string): EnrichedError => {
   let errorMessage = ''
   let errorPayload: unknown = null
-  
+
   // Extraer el mensaje de error
   if (error instanceof Error) {
     errorMessage = error.message
-    
+
     // Intentar extraer el payload JSON si existe
     try {
       const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
@@ -2636,7 +2622,7 @@ const createEnrichedError = (error: unknown, sourceId: string, targetId: string)
   } else {
     errorMessage = 'Error desconocido';
   }
-  
+
   // Crear un objeto de error enriquecido
   return {
     sourceId,
@@ -2654,7 +2640,7 @@ const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedI
       try {
         // Intentar parsear como JSON (nuestro formato enriquecido)
         const parsedError = JSON.parse(errorMsg) as EnrichedError
-        
+
         // Verificar si tiene los campos sourceId y targetId
         if (parsedError && 'sourceId' in parsedError && 'targetId' in parsedError) {
           return {
@@ -2665,20 +2651,20 @@ const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedI
       } catch {
         // Si no se puede parsear como JSON, devolver valores por defecto
       }
-    } 
+    }
     // Si es un objeto, buscar directamente los campos sourceId y targetId
     else if (typeof errorMsg === 'object' && errorMsg !== null) {
-      const sourceId = 'sourceId' in errorMsg && typeof errorMsg.sourceId === 'string' 
-        ? errorMsg.sourceId 
+      const sourceId = 'sourceId' in errorMsg && typeof errorMsg.sourceId === 'string'
+        ? errorMsg.sourceId
         : 'N/A'
-        
-      const targetId = 'targetId' in errorMsg && typeof errorMsg.targetId === 'string' 
-        ? errorMsg.targetId 
+
+      const targetId = 'targetId' in errorMsg && typeof errorMsg.targetId === 'string'
+        ? errorMsg.targetId
         : 'N/A'
-      
+
       return { sourceId, targetId }
     }
-    
+
     // Si no se encuentra nada, devolver valores por defecto
     return {
       sourceId: 'N/A',
@@ -2700,17 +2686,17 @@ const copyAllErrorsToClipboard = () => {
       // Extraer IDs y resumen
       const { sourceId, targetId } = extractErrorIds(msg)
       const summary = extractErrorSummary(msg)
-      
+
       // Formatear los detalles técnicos sin duplicación
       let formattedDetails = ''
-      
+
       try {
         // Si es un string, intentar parsearlo como JSON
         if (typeof msg === 'string') {
           try {
             // Intentar parsear como JSON (nuestro formato enriquecido)
             const parsedError = JSON.parse(msg)
-            
+
             // Si tiene un payload, usar solo ese payload formateado
             if (parsedError.payload) {
               formattedDetails = formatPayload(parsedError.payload)
@@ -2739,19 +2725,19 @@ const copyAllErrorsToClipboard = () => {
         // En caso de error, usar un formato simple
         formattedDetails = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
       }
-      
+
       return `Error #${idx + 1}\nID Origen: ${sourceId}\nID Destino: ${targetId}\nResumen: ${summary}\nDetalles:\n${formattedDetails}\n${'='.repeat(80)}`
     }).join('\n\n')
-    
+
     navigator.clipboard.writeText(errorText)
-    
+
     // Mostrar notificación de éxito
     showNotification.value = true
     notificationMessage.value = `${syncErrorMessages.value.length} errores copiados al portapapeles`
     notificationType.value = 'success'
   } catch (error) {
     console.error('Error al copiar errores al portapapeles:', error)
-    
+
     // Mostrar notificación de error
     showNotification.value = true
     notificationMessage.value = 'No se pudo copiar al portapapeles'
@@ -2764,14 +2750,14 @@ const copyErrorToClipboard = (error: string | Record<string, unknown>) => {
   try {
     const textToCopy = typeof error === 'string' ? error : JSON.stringify(error, null, 2)
     navigator.clipboard.writeText(textToCopy)
-    
+
     // Mostrar notificación de éxito
     showNotification.value = true
     notificationMessage.value = 'Detalles del error copiados al portapapeles'
     notificationType.value = 'success'
   } catch (error) {
     console.error('Error al copiar al portapapeles:', error)
-    
+
     // Mostrar notificación de error
     showNotification.value = true
     notificationMessage.value = 'No se pudo copiar al portapapeles'
@@ -2787,52 +2773,52 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
       try {
         // Intentar parsear como JSON (nuestro formato enriquecido)
         const parsedError = JSON.parse(errorMsg) as EnrichedError
-        
+
         // Si tiene un campo message, usarlo
         if (parsedError && 'message' in parsedError && typeof parsedError.message === 'string') {
           const message = parsedError.message
-          
+
           // Buscar patrones comunes en el mensaje
           if (message.includes('Error 004:') || message.includes('Se ha presentado un error')) {
             return 'Error de autorización o permisos'
           }
-          
+
           if (message.includes('UNAUTHORIZED')) {
             return 'Error de autorización'
           }
-          
+
           if (message.includes('timeout')) {
             return 'Tiempo de espera agotado'
           }
-          
+
           if (message.includes('network')) {
             return 'Error de red'
           }
-          
+
           // Si no hay patrones reconocibles, devolver un resumen del mensaje
           return message.length > 50 ? `${message.substring(0, 50)}...` : message
         }
-        
+
         // Si tiene un payload con campos reconocibles, usarlos
         if (parsedError.payload && typeof parsedError.payload === 'object') {
           const payload = parsedError.payload as Record<string, unknown>
-          
+
           // Priorizar el campo Message del payload (formato estándar de la API)
           if ('Message' in payload && typeof payload.Message === 'string') {
             // Evitar mostrar detalles técnicos duplicados
             const message = payload.Message as string
-            if (message === 'Se ha presentado un error procesando su solicitud' && 
+            if (message === 'Se ha presentado un error procesando su solicitud' &&
                 'TecnicalDetails' in payload && payload.TecnicalDetails) {
               return message
             }
             return message
           }
-          
+
           // Alternativas si no hay campo Message
           if ('message' in payload && typeof payload.message === 'string') {
             return payload.message as string
           }
-          
+
           if ('Code' in payload && typeof payload.Code === 'string') {
             return `Error ${payload.Code}`
           }
@@ -2840,24 +2826,24 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
       } catch {
         // Si no se puede parsear como JSON, tratar como string normal
         const errorString = errorMsg
-        
+
         // Buscar patrones comunes
         if (errorString.includes('Error 004:') || errorString.includes('Se ha presentado un error')) {
           return 'Error de autorización o permisos'
         }
-        
+
         if (errorString.includes('UNAUTHORIZED')) {
           return 'Error de autorización'
         }
-        
+
         if (errorString.includes('timeout')) {
           return 'Tiempo de espera agotado'
         }
-        
+
         if (errorString.includes('network')) {
           return 'Error de red'
         }
-        
+
         // Si no hay patrones reconocibles, devolver un resumen del mensaje
         return errorString.length > 50 ? `${errorString.substring(0, 50)}...` : errorString
       }
@@ -2868,18 +2854,18 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
       if ('message' in errorMsg && typeof errorMsg.message === 'string') {
         return errorMsg.message
       }
-      
+
       // Si tiene un campo Message, usarlo
       if ('Message' in errorMsg && typeof errorMsg.Message === 'string') {
         return errorMsg.Message
       }
-      
+
       // Si tiene un campo Code, usarlo
       if ('Code' in errorMsg && typeof errorMsg.Code === 'string') {
         return `Error ${errorMsg.Code}`
       }
     }
-    
+
     // Si no se encuentra nada relevante, devolver un valor por defecto
     return 'Error de sincronización'
   } catch {
@@ -2895,17 +2881,17 @@ const formatErrorDetails = (errorMsg: string | Record<string, unknown>): string 
       try {
         // Intentar parsear como JSON (nuestro formato enriquecido)
         const parsedError = JSON.parse(errorMsg) as EnrichedError
-        
+
         // Si tiene un payload, formatearlo
         if (parsedError.payload) {
           return formatPayload(parsedError.payload)
         }
-        
+
         // Si no tiene payload pero tiene mensaje, devolverlo
         if (parsedError.message) {
           return parsedError.message
         }
-        
+
         // Si solo tiene IDs, mostrarlos junto con el mensaje
         return JSON.stringify({
           sourceId: parsedError.sourceId,
@@ -2917,7 +2903,7 @@ const formatErrorDetails = (errorMsg: string | Record<string, unknown>): string 
         return errorMsg
       }
     }
-    
+
     // Si es un objeto, formatearlo directamente
     return formatPayload(errorMsg)
   } catch (_error) {
@@ -2944,7 +2930,7 @@ const formatPayload = (payload: unknown): string => {
       try {
         // Intentar parsear como JSON
         const jsonObj = JSON.parse(payload)
-        
+
         // Si tiene detalles técnicos, procesarlos
         if (jsonObj.TecnicalDetails && typeof jsonObj.TecnicalDetails === 'string') {
           try {
@@ -2960,7 +2946,7 @@ const formatPayload = (payload: unknown): string => {
             // Si no se puede parsear, mantener el formato original
           }
         }
-        
+
         // Si no tiene detalles técnicos o no se pudieron parsear, devolver el objeto tal cual
         return JSON.stringify(jsonObj, null, 2)
       } catch {
@@ -2971,11 +2957,11 @@ const formatPayload = (payload: unknown): string => {
         }, null, 2)
       }
     }
-    
+
     // Si es un objeto, procesarlo directamente
     if (payload && typeof payload === 'object') {
       const errorObj = payload as ErrorResponse
-      
+
       // Si tiene detalles técnicos, procesarlos
       if (errorObj.TecnicalDetails && typeof errorObj.TecnicalDetails === 'string') {
         try {
@@ -2991,11 +2977,11 @@ const formatPayload = (payload: unknown): string => {
           // Si no se puede parsear, mantener el formato original
         }
       }
-      
+
       // Si no tiene detalles técnicos o no se pudieron parsear, devolver el objeto tal cual
       return JSON.stringify(errorObj, null, 2)
     }
-    
+
     // Para cualquier otro tipo, convertirlo a string
     return JSON.stringify({
       Message: String(payload),

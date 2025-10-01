@@ -10,14 +10,13 @@ export interface ProductId {
   SyncActive: boolean
   CatalogActive: boolean
   Status: boolean // Estado booleano (true = activo, false = inactivo)
-  status?: string // Estado real como string (active, paused, closed, etc.)
+  StatusML: string // Estado en Mercado Libre (active, paused, closed, etc.)
   ToSync: null | boolean
   updated_at: string
-  last_updated?: string // Fecha de última actualización del producto
-  date_created?: string // Fecha de creación del producto
-  Attributes?: Record<string, unknown> // Campo para almacenar los atributos del producto
-  Populate?: boolean // Campo para indicar si tiene atributos
-  IsCatalogListing?: boolean // Campo para indicar si es una publicación de catálogo
+  ExtCreatedAt?: string // Fecha de creación en la plataforma externa
+  ExtUpdatedAt?: string // Fecha de última actualización en la plataforma externa
+  IsPopulate?: boolean // Indica si la publicación ha sido poblada con datos completos
+  deleted_at?: string | null // Fecha de eliminación (soft delete)
 }
 
 export interface ProductIdListResponse {
@@ -390,49 +389,32 @@ export const migrationService = {
         },
       })
 
-      // Transformar la respuesta al nuevo formato
+      // La respuesta ahora viene en el nuevo formato directamente
       const data = response.data
 
       // Obtener las cuentas del store para mapear los nombres
       const accountStore = useAccountStore()
       const accounts = accountStore.accounts
 
+      // Mapear los productos con información adicional
       const products = data.products.map(
         (product: {
           ID: string
-          Status: boolean
+          AccountID: number
+          SyncActive: boolean
           CatalogActive: boolean
-          ToSync?: boolean
-          SyncActive?: boolean
-          AccountID?: number
-          updated_at?: string
-          Attributes?: Record<string, unknown>
+          Status: boolean
+          StatusML: string
+          ToSync: null | boolean
+          updated_at: string
+          ExtCreatedAt?: string
+          ExtUpdatedAt?: string
+          IsPopulate?: boolean
+          deleted_at?: string | null
         }) => {
-          // Buscar el nombre de la cuenta si está disponible
-          let accountName = 'N/A'
-          if (product.AccountID && accounts.length > 0) {
-            const account = accounts.find(
-              (acc: { ID: number; Nickname?: string; Email?: string }) =>
-                acc.ID === product.AccountID,
-            )
-            if (account) {
-              accountName = account.Nickname || account.Email || `Cuenta #${product.AccountID}`
-            }
-          }
-
-          // Determinar si tiene atributos (Populate)
-          const hasAttributes =
-            product.Attributes !== null &&
-            product.Attributes !== undefined &&
-            Object.keys(product.Attributes || {}).length > 0
-
-          // Extraer el valor catalog_listing de los atributos
-          const isCatalogListing =
-            product.Attributes &&
-            typeof product.Attributes === 'object' &&
-            'catalog_listing' in product.Attributes
-              ? Boolean(product.Attributes.catalog_listing)
-              : false
+          // Buscar el nombre de la cuenta
+          const account = accounts.find((acc) => acc.ID === product.AccountID)
+          const accountName = account ? account.Nickname : `ID: ${product.AccountID}`
 
           return {
             ID: product.ID,
@@ -441,14 +423,13 @@ export const migrationService = {
             SyncActive: product.SyncActive,
             CatalogActive: product.CatalogActive,
             Status: product.Status,
-            status: product.Attributes?.status || 'unknown', // Estado real como string
+            StatusML: product.StatusML || 'unknown',
             ToSync: product.ToSync,
             updated_at: product.updated_at,
-            last_updated: product.Attributes?.last_updated || null,
-            date_created: product.Attributes?.date_created || null,
-            Attributes: product.Attributes,
-            Populate: hasAttributes,
-            IsCatalogListing: isCatalogListing,
+            ExtCreatedAt: product.ExtCreatedAt,
+            ExtUpdatedAt: product.ExtUpdatedAt,
+            IsPopulate: product.IsPopulate,
+            deleted_at: product.deleted_at
           }
         },
       )
