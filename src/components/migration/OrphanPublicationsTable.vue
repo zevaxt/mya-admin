@@ -234,42 +234,59 @@
 
         <!-- Columna de Acciones -->
         <template #[`item.actions`]="{ item }">
-          <div class="d-flex">
-            <v-btn
-              icon
-              size="small"
-              color="error"
-              class="mr-3"
-              @click="confirmDeleteProduct(item.id)"
-              :disabled="loading || processingDeleteId === item.id"
-              :loading="processingDeleteId === item.id"
-            >
-              <v-icon v-if="processingDeleteId !== item.id">mdi-delete</v-icon>
-              <v-tooltip activator="parent" location="top">Eliminar publicación</v-tooltip>
-            </v-btn>
+          <div class="text-left">
+            <v-menu location="bottom">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  icon
+                  size="small"
+                  color="grey-darken-1"
+                  variant="text"
+                  v-bind="props"
+                  :disabled="loading"
+                >
+                  <v-icon>mdi-menu</v-icon>
+                </v-btn>
+              </template>
 
-            <v-btn
-              icon
-              size="small"
-              color="info"
-              class="mr-3"
-              @click="openProductInNewTab(item.id)"
-            >
-              <v-icon>mdi-open-in-new</v-icon>
-              <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
-            </v-btn>
+              <v-list density="compact">
+                <!-- Ver detalles -->
+                <v-list-item @click="viewProductDetail(item.id)" :disabled="loading">
+                  <template v-slot:prepend>
+                    <v-icon color="primary" size="small">mdi-eye</v-icon>
+                  </template>
+                  <v-list-item-title class="text-body-2">Ver detalles</v-list-item-title>
+                </v-list-item>
 
-            <v-btn
-              icon
-              size="small"
-              color="primary"
-              class="mr-3"
-              @click="viewProductDetail(item.id)"
-              :disabled="loading"
-            >
-              <v-icon>mdi-eye</v-icon>
-              <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
-            </v-btn>
+                <!-- Eliminar publicación -->
+                <v-list-item
+                  @click="confirmDeleteProduct(item.id)"
+                  :disabled="loading || processingDeleteId === item.id"
+                >
+                  <template v-slot:prepend>
+                    <v-icon color="error" size="small" v-if="processingDeleteId !== item.id"
+                      >mdi-delete</v-icon
+                    >
+                    <v-progress-circular
+                      v-else
+                      indeterminate
+                      size="16"
+                      color="error"
+                      class="mr-2"
+                    ></v-progress-circular>
+                  </template>
+                  <v-list-item-title class="text-body-2">Eliminar publicación</v-list-item-title>
+                </v-list-item>
+
+                <!-- Ver en Mercado Libre -->
+                <v-list-item @click="openProductInNewTab(item.id)">
+                  <template v-slot:prepend>
+                    <v-icon color="info" size="small">mdi-open-in-new</v-icon>
+                  </template>
+                  <v-list-item-title class="text-body-2">Ver en Mercado Libre</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
           </div>
         </template>
 
@@ -415,7 +432,7 @@ const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 const statusFilter = ref<boolean | 'all'>('all')
 const soldQuantityFilter = ref<boolean | 'all'>('all')
 const catalogActiveFilter = ref<boolean | 'all'>('all')
-const relationQueryTypeFilter = ref<'outgoing' | 'incoming' | 'both'>('incoming')  // Valor predeterminado: publicaciones que no tienen sincronizaciones salientes
+const relationQueryTypeFilter = ref<'outgoing' | 'incoming' | 'both'>('incoming') // Valor predeterminado: publicaciones que no tienen sincronizaciones salientes
 
 // Opciones para los filtros
 const statusOptions = [
@@ -437,9 +454,9 @@ const catalogActiveOptions = [
 ]
 
 const relationQueryTypeOptions = [
-  { title: 'Salientes', value: 'incoming' },  // Publicaciones que no tienen sincronizaciones salientes
-  { title: 'Entrantes', value: 'outgoing' },   // Publicaciones que no tienen sincronizaciones entrantes
-  { title: 'Todas', value: 'both' },           // Publicaciones que no tienen ningún tipo de sincronización
+  { title: 'Salientes', value: 'incoming' }, // Publicaciones que no tienen sincronizaciones salientes
+  { title: 'Entrantes', value: 'outgoing' }, // Publicaciones que no tienen sincronizaciones entrantes
+  { title: 'Todas', value: 'both' }, // Publicaciones que no tienen ningún tipo de sincronización
 ]
 
 // Función para limpiar todos los filtros
@@ -447,7 +464,7 @@ const clearFilters = () => {
   statusFilter.value = 'all'
   soldQuantityFilter.value = 'all'
   catalogActiveFilter.value = 'all'
-  relationQueryTypeFilter.value = 'incoming'  // Restablecer a 'Salientes'
+  relationQueryTypeFilter.value = 'incoming' // Restablecer a 'Salientes'
   loadOrphanPublications()
 }
 
@@ -455,7 +472,7 @@ const clearFilters = () => {
 const orphanPublicationsHeaders = [
   { title: '', key: 'select', sortable: false },
   { title: 'ID', key: 'id', sortable: true },
-  { title: 'Acciones', key: 'actions', sortable: false },
+  { title: '', key: 'actions', sortable: false },
 ]
 
 // Funciones para obtener el estado y las ventas eliminadas
@@ -471,7 +488,7 @@ const loadOrphanPublications = async () => {
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver las publicaciones huérfanas'
     emit('error', error.value)
-    
+
     // Mostrar notificación cuando no hay cuenta seleccionada
     showNotification.value = true
     notificationMessage.value = 'Selecciona una cuenta para ver las publicaciones huérfanas'
@@ -496,10 +513,10 @@ const loadOrphanPublications = async () => {
     total.value = response.count || 0
   } catch (err) {
     console.error('Error al cargar publicaciones huérfanas:', err)
-    
+
     // Extraer mensaje de error más detallado
     let errorMessage = 'Error al cargar publicaciones huérfanas'
-    
+
     if (err instanceof Error) {
       errorMessage = `Error al cargar publicaciones huérfanas: ${err.message}`
     } else if (typeof err === 'object' && err !== null && 'response' in err) {
@@ -513,10 +530,10 @@ const loadOrphanPublications = async () => {
         errorMessage = axiosError.response.data.Message
       }
     }
-    
+
     error.value = errorMessage
     emit('error', error.value)
-    
+
     // Mostrar notificación de error
     showNotification.value = true
     notificationMessage.value = errorMessage

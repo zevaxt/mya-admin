@@ -172,7 +172,7 @@
           <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
         </v-btn>
       </div>
-      
+
       <!-- Botón para gestionar columnas visibles -->
       <v-menu
         v-model="showColumnsMenu"
@@ -191,7 +191,7 @@
             Columnas
           </v-btn>
         </template>
-        
+
         <v-card min-width="300" max-width="400" class="elevation-8">
           <v-card-title class="text-subtitle-1 d-flex align-center pa-3">
             <span>Columnas visibles</span>
@@ -200,9 +200,9 @@
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </v-card-title>
-          
+
           <v-divider></v-divider>
-          
+
           <v-card-text style="max-height: 300px; overflow-y: auto;" class="pa-0">
             <v-list density="compact">
               <v-list-item v-for="column in allColumns.filter(col => !col.required && col.title)" :key="column.key">
@@ -220,9 +220,9 @@
               </v-list-item>
             </v-list>
           </v-card-text>
-          
+
           <v-divider></v-divider>
-          
+
           <v-card-actions class="pa-3">
             <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns">Por defecto</v-btn>
             <v-spacer></v-spacer>
@@ -362,49 +362,63 @@
         </template>
 
         <template #[`item.actions`]="{ item }">
-          <div class="d-flex">
-            <v-btn
-              icon
-              size="small"
-              color="primary"
-              class="mr-2"
-              @click="viewProductDetail(item.ID)"
-              :disabled="loading"
-            >
-              <v-icon>mdi-eye</v-icon>
-              <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
-            </v-btn>
+          <div class="text-left">
+            <v-menu location="bottom">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  icon
+                  size="small"
+                  color="grey-darken-1"
+                  variant="text"
+                  v-bind="props"
+                  :disabled="loading"
+                >
+                  <v-icon>mdi-menu</v-icon>
+                </v-btn>
+              </template>
 
-            <v-btn
-              icon
-              size="small"
-              color="error"
-              class="mr-2"
-              @click="confirmDeleteProduct(item.ID)"
-              :disabled="loading || processingDeleteId === item.ID"
-              :loading="processingDeleteId === item.ID"
-            >
-              <v-icon v-if="processingDeleteId !== item.ID">mdi-delete</v-icon>
-              <v-tooltip activator="parent" location="top">Eliminar publicación</v-tooltip>
-            </v-btn>
+              <v-list density="compact">
+                <!-- Ver detalles -->
+                <v-list-item @click="viewProductDetail(item.ID)" :disabled="loading">
+                  <template v-slot:prepend>
+                    <v-icon color="primary" size="small">mdi-eye</v-icon>
+                  </template>
+                  <v-list-item-title class="text-body-2">Ver detalles</v-list-item-title>
+                </v-list-item>
 
-            <v-btn
-              icon
-              size="small"
-              color="success"
-              class="mr-2"
-              @click="confirmPopulateProduct(item.ID)"
-              :disabled="loading || processingPopulateId === item.ID"
-              :loading="processingPopulateId === item.ID"
-            >
-              <v-icon v-if="processingPopulateId !== item.ID">mdi-database-import</v-icon>
-              <v-tooltip activator="parent" location="top">Populate</v-tooltip>
-            </v-btn>
+                <!-- Eliminar publicación -->
+                <v-list-item
+                  @click="confirmDeleteProduct(item.ID)"
+                  :disabled="loading || processingDeleteId === item.ID"
+                >
+                  <template v-slot:prepend>
+                    <v-icon color="error" size="small" v-if="processingDeleteId !== item.ID">mdi-delete</v-icon>
+                    <v-progress-circular v-else indeterminate size="16" color="error" class="mr-2"></v-progress-circular>
+                  </template>
+                  <v-list-item-title class="text-body-2">Eliminar publicación</v-list-item-title>
+                </v-list-item>
 
-            <v-btn icon size="small" color="info" @click="openProductInNewTab(item.ID)">
-              <v-icon>mdi-open-in-new</v-icon>
-              <v-tooltip activator="parent" location="top">Ver en Mercado Libre</v-tooltip>
-            </v-btn>
+                <!-- Populate -->
+                <v-list-item
+                  @click="confirmPopulateProduct(item.ID)"
+                  :disabled="loading || processingPopulateId === item.ID"
+                >
+                  <template v-slot:prepend>
+                    <v-icon color="success" size="small" v-if="processingPopulateId !== item.ID">mdi-database-import</v-icon>
+                    <v-progress-circular v-else indeterminate size="16" color="success" class="mr-2"></v-progress-circular>
+                  </template>
+                  <v-list-item-title class="text-body-2">Populate</v-list-item-title>
+                </v-list-item>
+
+                <!-- Ver en Mercado Libre -->
+                <v-list-item @click="openProductInNewTab(item.ID)">
+                  <template v-slot:prepend>
+                    <v-icon color="info" size="small">mdi-open-in-new</v-icon>
+                  </template>
+                  <v-list-item-title class="text-body-2">Ver en Mercado Libre</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
           </div>
         </template>
 
@@ -517,7 +531,7 @@
         <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
       </template>
     </v-snackbar>
-    
+
     <!-- El menú desplegable está ahora en la barra de herramientas -->
   </div>
 </template>
@@ -607,7 +621,7 @@ const allColumns = [
   { title: 'F. Populated', key: 'updated_at', sortable: true, required: false },
   { title: 'F. Updated', key: 'ExtUpdatedAt', sortable: true, required: false },
   { title: 'F. Created', key: 'ExtCreatedAt', sortable: true, required: false },
-  { title: 'Acciones', key: 'actions', sortable: false, required: true },
+  { title: '', key: 'actions', sortable: false, required: true },
 ]
 
 // Definir las columnas que se mostrarán por defecto
@@ -746,10 +760,10 @@ const loadProductIds = async () => {
     }
   } catch (err) {
     console.error('Error al cargar IDs de productos:', err)
-    
+
     // Extraer mensaje de error más detallado
     let errorMessage = 'Error al cargar IDs de productos'
-    
+
     if (err instanceof Error) {
       errorMessage = `Error al cargar IDs de productos: ${err.message}`
     } else if (typeof err === 'object' && err !== null && 'response' in err) {
@@ -763,9 +777,9 @@ const loadProductIds = async () => {
         errorMessage = axiosError.response.data.Message
       }
     }
-    
+
     error.value = errorMessage
-    
+
     // Mostrar notificación de error
     showNotification.value = true
     notificationMessage.value = errorMessage
@@ -867,14 +881,14 @@ const populateProduct = async (productId: string) => {
 
   try {
     processingPopulateId.value = productId
-    
+
     // Usar la función reutilizable del servicio publicationOperations
     const result = await publicationOperations.populateProduct(accountId.value, productId)
 
     // Manejar el resultado
     notificationMessage.value = result.message
     notificationType.value = result.success ? 'success' : 'error'
-    
+
     // Si fue exitoso, recargar los IDs de productos
     if (result.success) {
       await loadProductIds()
@@ -996,38 +1010,38 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
 
   try {
     processingPopulateAll.value = true
-    
+
     // Crear una promesa de timeout para mostrar un mensaje rápido al usuario
     const timeoutPromise = new Promise<{ success: boolean; message: string }>((resolve) => {
       setTimeout(() => {
-        resolve({ 
-          success: true, 
-          message: `Proceso de populate ${isEmpty ? 'para publicaciones sin atributos' : 'para todas las publicaciones'} iniciado. Este proceso puede tardar varios minutos.` 
+        resolve({
+          success: true,
+          message: `Proceso de populate ${isEmpty ? 'para publicaciones sin atributos' : 'para todas las publicaciones'} iniciado. Este proceso puede tardar varios minutos.`
         })
       }, 3000) // Esperamos máximo 3 segundos por una respuesta inicial
     })
-    
+
     // Iniciar el proceso de populate sin esperar a que termine completamente
     const populatePromise = migrationService.updateAllProductsPopulate(accountId.value, isEmpty)
-    
+
     // Esperamos solo la confirmación de inicio o el timeout, lo que ocurra primero
     const result = await Promise.race([populatePromise, timeoutPromise])
-    
+
     // Mostrar mensaje de resultado inicial
     notificationMessage.value = result.message
     notificationType.value = 'success'
     showNotification.value = true
-    
+
     // Recargar los datos después de un tiempo para ver los cambios iniciales
     setTimeout(() => {
       loadProductIds()
-      
+
       // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
       showNotification.value = true
       notificationMessage.value = 'El proceso de populate continuará en segundo plano. Puedes seguir usando la aplicación.'
       notificationType.value = 'success'
     }, 3000)
-    
+
     // Continuamos con la promesa original en segundo plano
     populatePromise
       .then((finalResult) => {
@@ -1036,12 +1050,12 @@ const populateAllProducts = async (isEmpty: boolean = false) => {
           setTimeout(() => {
             showNotification.value = true
             notificationMessage.value = `Proceso de populate completado: ${finalResult.count} publicaciones procesadas.`
-            
+
             // Si hay menos de 10 publicaciones, mostrar los IDs en el mensaje
             if (finalResult.data && finalResult.data.length > 0 && finalResult.data.length <= 10) {
               notificationMessage.value += `\nIDs: ${finalResult.data.join(', ')}`
             }
-            
+
             notificationType.value = 'success'
           }, 10000) // Mostramos este mensaje después de 10 segundos
         }
@@ -1318,7 +1332,7 @@ watch(
 onMounted(() => {
   // Cargar preferencias de columnas
   loadColumnPreferences()
-  
+
   // Cargar datos si hay una cuenta seleccionada
   if (hasAccount.value) {
     loadProductIds()
