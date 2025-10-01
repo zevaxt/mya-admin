@@ -29,7 +29,7 @@
         <v-col cols="12" md="3">
           <v-tooltip
             location="top"
-            text="Al seleccionar 'Activas' se muestran solo las publicaciones con estado 'active' en Mercado Libre y que están en el Canal Marketplace"
+            text="Al elegir la opción Activas, se listan únicamente las publicaciones cuyo estado interno quedó marcado como activo durante el proceso de populate, siempre que su estado fuera active en Mercado Libre y pertenezcan al canal Marketplace."
           >
             <template v-slot:activator="{ props }">
               <div v-bind="props" class="w-100">
@@ -366,10 +366,16 @@
         </v-card-text>
 
         <v-divider></v-divider>
-        
+
         <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" size="small" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            size="small"
+            @click="showConfirmDialog = false"
+            >Cancelar</v-btn
+          >
           <v-btn
             color="primary"
             variant="text"

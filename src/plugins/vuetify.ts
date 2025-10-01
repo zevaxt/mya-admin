@@ -12,23 +12,23 @@ export default createVuetify({
     defaultSet: 'mdi',
     aliases,
     sets: {
-      mdi
-    }
+      mdi,
+    },
   },
   theme: {
     defaultTheme: 'light',
     themes: {
       light: {
         colors: {
-          primary: '#1976D2',
-          secondary: '#424242',
-          accent: '#82B1FF',
-          error: '#FF5252',
-          info: '#2196F3',
-          success: '#4CAF50',
-          warning: '#FFC107'
-        }
-      }
-    }
-  }
+          primary: '#212121', // tono principal, fuerte y neutro (puede usarse como base o textos)
+          secondary: '#7F7F7F', // gris oscuro para contraste secundario
+          accent: '#A1A1A1', // gris medio para destacar elementos (botones, iconos)
+          error: '#8B0A1A', // rojo binotinto más oscuro y no tan brinllante
+          info: '#C3C3C3', // gris claro, buen apoyo para secciones informativas
+          success: '#8BC34A', // verde pastel, un poco más claro que el éxito, pero no tanto como el warning)
+          warning: '#A8A8A8', // gris muy claro, como fondo de avisos
+        },
+      },
+    },
+  },
 })

@@ -31,7 +31,8 @@ const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 
 // Filtros
 const statusFilter = ref<'active' | 'paused' | 'inactive' | 'closed' | ''>('')
-const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace,mshops')
+const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace')
+const isDefaultChannelsFilter = ref(true)
 
 // Opciones para los filtros
 const statusOptions = [
@@ -55,13 +56,14 @@ const hasAccount = computed(() => !!currentAccount.value)
 
 // Verificar si hay filtros activos
 const hasActiveFilters = computed(() => {
-  return statusFilter.value !== '' || channelsFilter.value !== 'marketplace,mshops'
+  return statusFilter.value !== '' || !isDefaultChannelsFilter.value
 })
 
 // Función para limpiar todos los filtros
 const clearAllFilters = () => {
   statusFilter.value = ''
-  channelsFilter.value = 'marketplace,mshops'
+  channelsFilter.value = 'marketplace'
+  isDefaultChannelsFilter.value = true
   loadMissingPublications()
 }
 
@@ -164,6 +166,17 @@ const handlePageChange = () => {
   loadMissingPublications()
 }
 
+const handleChannelsFilterChange = () => {
+  isDefaultChannelsFilter.value = channelsFilter.value === 'marketplace'
+  loadMissingPublications()
+}
+
+const resetChannelsFilter = () => {
+  channelsFilter.value = 'marketplace'
+  isDefaultChannelsFilter.value = true
+  loadMissingPublications()
+}
+
 // Importar la función compartida
 import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 
@@ -229,7 +242,7 @@ const syncProductIds = async (readOnly: boolean = false) => {
         notificationMessage.value = result.message || 'Sincronización de IDs iniciada correctamente'
         notificationType.value = 'success'
         showNotification.value = true
-        
+
         // Recargar la lista de publicaciones faltantes después de sincronizar
         await loadMissingPublications()
       } else {
@@ -263,11 +276,11 @@ const createPublication = async (productId: string) => {
 
     // Llamar al servicio para crear la publicación
     const result = await migrationService.createPublication(accountId.value, productId)
-    
+
     if (result && result.length > 0 && result.includes(productId)) {
       notificationMessage.value = 'Publicación creada correctamente'
       notificationType.value = 'success'
-      
+
       // Recargar la lista de publicaciones faltantes
       await loadMissingPublications()
     } else {
@@ -296,11 +309,11 @@ const createAndPopulatePublication = async (productId: string) => {
 
     // Paso 1: Crear la publicación
     const createResult = await migrationService.createPublication(accountId.value, productId)
-    
+
     if (createResult && createResult.length > 0 && createResult.includes(productId)) {
       // Paso 2: Popular la publicación
       const populateResult = await populateProduct(accountId.value, productId)
-      
+
       if (populateResult.success) {
         notificationMessage.value = 'Publicación creada y populada correctamente'
         notificationType.value = 'success'
@@ -308,7 +321,7 @@ const createAndPopulatePublication = async (productId: string) => {
         notificationMessage.value = 'Publicación creada pero hubo un error al popularla'
         notificationType.value = 'warning'
       }
-      
+
       // Recargar la lista de publicaciones faltantes
       await loadMissingPublications()
     } else {
@@ -352,10 +365,10 @@ const confirmSyncNormalMode = () => {
   // Preparar mensaje con información de filtros
   const estadoFiltro = statusFilter.value ? `"${statusFilter.value}"` : 'todos';
   const canalesFiltro = channelsFilter.value;
-  
+
   // Mostrar diálogo de confirmación
   confirmDialogTitle.value = 'Sincronizar IDs en modo normal'
-  confirmDialogMessage.value = `\u00bfEst\u00e1s seguro de que deseas sincronizar los IDs y guardarlos en la base de datos?\n\nFiltros que se aplicar\u00e1n:\n- Estado de publicaciones: ${estadoFiltro}\n- Canales de venta: ${canalesFiltro}\n\nEsta acci\u00f3n puede tardar varios minutos dependiendo de la cantidad de publicaciones.`
+  confirmDialogMessage.value = `\u00bfEst\u00e1s seguro de que deseas sincronizar los IDs y guardarlos en la base de datos?\n\nFiltros que se aplicar\u00e1n:\n- Status: ${estadoFiltro}\n- Canales de venta: ${canalesFiltro}\n\nEsta acci\u00f3n puede tardar varios minutos dependiendo de la cantidad de publicaciones.`
   confirmDialogAction.value = () => syncProductIds(false)
   showConfirmDialog.value = true
 }
@@ -402,35 +415,35 @@ const createMultiplePublications = async (populateAfterCreate: boolean = false) 
       try {
         // Paso 1: Llamar al servicio para crear la publicación
         const result = await migrationService.createPublication(accountId.value, productId)
-        
+
         if (result && result.length > 0 && result.includes(productId)) {
           // Publicación creada con éxito
           successCount++
-          
+
           // Paso 2 (opcional): Popular la publicación si se solicitó
           if (populateAfterCreate) {
             try {
               const populateResult = await populateProduct(accountId.value, productId)
-              
+
               if (populateResult.success) {
                 results.push({ id: productId, success: true, populated: true })
                 populateSuccessCount++
               } else {
-                results.push({ 
-                  id: productId, 
-                  success: true, 
-                  populated: false, 
-                  message: 'Creada pero error al popular' 
+                results.push({
+                  id: productId,
+                  success: true,
+                  populated: false,
+                  message: 'Creada pero error al popular'
                 })
                 populateErrorCount++
               }
             } catch (populateErr) {
               console.error(`Error al popular la publicación ${productId}:`, populateErr)
-              results.push({ 
-                id: productId, 
-                success: true, 
-                populated: false, 
-                message: 'Creada pero error al popular' 
+              results.push({
+                id: productId,
+                success: true,
+                populated: false,
+                message: 'Creada pero error al popular'
               })
               populateErrorCount++
             }
@@ -486,7 +499,7 @@ const createMultiplePublications = async (populateAfterCreate: boolean = false) 
 
     // Recargar la lista de publicaciones faltantes
     await loadMissingPublications()
-    
+
     // Limpiar selección
     selectedItems.value = []
   } catch (err) {
@@ -581,7 +594,7 @@ defineExpose({
           :items="statusOptions"
           item-title="title"
           item-value="value"
-          label="Estado de publicaciones"
+          label="Estatus"
           variant="outlined"
           density="comfortable"
           hide-details
@@ -605,16 +618,21 @@ defineExpose({
           variant="outlined"
           density="comfortable"
           hide-details
-          @update:model-value="loadMissingPublications"
-          :color="channelsFilter !== 'marketplace,mshops' ? 'primary' : undefined"
-          :bg-color="channelsFilter !== 'marketplace,mshops' ? 'primary-lighten-5' : undefined"
+          @update:model-value="handleChannelsFilterChange"
+          :color="isDefaultChannelsFilter ? undefined : 'primary'"
+          :bg-color="isDefaultChannelsFilter ? undefined : 'primary-lighten-5'"
         >
           <template v-slot:append-inner>
-            <v-icon v-if="channelsFilter !== 'marketplace,mshops'" color="primary" @click.stop="channelsFilter = 'marketplace,mshops'; loadMissingPublications()">mdi-close</v-icon>
+            <v-icon
+              v-if="!isDefaultChannelsFilter"
+              color="primary"
+              @click.stop="resetChannelsFilter"
+              >mdi-close</v-icon
+            >
           </template>
         </v-select>
       </v-col>
-      
+
       <!-- Botón para limpiar todos los filtros -->
       <v-col cols="12" md="4" lg="3" class="d-flex align-center">
         <v-btn
@@ -837,7 +855,7 @@ defineExpose({
         </v-card-actions>
       </v-card>
     </v-dialog>
-    
+
     <!-- Diálogo para mostrar los IDs sincronizados en modo lectura -->
     <v-dialog v-model="showIdsDialog" max-width="700" content-class="elevation-0">
       <v-card class="rounded-lg" elevation="3">

@@ -63,11 +63,12 @@
           >
             <template v-slot:append-inner>
               <v-icon
-                v-if="statusFilter"
+                v-if="statusFilter && !isDefaultStatusFilter"
                 color="primary"
                 @click.stop="
                   () => {
-                    statusFilter = ''
+                    statusFilter = 'active'
+                    isDefaultStatusFilter = true
                     handleStatusFilterChange()
                   }
                 "
@@ -721,7 +722,12 @@
     </v-overlay>
 
     <!-- Diálogo para mostrar detalles completos del error -->
-    <v-dialog v-model="showErrorDialog" max-width="650" scrollable content-class="bg-overlay-minimal">
+    <v-dialog
+      v-model="showErrorDialog"
+      max-width="650"
+      scrollable
+      content-class="bg-overlay-minimal"
+    >
       <v-card class="rounded-lg" elevation="8">
         <v-card-title class="d-flex align-center py-2 px-3">
           <span class="text-subtitle-2">Detalle del error</span>
@@ -815,7 +821,10 @@ const accountStore = useAccountStore()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const productIds = ref<ProductId[]>([])
-const statusFilter = ref('')
+// Valor para el filtro de estado (usado tanto para filtrado como para UI)
+const statusFilter = ref('active')
+// Indica si el filtro de estado es el valor por defecto
+const isDefaultStatusFilter = ref(true)
 const syncActiveFilter = ref<string>('')
 const catalogActiveFilter = ref<string>('')
 const searchQuery = ref('')
@@ -875,7 +884,7 @@ const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 // Opciones de filtro
 const statusOptions = [
   { title: 'Todos', value: '' },
-  { title: 'Activo', value: 'active' },
+  { title: 'Activas', value: 'active' },
   { title: 'Inactivas', value: 'inactive' },
   { title: 'Pausado', value: 'paused' },
   { title: 'Finalizado', value: 'closed' },
@@ -940,10 +949,10 @@ const currentAccount = computed(() => accountStore.currentAccount)
 const accountId = computed(() => currentAccount.value?.ID || 0)
 const hasAccount = computed(() => !!currentAccount.value)
 
-// Verificar si hay filtros activos
+// Verificar si hay filtros activos visualmente (excluyendo el filtro de estado por defecto)
 const hasActiveFilters = computed(() => {
   return (
-    statusFilter.value !== '' ||
+    (statusFilter.value !== 'active' && statusFilter.value !== '') ||
     syncActiveFilter.value !== '' ||
     catalogActiveFilter.value !== '' ||
     searchQuery.value !== ''
@@ -1677,6 +1686,8 @@ const handleItemsPerPageChange = () => {
 
 // Manejar cambio de filtro de estado
 const handleStatusFilterChange = () => {
+  // Actualizar la bandera que indica si es el filtro por defecto
+  isDefaultStatusFilter.value = statusFilter.value === 'active'
   page.value = 1
   loadProductIds()
 }
@@ -1788,7 +1799,8 @@ const clearSearchQuery = () => {
 
 // Limpiar todos los filtros
 const clearAllFilters = () => {
-  statusFilter.value = ''
+  statusFilter.value = 'active' // Volver al filtro por defecto
+  isDefaultStatusFilter.value = true
   syncActiveFilter.value = ''
   catalogActiveFilter.value = ''
   searchQuery.value = ''
