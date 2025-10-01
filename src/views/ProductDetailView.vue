@@ -118,9 +118,6 @@
                 <h2 class="text-h4 mb-4">{{ product.Attributes?.title || 'Sin título' }}</h2>
 
                 <v-card class="mb-4">
-                  <v-card-title class="text-subtitle-1 py-3 px-4 bg-grey-lighten-4">
-                    Información del Producto
-                  </v-card-title>
                   <v-table density="compact" class="product-details-table">
                     <tbody>
                       <!-- Precio -->
@@ -365,7 +362,6 @@
                           <th>ID</th>
                           <th>Nombre</th>
                           <th>Valor</th>
-                          <th>Grupo</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -379,7 +375,6 @@
                             </span>
                             <span v-else>-</span>
                           </td>
-                          <td>{{ attr.attribute_group_name || '-' }}</td>
                         </tr>
                       </tbody>
                     </v-table>
@@ -482,14 +477,27 @@
                       <div
                         v-for="(description, index) in product.Attributes.descriptions"
                         :key="index"
-                        class="mb-4"
+                        class="mb-4 position-relative"
                       >
-                        <div
-                          class="text-body-1 bg-grey-lighten-5 pa-4 rounded"
-                          style="white-space: pre-line"
-                        >
-                          {{ description }}
-                        </div>
+                        <v-card variant="outlined" class="description-card">
+                          <v-card-title class="text-subtitle-1 d-flex justify-space-between align-center py-2 px-4 bg-grey-lighten-4">
+                            <span>Descripción {{ product.Attributes.descriptions.length > 1 ? (index + 1) : '' }}</span>
+                            <v-btn
+                              color="primary"
+                              variant="elevated"
+                              size="small"
+                              class="copy-btn"
+                              @click="copyToClipboard(description)"
+                              prepend-icon="mdi-content-copy"
+                            >
+                              Copiar
+                              <v-tooltip activator="parent" location="top">Copiar descripción</v-tooltip>
+                            </v-btn>
+                          </v-card-title>
+                          <v-card-text class="text-body-1 pt-4" style="white-space: pre-line">
+                            {{ description }}
+                          </v-card-text>
+                        </v-card>
                       </div>
                     </div>
                     <v-alert v-else type="info" class="mt-2">
@@ -1017,6 +1025,27 @@ const decreaseFontSize = () => {
 
 .product-details-table tr:hover {
   background-color: rgba(0, 0, 0, 0.01);
+}
+
+.description-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.description-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.copy-btn {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  min-width: 90px;
+  transition: all 0.3s ease;
+}
+
+.copy-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 </style>
 
