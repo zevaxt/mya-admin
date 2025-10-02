@@ -153,7 +153,6 @@
             </template>
           </v-select>
         </v-col>
-
       </v-row>
     </div>
 
@@ -578,21 +577,21 @@
 
         <!-- Columna de Estado de la Publicación -->
         <template #[`item.status`]="slotProps">
-          <v-chip :color="getStatusColor(slotProps.item.status_ml)" size="small" class="text-capitalize">
+          <v-chip
+            :color="getStatusColor(slotProps.item.status_ml)"
+            size="small"
+            class="text-capitalize"
+          >
             {{ slotProps.item.status_ml || 'unknown' }}
           </v-chip>
         </template>
 
         <!-- Columna de Catálogo -->
         <template #[`item.catalog`]="slotProps">
-          <v-chip
-            :color="slotProps.item.catalog_active ? 'success' : 'error'"
-            size="small"
-          >
+          <v-chip :color="slotProps.item.catalog_active ? 'success' : 'error'" size="small">
             {{ slotProps.item.catalog_active ? 'Sí' : 'No' }}
           </v-chip>
         </template>
-
 
         <!-- La columna de Acciones ha sido eliminada y sus botones movidos a las columnas de sincronizaciones -->
 
@@ -650,15 +649,16 @@
                             </div>
                           </td>
                           <td>
-                            <v-chip
-                              size="small"
-                              color="primary"
-                            >
+                            <v-chip size="small" color="primary">
                               {{ getAccountName(sync.to_account_id) }}
                             </v-chip>
                           </td>
                           <td>
-                            <v-chip :color="getStatusColor(sync.status_ml)" size="small" class="text-capitalize">
+                            <v-chip
+                              :color="getStatusColor(sync.status_ml)"
+                              size="small"
+                              class="text-capitalize"
+                            >
                               {{ sync.status_ml || 'unknown' }}
                             </v-chip>
                           </td>
@@ -675,8 +675,10 @@
                                     color="primary"
                                     class="ml-1"
                                     :loading="
-                                      syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}` ||
-                                      syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`
+                                      syncingItem ===
+                                        `${slotProps.item.publication_id}-${sync.to_sync_id}` ||
+                                      syncingItem ===
+                                        `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`
                                     "
                                   >
                                     <v-icon size="small">mdi-dots-vertical</v-icon>
@@ -685,45 +687,69 @@
 
                                 <v-list density="compact" nav>
                                   <!-- Acciones de visualización -->
-                                  <v-list-item
-                                    @click="viewProductDetails(sync.to_sync_id)"
-                                  >
+                                  <v-list-item @click="viewProductDetails(sync.to_sync_id)">
                                     <template v-slot:prepend>
                                       <v-icon color="primary" size="small">mdi-eye</v-icon>
                                     </template>
-                                    <v-list-item-title class="text-caption">Ver detalles</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Ver detalles</v-list-item-title
+                                    >
                                   </v-list-item>
 
-                                  <v-list-item
-                                    @click="openInMercadoLibre(sync.to_sync_id)"
-                                  >
+                                  <v-list-item @click="openInMercadoLibre(sync.to_sync_id)">
                                     <template v-slot:prepend>
                                       <v-icon color="primary" size="small">mdi-open-in-new</v-icon>
                                     </template>
-                                    <v-list-item-title class="text-caption">Ver en Mercado Libre</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Ver en Mercado Libre</v-list-item-title
+                                    >
                                   </v-list-item>
 
                                   <v-divider class="my-1"></v-divider>
 
                                   <!-- Acciones de sincronización -->
                                   <v-list-item
-                                    @click="syncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
-                                    :disabled="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}`"
+                                    @click="
+                                      syncRelation(
+                                        slotProps.item.publication_id,
+                                        sync.to_sync_id,
+                                        'outgoing',
+                                      )
+                                    "
+                                    :disabled="
+                                      syncingItem ===
+                                      `${slotProps.item.publication_id}-${sync.to_sync_id}`
+                                    "
                                   >
                                     <template v-slot:prepend>
                                       <v-icon color="warning" size="small">mdi-sync</v-icon>
                                     </template>
-                                    <v-list-item-title class="text-caption">Sincronizar</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Sincronizar</v-list-item-title
+                                    >
                                   </v-list-item>
 
                                   <v-list-item
-                                    @click="deleteSyncRelation(slotProps.item.publication_id, sync.to_sync_id, 'outgoing')"
-                                    :disabled="syncingItem === `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`"
+                                    @click="
+                                      deleteSyncRelation(
+                                        slotProps.item.publication_id,
+                                        sync.to_sync_id,
+                                        'outgoing',
+                                      )
+                                    "
+                                    :disabled="
+                                      syncingItem ===
+                                      `${slotProps.item.publication_id}-${sync.to_sync_id}-delete`
+                                    "
                                   >
                                     <template v-slot:prepend>
-                                      <v-icon color="error" size="small">mdi-link-variant-remove</v-icon>
+                                      <v-icon color="error" size="small"
+                                        >mdi-link-variant-remove</v-icon
+                                      >
                                     </template>
-                                    <v-list-item-title class="text-caption">Eliminar relación</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Eliminar relación</v-list-item-title
+                                    >
                                   </v-list-item>
                                 </v-list>
                               </v-menu>
@@ -786,15 +812,16 @@
                             </div>
                           </td>
                           <td>
-                            <v-chip
-                              size="small"
-                              color="success"
-                            >
+                            <v-chip size="small" color="success">
                               {{ getAccountName(sync.from_account_id) }}
                             </v-chip>
                           </td>
                           <td>
-                            <v-chip :color="getStatusColor(sync.status_ml)" size="small" class="text-capitalize">
+                            <v-chip
+                              :color="getStatusColor(sync.status_ml)"
+                              size="small"
+                              class="text-capitalize"
+                            >
                               {{ sync.status_ml || 'unknown' }}
                             </v-chip>
                           </td>
@@ -811,8 +838,10 @@
                                     color="success"
                                     class="ml-1"
                                     :loading="
-                                      syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}` ||
-                                      syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`
+                                      syncingItem ===
+                                        `${sync.from_publication_id}-${slotProps.item.publication_id}` ||
+                                      syncingItem ===
+                                        `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`
                                     "
                                   >
                                     <v-icon size="small">mdi-dots-vertical</v-icon>
@@ -827,7 +856,9 @@
                                     <template v-slot:prepend>
                                       <v-icon color="success" size="small">mdi-eye</v-icon>
                                     </template>
-                                    <v-list-item-title class="text-caption">Ver detalles</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Ver detalles</v-list-item-title
+                                    >
                                   </v-list-item>
 
                                   <v-list-item
@@ -836,30 +867,56 @@
                                     <template v-slot:prepend>
                                       <v-icon color="success" size="small">mdi-open-in-new</v-icon>
                                     </template>
-                                    <v-list-item-title class="text-caption">Ver en Mercado Libre</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Ver en Mercado Libre</v-list-item-title
+                                    >
                                   </v-list-item>
 
                                   <v-divider class="my-1"></v-divider>
 
                                   <!-- Acciones de sincronización -->
                                   <v-list-item
-                                    @click="syncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
-                                    :disabled="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}`"
+                                    @click="
+                                      syncRelation(
+                                        sync.from_publication_id,
+                                        slotProps.item.publication_id,
+                                        'incoming',
+                                      )
+                                    "
+                                    :disabled="
+                                      syncingItem ===
+                                      `${sync.from_publication_id}-${slotProps.item.publication_id}`
+                                    "
                                   >
                                     <template v-slot:prepend>
                                       <v-icon color="warning" size="small">mdi-sync</v-icon>
                                     </template>
-                                    <v-list-item-title class="text-caption">Sincronizar</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Sincronizar</v-list-item-title
+                                    >
                                   </v-list-item>
 
                                   <v-list-item
-                                    @click="deleteSyncRelation(sync.from_publication_id, slotProps.item.publication_id, 'incoming')"
-                                    :disabled="syncingItem === `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`"
+                                    @click="
+                                      deleteSyncRelation(
+                                        sync.from_publication_id,
+                                        slotProps.item.publication_id,
+                                        'incoming',
+                                      )
+                                    "
+                                    :disabled="
+                                      syncingItem ===
+                                      `${sync.from_publication_id}-${slotProps.item.publication_id}-delete`
+                                    "
                                   >
                                     <template v-slot:prepend>
-                                      <v-icon color="error" size="small">mdi-link-variant-remove</v-icon>
+                                      <v-icon color="error" size="small"
+                                        >mdi-link-variant-remove</v-icon
+                                      >
                                     </template>
-                                    <v-list-item-title class="text-caption">Eliminar relación</v-list-item-title>
+                                    <v-list-item-title class="text-caption"
+                                      >Eliminar relación</v-list-item-title
+                                    >
                                   </v-list-item>
                                 </v-list>
                               </v-menu>
@@ -906,18 +963,32 @@
       <v-card class="pa-4 rounded-xl" min-width="600" max-width="800" elevation="10">
         <v-card-title class="d-flex align-center pb-1">
           <v-icon
-            :icon="syncComplete ? (syncHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle') : 'mdi-sync'"
-            :class="{'mr-2 rotating-icon': !syncComplete, 'mr-2': syncComplete}"
+            :icon="
+              syncComplete ? (syncHasErrors ? 'mdi-alert-circle' : 'mdi-check-circle') : 'mdi-sync'
+            "
+            :class="{ 'mr-2 rotating-icon': !syncComplete, 'mr-2': syncComplete }"
             :color="syncComplete ? (syncHasErrors ? 'error' : 'success') : 'primary'"
             size="small"
           ></v-icon>
           <span class="text-h6">
-            {{ syncComplete ? (syncHasErrors ? 'Sincronización con errores' : 'Sincronización completada') : 'Sincronizando' }}
+            {{
+              syncComplete
+                ? syncHasErrors
+                  ? 'Sincronización con errores'
+                  : 'Sincronización completada'
+                : 'Sincronizando'
+            }}
           </span>
 
           <!-- Botón de cerrar solo visible cuando se completa la sincronización -->
           <v-spacer></v-spacer>
-          <v-btn v-if="syncComplete" icon="mdi-close" variant="text" density="compact" @click="showProgressOverlay = false"></v-btn>
+          <v-btn
+            v-if="syncComplete"
+            icon="mdi-close"
+            variant="text"
+            density="compact"
+            @click="showProgressOverlay = false"
+          ></v-btn>
         </v-card-title>
 
         <v-card-text class="pt-2">
@@ -981,7 +1052,9 @@
                     >
                       Copiar todos
                     </v-btn>
-                    <v-chip size="small" color="error" variant="outlined">{{ syncErrorMessages.length }} errores</v-chip>
+                    <v-chip size="small" color="error" variant="outlined"
+                      >{{ syncErrorMessages.length }} errores</v-chip
+                    >
                   </div>
                 </div>
 
@@ -993,16 +1066,18 @@
                     { title: 'Resumen', key: 'summary' },
                     { title: 'Acciones', key: 'actions', width: '80px', sortable: false },
                   ]"
-                  :items="syncErrorMessages.map((msg, idx) => {
-                    const { sourceId, targetId } = extractErrorIds(msg)
-                    return {
-                      index: idx + 1,
-                      message: msg,
-                      sourceId,
-                      targetId,
-                      summary: extractErrorSummary(msg)
-                    }
-                  })"
+                  :items="
+                    syncErrorMessages.map((msg, idx) => {
+                      const { sourceId, targetId } = extractErrorIds(msg)
+                      return {
+                        index: idx + 1,
+                        message: msg,
+                        sourceId,
+                        targetId,
+                        summary: extractErrorSummary(msg),
+                      }
+                    })
+                  "
                   :items-per-page="10"
                   :items-per-page-options="[5, 10, 20, 50, -1]"
                   density="compact"
@@ -1015,7 +1090,12 @@
                       icon
                       variant="text"
                       color="primary"
-                      @click="selectedError = item.message; showErrorDialog = true"
+                      @click="
+                        () => {
+                          selectedError = item.message
+                          showErrorDialog = true
+                        }
+                      "
                     >
                       <v-icon size="small">mdi-eye</v-icon>
                     </v-btn>
@@ -1023,17 +1103,40 @@
                 </v-data-table>
 
                 <!-- Diálogo para mostrar detalles completos del error -->
-                <v-dialog v-model="showErrorDialog" max-width="700" content-class="elevation-0" scrollable>
+                <v-dialog
+                  v-model="showErrorDialog"
+                  max-width="700"
+                  content-class="elevation-0"
+                  scrollable
+                >
                   <v-card class="rounded-lg" elevation="3">
                     <v-card-title class="text-subtitle-1 pa-4 pb-0 d-flex align-center">
-                      <v-icon start icon="mdi-alert-circle" color="error" size="small" class="mr-2"></v-icon>
+                      <v-icon
+                        start
+                        icon="mdi-alert-circle"
+                        color="error"
+                        size="small"
+                        class="mr-2"
+                      ></v-icon>
                       <span>Detalle del error</span>
                       <v-spacer></v-spacer>
-                      <v-btn icon="mdi-content-copy" variant="text" density="compact" size="small" color="grey-darken-1"
-                        @click="copyErrorToClipboard(selectedError)">
+                      <v-btn
+                        icon="mdi-content-copy"
+                        variant="text"
+                        density="compact"
+                        size="small"
+                        color="grey-darken-1"
+                        @click="copyErrorToClipboard(selectedError)"
+                      >
                       </v-btn>
-                      <v-btn icon="mdi-close" variant="text" density="compact" size="small" color="grey-darken-1"
-                        @click="showErrorDialog = false">
+                      <v-btn
+                        icon="mdi-close"
+                        variant="text"
+                        density="compact"
+                        size="small"
+                        color="grey-darken-1"
+                        @click="showErrorDialog = false"
+                      >
                       </v-btn>
                     </v-card-title>
                     <v-card-text class="pa-4">
@@ -1046,21 +1149,34 @@
                           variant="tonal"
                           border="start"
                         >
-                          {{ typeof selectedError === 'string' ? extractErrorSummary(selectedError) : extractErrorSummary(selectedError) }}
+                          {{
+                            typeof selectedError === 'string'
+                              ? extractErrorSummary(selectedError)
+                              : extractErrorSummary(selectedError)
+                          }}
                         </v-alert>
 
                         <!-- Detalles completos del error -->
                         <div class="mt-2">
                           <p class="text-caption text-medium-emphasis mb-1">Detalles completos:</p>
-                          <pre class="error-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto text-caption" style="max-height: 350px; font-size: 11px !important;">
-{{ formatErrorDetails(selectedError) }}</pre>
+                          <pre
+                            class="error-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto text-caption"
+                            style="max-height: 350px; font-size: 11px !important"
+                            >{{ formatErrorDetails(selectedError) }}</pre
+                          >
                         </div>
                       </div>
                     </v-card-text>
                     <v-divider></v-divider>
                     <v-card-actions class="pa-3">
                       <v-spacer></v-spacer>
-                      <v-btn color="grey-darken-1" variant="text" size="small" @click="showErrorDialog = false">Cerrar</v-btn>
+                      <v-btn
+                        color="grey-darken-1"
+                        variant="text"
+                        size="small"
+                        @click="showErrorDialog = false"
+                        >Cerrar</v-btn
+                      >
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
@@ -1068,11 +1184,7 @@
             </v-alert>
 
             <div class="d-flex justify-end mt-4">
-              <v-btn
-                color="primary"
-                variant="text"
-                @click="showProgressOverlay = false"
-              >
+              <v-btn color="primary" variant="text" @click="showProgressOverlay = false">
                 Cerrar
               </v-btn>
             </div>
@@ -1231,7 +1343,13 @@
             <span>Crear nueva publicación</span>
           </v-tooltip>
           <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" size="small" @click="showAddSyncDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            size="small"
+            @click="showAddSyncDialog = false"
+            >Cancelar</v-btn
+          >
           <v-btn
             color="primary"
             variant="text"
@@ -1441,7 +1559,6 @@ const statusOptions = [
   { title: 'Otros', value: 'other' },
 ]
 
-
 // Encabezados de la tabla
 const headers = [
   { title: 'ID', key: 'publication_id', sortable: true },
@@ -1488,7 +1605,9 @@ const catalogCount = computed(() => {
 
 // Contador para publicaciones estándar (no catálogo)
 const nonCatalogCount = computed(() => {
-  return allPublications.value.filter((item) => item.catalog_active === false || item.catalog_active === undefined).length
+  return allPublications.value.filter(
+    (item) => item.catalog_active === false || item.catalog_active === undefined,
+  ).length
 })
 
 // Contadores para los diferentes estados de publicación
@@ -1625,7 +1744,6 @@ const loadSyncRelations = async () => {
         }
       })
     }
-
 
     // Actualizar el total de publicaciones filtradas
     totalPublications.value = filteredPublications.length
@@ -1887,30 +2005,31 @@ const createNewPublication = async () => {
     // Usar el ID de la publicación seleccionada como base para crear la nueva
     // Llamar a la API para publicar el producto
     const response = await migrationService.publishProduct(sourceId, selectedAccountId.value)
-    
+
     // Log para depurar la respuesta
     console.log('Respuesta de publishProduct:', response)
 
     // Verificar si la respuesta contiene un ID, lo que indica éxito
     // La API devuelve el ID como response.ID
     const publicationId = response.ID
-    
+
     if (publicationId) {
       // Recargar las publicaciones de la cuenta para obtener la nueva publicación
       await loadPublicationsForAccount(selectedAccountId.value)
-      
+
       // Esperar un momento para asegurarnos de que la lista se ha actualizado
       // y la nueva publicación está disponible
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
       // Buscar la nueva publicación en la lista actualizada
-      const newPublication = accountPublications.value.find(
-        (p) => p.id === publicationId,
-      )
-      
+      const newPublication = accountPublications.value.find((p) => p.id === publicationId)
+
       console.log('Buscando publicación con ID:', publicationId)
-      console.log('Publicaciones disponibles:', accountPublications.value.map(p => p.id))
-      
+      console.log(
+        'Publicaciones disponibles:',
+        accountPublications.value.map((p) => p.id),
+      )
+
       // Seleccionar la nueva publicación si la encontramos en la lista
       if (newPublication) {
         console.log('Publicación encontrada:', newPublication)
@@ -1918,7 +2037,7 @@ const createNewPublication = async () => {
       } else {
         console.log('No se encontró la publicación con ID:', publicationId)
       }
-      
+
       // Mostrar notificación de éxito
       showNotification.value = true
       notificationMessage.value = 'Publicación creada exitosamente'
@@ -1926,7 +2045,7 @@ const createNewPublication = async () => {
     } else {
       // Manejar específicamente el error de catálogo
       showNotification.value = true
-      
+
       // Verificar si hay un mensaje de error específico
       if (response.message) {
         if (
@@ -2055,7 +2174,7 @@ const syncSelectedPublications = async () => {
         if (!accountId) continue
 
         // Encontrar la publicación en la lista para obtener sus relaciones
-        const publication = publications.value.find(item => item.publication_id === publicationId)
+        const publication = publications.value.find((item) => item.publication_id === publicationId)
         if (!publication) {
           console.warn(`No se encontró la publicación ${publicationId} en la lista`)
           continue
@@ -2074,10 +2193,18 @@ const syncSelectedPublications = async () => {
                 `Sincronización saliente: accountId=${accountId}, publicationId=${publicationId}, targetAccountId=${targetAccountId}, targetPublicationId=${targetPublicationId}`,
               )
 
-              await migrationService.updateProduct(accountId, publicationId, targetAccountId, targetPublicationId)
+              await migrationService.updateProduct(
+                accountId,
+                publicationId,
+                targetAccountId,
+                targetPublicationId,
+              )
               successCount++
             } catch (syncError) {
-              console.error(`Error en sincronización saliente de ${publicationId} a ${toSync.to_sync_id}:`, syncError)
+              console.error(
+                `Error en sincronización saliente de ${publicationId} a ${toSync.to_sync_id}:`,
+                syncError,
+              )
               errorCount++
 
               // Crear un objeto de error enriquecido
@@ -2099,22 +2226,36 @@ const syncSelectedPublications = async () => {
                 `Sincronización entrante: accountId=${sourceAccountId}, publicationId=${sourcePublicationId}, targetAccountId=${accountId}, targetPublicationId=${publicationId}`,
               )
 
-              await migrationService.updateProduct(sourceAccountId, sourcePublicationId, accountId, publicationId)
+              await migrationService.updateProduct(
+                sourceAccountId,
+                sourcePublicationId,
+                accountId,
+                publicationId,
+              )
               successCount++
             } catch (syncError) {
-              console.error(`Error en sincronización entrante de ${fromSync.from_publication_id} a ${publicationId}:`, syncError)
+              console.error(
+                `Error en sincronización entrante de ${fromSync.from_publication_id} a ${publicationId}:`,
+                syncError,
+              )
               errorCount++
 
               // Crear un objeto de error enriquecido
-              const enrichedError = createEnrichedError(syncError, fromSync.from_publication_id, publicationId)
+              const enrichedError = createEnrichedError(
+                syncError,
+                fromSync.from_publication_id,
+                publicationId,
+              )
               errorMessages.push(JSON.stringify(enrichedError))
             }
           }
         }
 
         // Si no hay relaciones, sincronizar la publicación consigo misma
-        if ((!publication.to_syncs || publication.to_syncs.length === 0) &&
-            (!publication.from_syncs || publication.from_syncs.length === 0)) {
+        if (
+          (!publication.to_syncs || publication.to_syncs.length === 0) &&
+          (!publication.from_syncs || publication.from_syncs.length === 0)
+        ) {
           try {
             // Sincronizar la publicación consigo misma para actualizar sus datos
             await migrationService.updateProduct(accountId, publicationId)
@@ -2172,9 +2313,9 @@ const syncSelectedPublications = async () => {
 
 // Interfaz para el resultado de la sincronización
 interface SyncResult {
-  success: boolean;
-  message: string;
-  payload?: unknown;
+  success: boolean
+  message: string
+  payload?: unknown
 }
 
 // Función para sincronizar una relación específica
@@ -2265,19 +2406,19 @@ const syncRelation = async (
       // Intentar extraer el payload JSON si existe
       try {
         // Buscar un objeto JSON en el mensaje de error
-        const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+        const jsonMatch = errorMessage.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
-          errorPayload = JSON.parse(jsonMatch[0]);
+          errorPayload = JSON.parse(jsonMatch[0])
         }
       } catch {
         // Si no se puede parsear, usar el mensaje original
       }
     } else if (typeof error === 'object' && error !== null) {
       // Si el error ya es un objeto, usarlo directamente
-      errorPayload = error;
-      errorMessage = JSON.stringify(error);
+      errorPayload = error
+      errorMessage = JSON.stringify(error)
     } else {
-      errorMessage = `Error al sincronizar la relación`;
+      errorMessage = `Error al sincronizar la relación`
     }
 
     if (showNotifications) {
@@ -2290,7 +2431,7 @@ const syncRelation = async (
     return {
       success: false,
       message: errorMessage,
-      payload: errorPayload
+      payload: errorPayload,
     }
   } finally {
     syncingItem.value = null
@@ -2393,7 +2534,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
             sourceId,
             targetId,
             message: result.message,
-            payload: result.payload
+            payload: result.payload,
           }
 
           // Guardar el error enriquecido como JSON
@@ -2422,7 +2563,10 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
           // Para relaciones entrantes
           targetId = publicationId
           // Intentamos obtener el ID de origen si es posible
-          if ('from_publication_id' in relation && typeof relation.from_publication_id === 'string') {
+          if (
+            'from_publication_id' in relation &&
+            typeof relation.from_publication_id === 'string'
+          ) {
             sourceId = relation.from_publication_id
           }
         }
@@ -2436,19 +2580,19 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
 
           // Intentar extraer el payload JSON si existe
           try {
-            const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+            const jsonMatch = errorMessage.match(/\{[\s\S]*\}/)
             if (jsonMatch) {
-              errorPayload = JSON.parse(jsonMatch[0]);
+              errorPayload = JSON.parse(jsonMatch[0])
             }
           } catch {
             // Si no se puede parsear, usar el mensaje original
           }
         } else if (typeof error === 'object' && error !== null) {
           // Si el error ya es un objeto, usarlo directamente
-          errorPayload = error;
-          errorMessage = JSON.stringify(error);
+          errorPayload = error
+          errorMessage = JSON.stringify(error)
         } else {
-          errorMessage = 'Error desconocido';
+          errorMessage = 'Error desconocido'
         }
 
         // Crear un objeto de error enriquecido
@@ -2456,7 +2600,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
           sourceId,
           targetId,
           message: errorMessage,
-          payload: errorPayload
+          payload: errorPayload,
         }
 
         // Guardar el error enriquecido como JSON
@@ -2537,16 +2681,16 @@ const findAccountIdByPublicationId = (publicationId: string): number | undefined
 
 // Interfaz para los IDs extraídos
 interface ExtractedIds {
-  sourceId: string;
-  targetId: string;
+  sourceId: string
+  targetId: string
 }
 
 // Interfaz para el error enriquecido
 interface EnrichedError {
-  sourceId: string;
-  targetId: string;
-  message: string;
-  payload?: unknown;
+  sourceId: string
+  targetId: string
+  message: string
+  payload?: unknown
 }
 
 // Función para crear un objeto de error enriquecido
@@ -2560,19 +2704,19 @@ const createEnrichedError = (error: unknown, sourceId: string, targetId: string)
 
     // Intentar extraer el payload JSON si existe
     try {
-      const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+      const jsonMatch = errorMessage.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        errorPayload = JSON.parse(jsonMatch[0]);
+        errorPayload = JSON.parse(jsonMatch[0])
       }
     } catch {
       // Si no se puede parsear, usar el mensaje original
     }
   } else if (typeof error === 'object' && error !== null) {
     // Si el error ya es un objeto, usarlo directamente
-    errorPayload = error;
-    errorMessage = JSON.stringify(error);
+    errorPayload = error
+    errorMessage = JSON.stringify(error)
   } else {
-    errorMessage = 'Error desconocido';
+    errorMessage = 'Error desconocido'
   }
 
   // Crear un objeto de error enriquecido
@@ -2580,7 +2724,7 @@ const createEnrichedError = (error: unknown, sourceId: string, targetId: string)
     sourceId,
     targetId,
     message: errorMessage,
-    payload: errorPayload
+    payload: errorPayload,
   }
 }
 
@@ -2597,7 +2741,7 @@ const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedI
         if (parsedError && 'sourceId' in parsedError && 'targetId' in parsedError) {
           return {
             sourceId: parsedError.sourceId || 'N/A',
-            targetId: parsedError.targetId || 'N/A'
+            targetId: parsedError.targetId || 'N/A',
           }
         }
       } catch {
@@ -2606,13 +2750,11 @@ const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedI
     }
     // Si es un objeto, buscar directamente los campos sourceId y targetId
     else if (typeof errorMsg === 'object' && errorMsg !== null) {
-      const sourceId = 'sourceId' in errorMsg && typeof errorMsg.sourceId === 'string'
-        ? errorMsg.sourceId
-        : 'N/A'
+      const sourceId =
+        'sourceId' in errorMsg && typeof errorMsg.sourceId === 'string' ? errorMsg.sourceId : 'N/A'
 
-      const targetId = 'targetId' in errorMsg && typeof errorMsg.targetId === 'string'
-        ? errorMsg.targetId
-        : 'N/A'
+      const targetId =
+        'targetId' in errorMsg && typeof errorMsg.targetId === 'string' ? errorMsg.targetId : 'N/A'
 
       return { sourceId, targetId }
     }
@@ -2620,12 +2762,12 @@ const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedI
     // Si no se encuentra nada, devolver valores por defecto
     return {
       sourceId: 'N/A',
-      targetId: 'N/A'
+      targetId: 'N/A',
     }
   } catch {
     return {
       sourceId: 'N/A',
-      targetId: 'N/A'
+      targetId: 'N/A',
     }
   }
 }
@@ -2634,52 +2776,54 @@ const extractErrorIds = (errorMsg: string | Record<string, unknown>): ExtractedI
 const copyAllErrorsToClipboard = () => {
   try {
     // Crear un texto con todos los errores y sus IDs
-    const errorText = syncErrorMessages.value.map((msg, idx) => {
-      // Extraer IDs y resumen
-      const { sourceId, targetId } = extractErrorIds(msg)
-      const summary = extractErrorSummary(msg)
+    const errorText = syncErrorMessages.value
+      .map((msg, idx) => {
+        // Extraer IDs y resumen
+        const { sourceId, targetId } = extractErrorIds(msg)
+        const summary = extractErrorSummary(msg)
 
-      // Formatear los detalles técnicos sin duplicación
-      let formattedDetails = ''
+        // Formatear los detalles técnicos sin duplicación
+        let formattedDetails = ''
 
-      try {
-        // Si es un string, intentar parsearlo como JSON
-        if (typeof msg === 'string') {
-          try {
-            // Intentar parsear como JSON (nuestro formato enriquecido)
-            const parsedError = JSON.parse(msg)
+        try {
+          // Si es un string, intentar parsearlo como JSON
+          if (typeof msg === 'string') {
+            try {
+              // Intentar parsear como JSON (nuestro formato enriquecido)
+              const parsedError = JSON.parse(msg)
 
-            // Si tiene un payload, usar solo ese payload formateado
-            if (parsedError.payload) {
-              formattedDetails = formatPayload(parsedError.payload)
-            } else if (parsedError.message) {
-              // Si no tiene payload pero tiene mensaje, intentar parsearlo
-              try {
-                const messageObj = JSON.parse(parsedError.message)
-                formattedDetails = formatPayload(messageObj)
-              } catch {
-                // Si no se puede parsear, usar el mensaje original
-                formattedDetails = parsedError.message
+              // Si tiene un payload, usar solo ese payload formateado
+              if (parsedError.payload) {
+                formattedDetails = formatPayload(parsedError.payload)
+              } else if (parsedError.message) {
+                // Si no tiene payload pero tiene mensaje, intentar parsearlo
+                try {
+                  const messageObj = JSON.parse(parsedError.message)
+                  formattedDetails = formatPayload(messageObj)
+                } catch {
+                  // Si no se puede parsear, usar el mensaje original
+                  formattedDetails = parsedError.message
+                }
+              } else {
+                // Si no tiene ni payload ni mensaje, usar el objeto completo
+                formattedDetails = JSON.stringify(parsedError, null, 2)
               }
-            } else {
-              // Si no tiene ni payload ni mensaje, usar el objeto completo
-              formattedDetails = JSON.stringify(parsedError, null, 2)
+            } catch {
+              // Si no se puede parsear como JSON, usar el string original
+              formattedDetails = msg
             }
-          } catch {
-            // Si no se puede parsear como JSON, usar el string original
-            formattedDetails = msg
+          } else {
+            // Si no es un string, formatearlo directamente
+            formattedDetails = formatPayload(msg)
           }
-        } else {
-          // Si no es un string, formatearlo directamente
-          formattedDetails = formatPayload(msg)
+        } catch {
+          // En caso de error, usar un formato simple
+          formattedDetails = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
         }
-      } catch {
-        // En caso de error, usar un formato simple
-        formattedDetails = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
-      }
 
-      return `Error #${idx + 1}\nID Origen: ${sourceId}\nID Destino: ${targetId}\nResumen: ${summary}\nDetalles:\n${formattedDetails}\n${'='.repeat(80)}`
-    }).join('\n\n')
+        return `Error #${idx + 1}\nID Origen: ${sourceId}\nID Destino: ${targetId}\nResumen: ${summary}\nDetalles:\n${formattedDetails}\n${'='.repeat(80)}`
+      })
+      .join('\n\n')
 
     navigator.clipboard.writeText(errorText)
 
@@ -2759,8 +2903,11 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
           if ('Message' in payload && typeof payload.Message === 'string') {
             // Evitar mostrar detalles técnicos duplicados
             const message = payload.Message as string
-            if (message === 'Se ha presentado un error procesando su solicitud' &&
-                'TecnicalDetails' in payload && payload.TecnicalDetails) {
+            if (
+              message === 'Se ha presentado un error procesando su solicitud' &&
+              'TecnicalDetails' in payload &&
+              payload.TecnicalDetails
+            ) {
               return message
             }
             return message
@@ -2780,7 +2927,10 @@ const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string
         const errorString = errorMsg
 
         // Buscar patrones comunes
-        if (errorString.includes('Error 004:') || errorString.includes('Se ha presentado un error')) {
+        if (
+          errorString.includes('Error 004:') ||
+          errorString.includes('Se ha presentado un error')
+        ) {
           return 'Error de autorización o permisos'
         }
 
@@ -2845,11 +2995,15 @@ const formatErrorDetails = (errorMsg: string | Record<string, unknown>): string 
         }
 
         // Si solo tiene IDs, mostrarlos junto con el mensaje
-        return JSON.stringify({
-          sourceId: parsedError.sourceId,
-          targetId: parsedError.targetId,
-          message: 'Error de sincronización'
-        }, null, 2)
+        return JSON.stringify(
+          {
+            sourceId: parsedError.sourceId,
+            targetId: parsedError.targetId,
+            message: 'Error de sincronización',
+          },
+          null,
+          2,
+        )
       } catch {
         // Si no se puede parsear como JSON, devolver el string original
         return errorMsg
@@ -2868,12 +3022,12 @@ const formatErrorDetails = (errorMsg: string | Record<string, unknown>): string 
 const formatPayload = (payload: unknown): string => {
   // Definir una interfaz para el formato de error esperado
   interface ErrorResponse {
-    Code?: string;
-    Status?: number;
-    Message?: string;
-    TecnicalDetails?: string;
-    Details?: unknown;
-    [key: string]: unknown;
+    Code?: string
+    Status?: number
+    Message?: string
+    TecnicalDetails?: string
+    Details?: unknown
+    [key: string]: unknown
   }
 
   try {
@@ -2891,7 +3045,7 @@ const formatPayload = (payload: unknown): string => {
             // Crear un objeto combinado para mejor visualización
             const processedObj = {
               ...jsonObj,
-              TecnicalDetails: technicalDetails
+              TecnicalDetails: technicalDetails,
             }
             return JSON.stringify(processedObj, null, 2)
           } catch {
@@ -2903,10 +3057,14 @@ const formatPayload = (payload: unknown): string => {
         return JSON.stringify(jsonObj, null, 2)
       } catch {
         // Si no se puede parsear como JSON, devolver el string formateado
-        return JSON.stringify({
-          Message: payload,
-          Source: 'Error en formato texto'
-        }, null, 2)
+        return JSON.stringify(
+          {
+            Message: payload,
+            Source: 'Error en formato texto',
+          },
+          null,
+          2,
+        )
       }
     }
 
@@ -2922,7 +3080,7 @@ const formatPayload = (payload: unknown): string => {
           // Crear un objeto combinado para mejor visualización
           const processedObj = {
             ...errorObj,
-            TecnicalDetails: technicalDetails
+            TecnicalDetails: technicalDetails,
           }
           return JSON.stringify(processedObj, null, 2)
         } catch {
@@ -2935,10 +3093,14 @@ const formatPayload = (payload: unknown): string => {
     }
 
     // Para cualquier otro tipo, convertirlo a string
-    return JSON.stringify({
-      Message: String(payload),
-      Source: 'Error desconocido'
-    }, null, 2)
+    return JSON.stringify(
+      {
+        Message: String(payload),
+        Source: 'Error desconocido',
+      },
+      null,
+      2,
+    )
   } catch (error) {
     // En caso de cualquier error, devolver el payload como string
     return typeof payload === 'string' ? payload : String(payload)
@@ -3106,6 +3268,7 @@ watch(
 // Función para manejar la paginación
 const handlePageChange = (newPage: number) => {
   page.value = newPage
+  console.log('Cambiando a página:', newPage)
   loadSyncRelations() // Recargar los datos para la nueva página
 }
 
