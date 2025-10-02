@@ -151,83 +151,115 @@
         </v-col>
       </v-row>
 
-      <!-- La barra de búsqueda ahora está integrada en el encabezado de la columna ID -->
-    </div>
-
-    <!-- Mensaje de filtrado y botón de columnas -->
-    <div class="d-flex justify-space-between align-center mb-2">
-      <div v-if="filteredMessage" class="d-flex align-center">
-        <v-chip color="info" variant="outlined" size="small" class="mr-2">
-          <v-icon start size="small">mdi-filter</v-icon>
-          {{ filteredMessage }}
-        </v-chip>
-        <v-btn
-          size="x-small"
-          icon
-          variant="text"
-          color="grey"
-          @click="clearAllFilters"
-          v-if="hasActiveFilters"
-        >
-          <v-icon size="small">mdi-close</v-icon>
-          <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
-        </v-btn>
-      </div>
-
-      <!-- Botón para gestionar columnas visibles -->
-      <v-menu v-model="showColumnsMenu" :close-on-content-click="false" location="bottom" offset-y>
-        <template v-slot:activator="{ props }">
-          <v-btn size="small" variant="outlined" color="secondary" v-bind="props">
-            <v-icon start>mdi-eye-settings</v-icon>
-            Columnas
-          </v-btn>
-        </template>
-
-        <v-card min-width="300" max-width="400" class="elevation-8">
-          <v-card-title class="text-subtitle-1 d-flex align-center pa-3">
-            <span>Columnas visibles</span>
-            <v-spacer></v-spacer>
-            <v-btn icon size="small" @click="showColumnsMenu = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </v-card-title>
-
-          <v-divider></v-divider>
-
-          <v-card-text style="max-height: 300px; overflow-y: auto" class="pa-0">
-            <v-list density="compact">
-              <v-list-item
-                v-for="column in allColumns.filter((col) => !col.required && col.title)"
-                :key="column.key"
+      <v-row class="mt-2 align-center" dense>
+        <v-col cols="12" md="3">
+          <v-text-field
+            v-model="searchQuery"
+            variant="outlined"
+            density="compact"
+            hide-details
+            placeholder="Buscar ID"
+            class="search-field"
+            clearable
+            @update:model-value="handleSearchQueryChange"
+            @click:clear="clearSearchField"
+            @keyup.enter="handleSearchQueryChange"
+          >
+            <template #append-inner>
+              <v-btn
+                icon
+                variant="text"
+                color="primary"
+                size="x-small"
+                @click="handleSearchQueryChange"
               >
-                <template v-slot:prepend>
-                  <v-checkbox
-                    v-model="visibleColumns"
-                    :value="column.key"
-                    :disabled="column.required"
-                    hide-details
-                    density="compact"
-                    @click="toggleColumnVisibility(column.key)"
-                  ></v-checkbox>
-                </template>
-                <v-list-item-title class="text-body-2">{{ column.title }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-card-text>
+                <v-icon size="small">mdi-magnify</v-icon>
+              </v-btn>
+            </template>
+          </v-text-field>
+        </v-col>
 
-          <v-divider></v-divider>
+        <v-col cols="12" md="3" class="d-flex align-center">
+          <div v-if="filteredMessage" class="d-flex align-center">
+            <v-chip color="info" variant="outlined" size="small" class="mr-2">
+              <v-icon start size="small">mdi-filter</v-icon>
+              {{ filteredMessage }}
+            </v-chip>
+            <v-btn
+              size="x-small"
+              icon
+              variant="text"
+              color="grey"
+              @click="clearAllFilters"
+              v-if="hasActiveFilters"
+            >
+              <v-icon size="small">mdi-close</v-icon>
+              <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
+            </v-btn>
+          </div>
+        </v-col>
 
-          <v-card-actions class="pa-3">
-            <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns"
-              >Por defecto</v-btn
-            >
-            <v-spacer></v-spacer>
-            <v-btn color="primary" variant="text" size="small" @click="resetColumns"
-              >Mostrar todas</v-btn
-            >
-          </v-card-actions>
-        </v-card>
-      </v-menu>
+        <v-col cols="12" md="6" class="d-flex justify-end">
+          <v-menu
+            v-model="showColumnsMenu"
+            :close-on-content-click="false"
+            location="bottom"
+            offset-y
+          >
+            <template v-slot:activator="{ props }">
+              <v-btn size="small" variant="outlined" color="secondary" v-bind="props">
+                <v-icon start>mdi-eye-settings</v-icon>
+                Columnas
+              </v-btn>
+            </template>
+
+            <v-card min-width="300" max-width="400" class="elevation-8">
+              <v-card-title class="text-subtitle-1 d-flex align-center pa-3">
+                <span>Columnas visibles</span>
+                <v-spacer></v-spacer>
+                <v-btn icon size="small" @click="showColumnsMenu = false">
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+              </v-card-title>
+
+              <v-divider></v-divider>
+
+              <v-card-text style="max-height: 300px; overflow-y: auto" class="pa-0">
+                <v-list density="compact">
+                  <v-list-item
+                    v-for="column in allColumns.filter((col) => !col.required && col.title)"
+                    :key="column.key"
+                  >
+                    <template v-slot:prepend>
+                      <v-checkbox
+                        v-model="visibleColumns"
+                        :value="column.key"
+                        :disabled="column.required"
+                        hide-details
+                        density="compact"
+                        @click="toggleColumnVisibility(column.key)"
+                      ></v-checkbox>
+                    </template>
+                    <v-list-item-title class="text-body-2">{{ column.title }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+
+              <v-divider></v-divider>
+
+              <v-card-actions class="pa-3">
+                <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns"
+                  >Por defecto</v-btn
+                >
+                <v-spacer></v-spacer>
+                <v-btn color="primary" variant="text" size="small" @click="resetColumns"
+                  >Mostrar todas</v-btn
+                >
+              </v-card-actions>
+            </v-card>
+          </v-menu>
+        </v-col>
+      </v-row>
     </div>
 
     <!-- Tabla de IDs de productos -->
@@ -250,64 +282,16 @@
       >
         <!-- Template para el encabezado personalizado de la columna ID -->
         <template #[`header.ID`]="{ column }">
-          <div
-            class="d-flex align-center header-content"
-            style="position: relative; min-width: 150px"
-          >
-            <!-- Contenedor con posición absoluta para evitar cambios en el layout -->
-            <div style="position: absolute; width: 100%; z-index: 1">
-              <v-fade-transition>
-                <div
-                  v-if="!showIdSearch"
-                  class="d-flex align-center sortable-header"
-                  @click="handleSort(column.key || '')"
-                >
-                  <span class="mr-2">{{ column.title }}</span>
-                  <!-- Icono de ordenamiento (similar al que usa Vuetify internamente) -->
-                  <v-icon
-                    v-if="column.sortable"
-                    size="x-small"
-                    :icon="getSortIcon(column)"
-                    class="sort-icon"
-                    :class="{ 'visible-on-hover': !isSorted(column) }"
-                  ></v-icon>
-                  <v-btn
-                    icon="mdi-magnify"
-                    size="x-small"
-                    variant="text"
-                    color="primary"
-                    class="ml-2"
-                    @click.stop="activateSearch"
-                  ></v-btn>
-                </div>
-              </v-fade-transition>
-            </div>
-
-            <!-- Contenedor con posición absoluta para la caja de búsqueda -->
-            <div style="position: absolute; width: 100%; z-index: 2">
-              <v-fade-transition>
-                <v-text-field
-                  v-if="showIdSearch"
-                  v-model="searchQuery"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  placeholder="Buscar ID"
-                  class="search-field"
-                  clearable
-                  ref="searchInput"
-                  @update:model-value="handleSearchQueryChange"
-                  @click:clear="clearSearchQuery"
-                  @blur="handleSearchBlur"
-                  @keydown.esc="deactivateSearch"
-                  @click.stop
-                ></v-text-field>
-              </v-fade-transition>
-            </div>
-
-            <!-- Espacio invisible para mantener el ancho de la columna -->
-            <div style="height: 1px; visibility: hidden">
-              <div style="width: 150px"></div>
+          <div class="d-flex align-center header-content" style="min-width: 150px">
+            <div class="d-flex align-center sortable-header" @click="handleSort(column.key || '')">
+              <span class="mr-2">{{ column.title }}</span>
+              <v-icon
+                v-if="column.sortable"
+                size="x-small"
+                :icon="getSortIcon(column)"
+                class="sort-icon"
+                :class="{ 'visible-on-hover': !isSorted(column) }"
+              ></v-icon>
             </div>
           </div>
         </template>
@@ -940,9 +924,6 @@ const visibleColumns = ref<string[]>([])
 const productIdsHeaders = computed(() => {
   return allColumns.filter((col) => visibleColumns.value.includes(col.key) || col.required)
 })
-
-// Estado para el filtro de búsqueda en la tabla
-const showIdSearch = ref(false)
 
 // Computed properties
 const currentAccount = computed(() => accountStore.currentAccount)
@@ -1704,9 +1685,8 @@ const handleCatalogActiveFilterChange = () => {
   loadProductIds()
 }
 
-// Referencias para el campo de búsqueda y la tabla de datos
-const searchInput = ref<HTMLElement | null>(null)
-const dataTable = ref<unknown>(null)
+// Referencia a la tabla de datos
+const dataTable = ref<{ sort?: (field: string) => void } | null>(null)
 
 // Función para manejar el ordenamiento
 const handleSort = (key: string) => {
@@ -1721,7 +1701,7 @@ const handleSort = (key: string) => {
 // Definir interfaz para la columna
 interface TableColumn {
   sortable?: boolean
-  key?: string
+  key?: string | null
   options?: {
     sortBy?: string[]
     sortDesc?: boolean[]
@@ -1749,52 +1729,17 @@ const getSortIcon = (column: TableColumn) => {
   return column.options.sortDesc && column.options.sortDesc[0] ? 'mdi-arrow-down' : 'mdi-arrow-up'
 }
 
-// Función para activar la búsqueda
-const activateSearch = () => {
-  showIdSearch.value = true
-  // Enfocar el campo de búsqueda después de que se muestre
-  setTimeout(() => {
-    if (searchInput.value) {
-      const input = searchInput.value.querySelector('input')
-      if (input) input.focus()
-    }
-  }, 100)
-}
-
-// Función para desactivar la búsqueda
-const deactivateSearch = () => {
-  showIdSearch.value = false
-}
-
-// Función para manejar cuando se pierde el foco en el campo de búsqueda
-const handleSearchBlur = () => {
-  // Usar setTimeout para permitir que otros eventos (como click) se procesen primero
-  setTimeout(() => {
-    // Verificar si el campo de búsqueda sigue teniendo el foco
-    const activeElement = document.activeElement
-    const searchField = searchInput.value
-
-    // Si el elemento activo no es el campo de búsqueda o un elemento dentro de él
-    if (searchField && !searchField.contains(activeElement)) {
-      // Solo desactivar si el campo está vacío
-      if (!searchQuery.value) {
-        deactivateSearch()
-      }
-    }
-  }, 100)
-}
-
 // Función para manejar el cambio en la búsqueda
 const handleSearchQueryChange = () => {
   // Reiniciar a la primera página cuando cambia la búsqueda
   page.value = 1
 }
 
-// Función para limpiar la búsqueda
-const clearSearchQuery = () => {
+// Función para limpiar el campo de búsqueda desde la barra superior
+const clearSearchField = () => {
+  if (!searchQuery.value) return
   searchQuery.value = ''
   handleSearchQueryChange()
-  deactivateSearch()
 }
 
 // Limpiar todos los filtros
@@ -1876,7 +1821,7 @@ onMounted(() => {
 
 .search-field {
   transition: all 0.3s ease;
-  width: 100%;
+  width: auto;
 }
 
 /* Estilo para el campo de búsqueda en el encabezado */
@@ -1940,7 +1885,7 @@ onMounted(() => {
 }
 
 .search-field {
-  width: 100%;
+  width: auto;
 }
 
 /* Ajustes para las transiciones */
