@@ -382,17 +382,21 @@ export const migrationService = {
     }
   },
 
-  async searchPublications(query: string): Promise<ProductIdListResponse> {
+  async searchPublications(query: string, offset = 0, limit = 100): Promise<ProductIdListResponse> {
     try {
       const response = await apiClient.get('/v1/migration/products/search', {
         params: {
           id: query,
+          offset,
+          limit,
         },
       })
 
       const data = response.data as {
         success?: boolean
         total?: number
+        offset?: number
+        limit?: number
         message?: string
         publications: ProductId[]
       }
@@ -402,8 +406,8 @@ export const migrationService = {
       return {
         products,
         total: data.total ?? products.length,
-        offset: 0,
-        limit: products.length,
+        offset: data.offset ?? offset,
+        limit: data.limit ?? limit,
       }
     } catch (error) {
       console.error('Error al buscar publicaciones:', error)

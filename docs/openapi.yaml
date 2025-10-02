@@ -12,48 +12,60 @@ components:
         ID:
           type: string
           description: ID único de la publicación
+          example: MCO123456789
         AccountID:
           type: integer
           format: uint
           description: ID de la cuenta a la que pertenece la publicación
+          example: 101
         SyncActive:
           type: boolean
           description: Indica si la sincronización está activa
+          example: true
         CatalogActive:
           type: boolean
           description: Indica si es una publicación de catálogo
+          example: false
         Status:
           type: boolean
           description: Estado de la publicación
+          example: true
         IsPopulate:
           type: boolean
           description: Indica si la publicación ha sido poblada con datos completos
+          example: true
         StatusML:
           type: string
           description: Estado de la publicación en Mercado Libre (active, inactive, paused, etc.)
+          example: active
         ExtCreatedAt:
           type: string
           format: date-time
           nullable: true
           description: Fecha de creación en la plataforma externa (Mercado Libre)
+          example: '2025-09-15T10:30:00Z'
         ExtUpdatedAt:
           type: string
           format: date-time
           nullable: true
           description: Fecha de última actualización en la plataforma externa (Mercado Libre)
+          example: '2025-09-20T18:45:00Z'
         CreatedAt:
           type: string
           format: date-time
           description: Fecha de creación en la base de datos
+          example: '2025-09-15T15:30:00-05:00'
         UpdatedAt:
           type: string
           format: date-time
           description: Fecha de última actualización en la base de datos
+          example: '2025-09-20T21:15:00-05:00'
         DeletedAt:
           type: string
           format: date-time
           nullable: true
           description: Fecha de eliminación (soft delete)
+          example: null
     Account:
       type: object
       properties:
@@ -61,12 +73,14 @@ components:
           type: integer
           format: uint
           description: ID único de la cuenta
+          example: 1
     SyncActiveRequest:
       type: object
       properties:
         sync_active:
           type: boolean
           description: Nuevo valor para el campo SyncActive (true o false)
+          example: true
       required:
         - sync_active
     SyncActiveResponse:
@@ -75,45 +89,57 @@ components:
         message:
           type: string
           description: Mensaje de confirmación
+          example: Sync status updated successfully
         publication_id:
           type: string
           description: ID de la publicación actualizada
+          example: MCO123456789
         sync_active:
           type: boolean
           description: Valor actualizado del campo SyncActive
+          example: true
         CreatedAt:
           type: string
           format: date-time
           description: Fecha de creación
+          example: '2025-09-15T15:30:00-05:00'
         UpdatedAt:
           type: string
           format: date-time
           description: Fecha de última actualización
+          example: '2025-09-20T21:15:00-05:00'
         DeletedAt:
           type: string
           format: date-time
           nullable: true
           description: Fecha de eliminación (soft delete)
+          example: null
         ProviderID:
           type: integer
           format: uint
           description: ID del proveedor asociado
+          example: 4
         UserID:
           type: integer
           format: uint
           description: ID del usuario propietario
+          example: 77
         AuthorizationCode:
           type: string
           description: Código de autorización
+          example: AUTH-ABC-98765
         Email:
           type: string
           description: Correo electrónico asociado a la cuenta
+          example: seller@example.com
         Nickname:
           type: string
           description: Nombre de usuario en la plataforma
+          example: seller-pro
         Code:
           type: string
           description: Código identificador de la cuenta
+          example: ACCOUNT-MC-01
   securitySchemes:
     bearerAuth:
       type: http
@@ -3687,6 +3713,24 @@ paths:
             type: integer
           description: ID de la cuenta para la que se quieren obtener las estadísticas
           example: 123
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Número de publicaciones a saltar (para paginación)
+          example: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 100
+          description: Número máximo de publicaciones a devolver (para paginación)
+          example: 20
       responses:
         '200':
           description: Successful response
@@ -3701,8 +3745,20 @@ paths:
                     example: 123
                   total_publications:
                     type: integer
-                    description: Número total de publicaciones de la cuenta
+                    description: Número total de publicaciones en la cuenta (sin paginación)
                     example: 50
+                  total:
+                    type: integer
+                    description: Número total de publicaciones disponibles
+                    example: 50
+                  offset:
+                    type: integer
+                    description: Posición inicial de la página actual
+                    example: 0
+                  limit:
+                    type: integer
+                    description: Tamaño máximo de la página
+                    example: 20
                   publications:
                     type: array
                     description: Lista de publicaciones con sus relaciones de sincronización

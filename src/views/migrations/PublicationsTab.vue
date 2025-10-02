@@ -174,9 +174,9 @@
         </v-col>
 
         <v-col cols="12" md="3" class="d-flex align-center">
-          <div v-if="filteredMessage" class="d-flex align-center">
-            <v-chip color="info" variant="outlined" size="small" class="mr-2">
-              <v-icon start size="small">mdi-filter</v-icon>
+          <div v-if="productIds.length > 0" class="d-flex align-center">
+            <v-chip :color="hasActiveFilters ? 'info' : 'grey-lighten-1'" variant="outlined" size="small" class="mr-2">
+              <v-icon start size="small">{{ hasActiveFilters ? 'mdi-filter' : 'mdi-information' }}</v-icon>
               {{ filteredMessage }}
             </v-chip>
             <v-btn
@@ -447,14 +447,7 @@
               Populate {{ selectedItems.length }} seleccionadas
             </v-btn>
             <div class="text-caption text-grey me-4">
-              {{
-                totalProductIds > 0
-                  ? `${(page - 1) * itemsPerPage + 1}-${Math.min(
-                      page * itemsPerPage,
-                      totalProductIds,
-                    )} de ${totalProductIds}`
-                  : '0-0 de 0'
-              }}
+              {{ paginationInfo.text || '0-0 de 0' }}
             </div>
           </div>
           <div class="d-flex align-center me-4">
@@ -934,14 +927,39 @@ const hasActiveFilters = computed(() => {
   )
 })
 
-// Mensaje de resultados filtrados
+// Información centralizada de paginación
+const paginationInfo = computed(() => {
+  if (!productIds.value.length) return { text: '', start: 0, end: 0, total: 0 }
+
+  // Si hay filtros locales activos (no búsqueda)
+  if (hasActiveFilters.value && !searchQuery.value.trim()) {
+    const total = productIds.value.length
+    const filtered = filteredProductIds.value.length
+    return {
+      text: `${filtered} de ${total}`,
+      start: 0,
+      end: filtered,
+      total: total,
+      isFiltered: true
+    }
+  }
+
+  // Para paginación normal o búsqueda remota
+  const start = (page.value - 1) * itemsPerPage.value + 1
+  const end = Math.min(page.value * itemsPerPage.value, totalProductIds.value)
+  return {
+    text: `${start}-${end} de ${totalProductIds.value}`,
+    start,
+    end,
+    total: totalProductIds.value,
+    isFiltered: hasActiveFilters.value
+  }
+})
+
+// Mensaje de resultados filtrados para el chip
 const filteredMessage = computed(() => {
-  if (!hasActiveFilters.value || !productIds.value.length) return ''
-
-  const total = productIds.value.length
-  const filtered = filteredProductIds.value.length
-
-  return `Mostrando ${filtered} de ${total} publicaciones`
+  if (!paginationInfo.value.text) return ''
+  return `Mostrando ${paginationInfo.value.text} publicaciones`
 })
 
 // Filtrar IDs de productos
@@ -1663,13 +1681,23 @@ const getStatusColor = (statusML: string | undefined): string => {
 
 // Manejar cambio de página
 const handlePageChange = () => {
-  loadProductIds()
+  // Si hay una búsqueda activa, usar executeSearch, de lo contrario usar loadProductIds
+  if (searchQuery.value.trim()) {
+    executeSearch()
+  } else {
+    loadProductIds()
+  }
 }
 
 // Manejar cambio de items por página
 const handleItemsPerPageChange = () => {
   page.value = 1 // Resetear a la primera página cuando cambia el número de items por página
-  loadProductIds()
+  // Si hay una búsqueda activa, usar executeSearch, de lo contrario usar loadProductIds
+  if (searchQuery.value.trim()) {
+    executeSearch()
+  } else {
+    loadProductIds()
+  }
 }
 
 // Manejar cambio de filtro de estado
@@ -1742,7 +1770,6 @@ const handleSearchInputChange = () => {
 }
 
 const executeSearch = async () => {
-  page.value = 1
   const query = searchQuery.value.trim()
 
   if (!query) {
@@ -1754,16 +1781,19 @@ const executeSearch = async () => {
   error.value = null
 
   try {
-    const response = await migrationService.searchPublications(query)
+    const offset = (page.value - 1) * itemsPerPage.value
+    const response = await migrationService.searchPublications(query, offset, itemsPerPage.value)
     const products = response.products ?? []
 
     console.log('Loaded ProductIds from searchPublications', {
       query,
+      offset,
+      limit: itemsPerPage.value,
       total: response.total,
       products,
     })
 
-    if (products.length === 0) {
+    if (products.length === 0 && page.value === 1) {
       productIds.value = []
       totalProductIds.value = 0
       showNotification.value = true
