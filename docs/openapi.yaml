@@ -3882,7 +3882,6 @@ paths:
                   error:
                     type: string
                     example: 'Error searching publications: database error'
-
   /v1/migration/products/sync/relations:
     post:
       tags:
