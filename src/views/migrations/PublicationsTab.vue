@@ -166,13 +166,7 @@
             @keyup.enter="executeSearch"
           >
             <template #append-inner>
-              <v-btn
-                icon
-                variant="text"
-                color="primary"
-                size="x-small"
-                @click="executeSearch"
-              >
+              <v-btn icon variant="text" color="primary" size="x-small" @click="executeSearch">
                 <v-icon size="small">mdi-magnify</v-icon>
               </v-btn>
             </template>
@@ -952,7 +946,13 @@ const filteredMessage = computed(() => {
 
 // Filtrar IDs de productos
 const filteredProductIds = computed(() => {
-  let filtered = [...productIds.value]
+  let filtered = productIds.value.filter((item): item is ProductId => {
+    if (!item || typeof item.ID !== 'string' || item.ID.length === 0) {
+      console.warn('Producto inválido en filteredProductIds', item)
+      return false
+    }
+    return true
+  })
 
   // Filtrar por estado
   if (statusFilter.value) {
@@ -997,7 +997,8 @@ const filteredProductIds = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter((item) => {
-      return item.ID.toLowerCase().includes(query)
+      const id = typeof item.ID === 'string' ? item.ID : String(item.ID ?? '')
+      return id.toLowerCase().includes(query)
     })
   }
 
@@ -1028,6 +1029,12 @@ const loadProductIds = async () => {
     )
 
     if (response && response.products) {
+      console.log('Loaded ProductIds from getProductIds', {
+        offset,
+        limit: itemsPerPage.value,
+        total: response.total,
+        products: response.products,
+      })
       productIds.value = response.products
       totalProductIds.value = response.total
     } else {
@@ -1748,42 +1755,32 @@ const executeSearch = async () => {
 
   try {
     const response = await migrationService.searchPublications(query)
-    const publications = response.publications || []
+    const products = response.products ?? []
 
-    if (!publications.length) {
+    console.log('Loaded ProductIds from searchPublications', {
+      query,
+      total: response.total,
+      products,
+    })
+
+    if (products.length === 0) {
       productIds.value = []
       totalProductIds.value = 0
       showNotification.value = true
-      notificationMessage.value =
-        response.message || 'No se encontraron publicaciones que coincidan con la búsqueda'
+      notificationMessage.value = 'No se encontraron publicaciones que coincidan con la búsqueda'
       notificationType.value = 'warning'
       return
     }
 
-    const accounts = accountStore.accounts
+    // Resetear filtros locales para evitar que descarten los resultados remotos
+    statusFilter.value = ''
+    isDefaultStatusFilter.value = false
+    syncActiveFilter.value = ''
+    catalogActiveFilter.value = ''
 
-    productIds.value = publications.map((item) => {
-      const account = accounts.find((acc) => acc.ID === item.account_id)
-      const accountName = account ? account.Nickname : `ID: ${item.account_id}`
-
-      return {
-        ID: item.id,
-        AccountID: item.account_id,
-        AccountName: accountName,
-        SyncActive: item.sync_active,
-        CatalogActive: item.catalog_active,
-        Status: item.status,
-        StatusML: item.status_ml || 'unknown',
-        ToSync: null,
-        updated_at: item.ext_updated_at || '',
-        ExtCreatedAt: item.ext_created_at,
-        ExtUpdatedAt: item.ext_updated_at,
-        IsPopulate: item.is_populate,
-        deleted_at: null,
-      }
-    })
-
-    totalProductIds.value = response.total ?? publications.length
+    productIds.value = products
+    console.log('productIds.value', productIds.value)
+    totalProductIds.value = response.total ?? products.length
   } catch (err) {
     console.error('Error al buscar publicaciones:', err)
 

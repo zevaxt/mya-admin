@@ -3792,6 +3792,22 @@ paths:
             type: string
           description: ID parcial o completo de la publicación a buscar
           example: 'MCO123'
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Número de registros a omitir antes de comenzar a devolver resultados
+          example: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: Cantidad máxima de resultados a devolver
+          example: 50
       responses:
         '200':
           description: Successful response
@@ -3807,55 +3823,24 @@ paths:
                   total:
                     type: integer
                     description: Número total de publicaciones encontradas
-                    example: 2
-                  message:
-                    type: string
-                    description: Mensaje descriptivo del resultado
-                    example: 'Publications found successfully'
+                    example: 120
+                  offset:
+                    type: integer
+                    description: Offset utilizado en la consulta
+                    example: 0
+                  limit:
+                    type: integer
+                    description: Límite aplicado en la consulta
+                    example: 50
                   publications:
                     type: array
                     description: Lista de publicaciones encontradas
                     items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          description: ID de la publicación
-                          example: 'MCO1234567890'
-                        account_id:
-                          type: integer
-                          description: ID de la cuenta a la que pertenece la publicación
-                          example: 1
-                        sync_active:
-                          type: boolean
-                          description: Indica si la sincronización está activa
-                          example: true
-                        catalog_active:
-                          type: boolean
-                          description: Indica si la publicación está activa en el catálogo
-                          example: false
-                        status:
-                          type: boolean
-                          description: Estado de la publicación
-                          example: true
-                        is_populate:
-                          type: boolean
-                          description: Indica si la publicación ha sido poblada con datos completos
-                          example: true
-                        status_ml:
-                          type: string
-                          description: Estado de la publicación en Mercado Libre
-                          example: 'active'
-                        ext_created_at:
-                          type: string
-                          format: date-time
-                          description: Fecha de creación en Mercado Libre
-                          example: '2025-10-01T00:00:00Z'
-                        ext_updated_at:
-                          type: string
-                          format: date-time
-                          description: Fecha de última actualización en Mercado Libre
-                          example: '2025-10-01T00:00:00Z'
+                      $ref: '#/components/schemas/Publication'
+                  message:
+                    type: string
+                    description: Mensaje informativo sobre el resultado de la búsqueda
+                    example: Publications found successfully
         '400':
           description: Bad Request
           content:
@@ -3882,6 +3867,7 @@ paths:
                   error:
                     type: string
                     example: 'Error searching publications: database error'
+
   /v1/migration/products/sync/relations:
     post:
       tags:
