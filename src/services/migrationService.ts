@@ -300,9 +300,24 @@ export interface DeleteSyncRelationResponse {
 }
 
 export interface PublishProductResponse {
-  success: boolean
-  message: string
-  publication_id?: string
+  // Campos de la estructura real devuelta por la API
+  ID?: string
+  AccountID?: number
+  SyncActive?: boolean
+  CatalogActive?: boolean
+  Status?: boolean
+  IsPopulate?: boolean
+  StatusML?: string
+  ExtCreatedAt?: string
+  ExtUpdatedAt?: string
+  ToSync?: any[] | null
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
+  
+  // Campos de compatibilidad con el código existente
+  success?: boolean
+  message?: string
 }
 
 export interface UpdateProductResponse {
@@ -435,7 +450,7 @@ export const migrationService = {
             ExtCreatedAt: product.ExtCreatedAt,
             ExtUpdatedAt: product.ExtUpdatedAt,
             IsPopulate: product.IsPopulate,
-            deleted_at: product.deleted_at
+            deleted_at: product.deleted_at,
           }
         },
       )
@@ -508,12 +523,11 @@ export const migrationService = {
   async publishProduct(sourceId: string, targetAccountId: number): Promise<PublishProductResponse> {
     try {
       const response = await apiClient.post(
-        '/v1/migration/products/publish',
+        `/v1/migration/publish/products/${sourceId}`,
         {},
         {
           headers: {
-            'account-id': targetAccountId.toString(),
-            'publication-id': sourceId,
+            'account-id-to': targetAccountId.toString(),
           },
         },
       )
@@ -554,7 +568,7 @@ export const migrationService = {
       return response.data
     } catch (error) {
       console.error('Error al actualizar el producto:', error)
-      
+
       // Procesar el error para extraer el payload completo
       if (error && typeof error === 'object' && 'response' in error) {
         // Error de Axios con datos de respuesta
@@ -564,7 +578,7 @@ export const migrationService = {
           throw axiosError.response.data
         }
       }
-      
+
       // Si no podemos extraer un payload estructurado, lanzar el error original
       throw error
     }

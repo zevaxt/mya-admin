@@ -1195,25 +1195,7 @@
                 </v-autocomplete>
               </div>
 
-              <!-- Botón para crear nueva publicación (fuera de la caja de texto) -->
-              <v-tooltip location="top">
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    icon
-                    size="small"
-                    color="primary"
-                    variant="elevated"
-                    :disabled="!selectedAccountId"
-                    :loading="creatingPublication"
-                    @click="createNewPublication"
-                    class="ml-2"
-                  >
-                    <v-icon>mdi-plus</v-icon>
-                  </v-btn>
-                </template>
-                <span>Crear nueva publicación</span>
-              </v-tooltip>
+              <!-- El botón para crear nueva publicación se ha movido al pie del diálogo -->
             </div>
 
             <div class="text-caption text-grey mb-4 pa-2 bg-grey-lighten-4 rounded">
@@ -1231,6 +1213,23 @@
 
         <v-divider></v-divider>
         <v-card-actions class="pa-3">
+          <v-tooltip location="top">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="success"
+                variant="text"
+                size="small"
+                :disabled="!selectedAccountId"
+                :loading="creatingPublication"
+                @click="createNewPublication"
+              >
+                <v-icon size="small" class="mr-1">mdi-plus</v-icon>
+                Crear y Agregar
+              </v-btn>
+            </template>
+            <span>Crear nueva publicación</span>
+          </v-tooltip>
           <v-spacer></v-spacer>
           <v-btn color="grey-darken-1" variant="text" size="small" @click="showAddSyncDialog = false">Cancelar</v-btn>
           <v-btn
@@ -1238,6 +1237,7 @@
             variant="text"
             size="small"
             :loading="addingSyncRelation"
+            :disabled="!targetPublicationId"
             @click="submitAddSync"
           >
             Agregar
@@ -1887,40 +1887,63 @@ const createNewPublication = async () => {
     // Usar el ID de la publicación seleccionada como base para crear la nueva
     // Llamar a la API para publicar el producto
     const response = await migrationService.publishProduct(sourceId, selectedAccountId.value)
+    
+    // Log para depurar la respuesta
+    console.log('Respuesta de publishProduct:', response)
 
-    if (response.success) {
+    // Verificar si la respuesta contiene un ID, lo que indica éxito
+    // La API devuelve el ID como response.ID
+    const publicationId = response.ID
+    
+    if (publicationId) {
+      // Recargar las publicaciones de la cuenta para obtener la nueva publicación
+      await loadPublicationsForAccount(selectedAccountId.value)
+      
+      // Esperar un momento para asegurarnos de que la lista se ha actualizado
+      // y la nueva publicación está disponible
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Buscar la nueva publicación en la lista actualizada
+      const newPublication = accountPublications.value.find(
+        (p) => p.id === publicationId,
+      )
+      
+      console.log('Buscando publicación con ID:', publicationId)
+      console.log('Publicaciones disponibles:', accountPublications.value.map(p => p.id))
+      
+      // Seleccionar la nueva publicación si la encontramos en la lista
+      if (newPublication) {
+        console.log('Publicación encontrada:', newPublication)
+        targetPublicationId.value = newPublication
+      } else {
+        console.log('No se encontró la publicación con ID:', publicationId)
+      }
+      
+      // Mostrar notificación de éxito
       showNotification.value = true
       notificationMessage.value = 'Publicación creada exitosamente'
       notificationType.value = 'success'
-
-      // Recargar las publicaciones de la cuenta
-      await loadPublicationsForAccount(selectedAccountId.value)
-
-      // Si se devuelve un ID de producto, seleccionarlo
-      if (response.publication_id) {
-        const newPublication = accountPublications.value.find(
-          (p) => p.id === response.publication_id,
-        )
-        if (newPublication) {
-          targetPublicationId.value = newPublication
-        }
-      }
     } else {
-      showNotification.value = true
-
       // Manejar específicamente el error de catálogo
-      if (
-        response.message &&
-        (response.message.includes('ErrorCatalog Listing') ||
+      showNotification.value = true
+      
+      // Verificar si hay un mensaje de error específico
+      if (response.message) {
+        if (
+          response.message.includes('ErrorCatalog Listing') ||
           response.message.includes('Code: 004') ||
-          response.message.includes('Status: 409'))
-      ) {
-        notificationMessage.value =
-          'No se puede crear una publicación basada en un ítem de catálogo. Por favor, seleccione una publicación que no sea de catálogo.'
+          response.message.includes('Status: 409')
+        ) {
+          notificationMessage.value =
+            'No se puede crear una publicación basada en un ítem de catálogo. Por favor, seleccione una publicación que no sea de catálogo.'
+        } else {
+          // Mostrar el mensaje de error tal como viene de la API
+          notificationMessage.value = `${response.message}`
+        }
       } else {
-        notificationMessage.value = `Error: ${response.message || 'No se pudo crear la publicación'}`
+        // Mensaje genérico si no hay mensaje específico
+        notificationMessage.value = 'No se pudo crear la publicación'
       }
-
       notificationType.value = 'error'
     }
   } catch (error) {

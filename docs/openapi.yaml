@@ -3773,6 +3773,116 @@ paths:
                                 type: boolean
                                 description: Indica si la publicación origen ha sido poblada con datos completos
                                 example: true
+  /v1/migration/products/search:
+    get:
+      tags:
+        - migration tag
+      summary: /v1/migration/products/search
+      description: >
+        Busca publicaciones por ID parcial o completo.
+        Este endpoint permite buscar publicaciones cuyo ID contenga el texto proporcionado.
+        Devuelve una lista de publicaciones encontradas, sin incluir el campo Attributes.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID parcial o completo de la publicación a buscar
+          example: 'MCO123'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la operación fue exitosa
+                    example: true
+                  total:
+                    type: integer
+                    description: Número total de publicaciones encontradas
+                    example: 2
+                  message:
+                    type: string
+                    description: Mensaje descriptivo del resultado
+                    example: 'Publications found successfully'
+                  publications:
+                    type: array
+                    description: Lista de publicaciones encontradas
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: ID de la publicación
+                          example: 'MCO1234567890'
+                        account_id:
+                          type: integer
+                          description: ID de la cuenta a la que pertenece la publicación
+                          example: 1
+                        sync_active:
+                          type: boolean
+                          description: Indica si la sincronización está activa
+                          example: true
+                        catalog_active:
+                          type: boolean
+                          description: Indica si la publicación está activa en el catálogo
+                          example: false
+                        status:
+                          type: boolean
+                          description: Estado de la publicación
+                          example: true
+                        is_populate:
+                          type: boolean
+                          description: Indica si la publicación ha sido poblada con datos completos
+                          example: true
+                        status_ml:
+                          type: string
+                          description: Estado de la publicación en Mercado Libre
+                          example: 'active'
+                        ext_created_at:
+                          type: string
+                          format: date-time
+                          description: Fecha de creación en Mercado Libre
+                          example: '2025-10-01T00:00:00Z'
+                        ext_updated_at:
+                          type: string
+                          format: date-time
+                          description: Fecha de última actualización en Mercado Libre
+                          example: '2025-10-01T00:00:00Z'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: 'ID parameter is required'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: 'Error searching publications: database error'
+
   /v1/migration/products/sync/relations:
     post:
       tags:
@@ -4492,7 +4602,70 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ID:
+                    type: string
+                    description: ID de la publicación en Mercado Libre
+                    example: 'MCO1686805705'
+                  AccountID:
+                    type: integer
+                    description: ID de la cuenta a la que pertenece la publicación
+                    example: 2
+                  SyncActive:
+                    type: boolean
+                    description: Indica si la sincronización está activa
+                    example: false
+                  CatalogActive:
+                    type: boolean
+                    description: Indica si la publicación está activa en el catálogo
+                    example: false
+                  Status:
+                    type: boolean
+                    description: Estado de la publicación
+                    example: false
+                  IsPopulate:
+                    type: boolean
+                    description: Indica si la publicación ha sido poblada con datos completos
+                    example: true
+                  StatusML:
+                    type: string
+                    description: Estado de la publicación en Mercado Libre
+                    example: 'paused'
+                  ExtCreatedAt:
+                    type: string
+                    format: date-time
+                    description: Fecha de creación en Mercado Libre
+                    example: '2025-10-02T00:46:53.6Z'
+                  ExtUpdatedAt:
+                    type: string
+                    format: date-time
+                    description: Fecha de última actualización en Mercado Libre
+                    example: '2025-10-02T00:46:53.6Z'
+                  ToSync:
+                    type: array
+                    description: Publicaciones relacionadas para sincronización
+                    nullable: true
+                    items:
+                      type: object
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Fecha de creación en la base de datos
+                    example: '2025-10-01T19:46:53.871-05:00'
+                  updated_at:
+                    type: string
+                    format: date-time
+                    description: Fecha de última actualización en la base de datos
+                    example: '2025-10-01T19:46:53.871-05:00'
+                  deleted_at:
+                    type: string
+                    format: date-time
+                    description: Fecha de eliminación en la base de datos (null si no está eliminado)
+                    nullable: true
+                    example: null
   /v1/migration/publish/all/products:
     post:
       tags:
