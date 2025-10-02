@@ -11,7 +11,6 @@ const menuOpen = ref(false)
 
 // Cargar cuentas al montar el componente solo si no hay cuentas ya cargadas
 onMounted(async () => {
-  console.log('AccountSelector montado, autenticado:', authStore.isAuthenticated)
   if (authStore.isAuthenticated && accountStore.accounts.length === 0) {
     // Verificar que exista el token
     const token = localStorage.getItem('token')
@@ -24,14 +23,11 @@ onMounted(async () => {
     loading.value = true
     try {
       await accountStore.fetchUserAccounts()
-      console.log('Cuentas cargadas:', accountStore.accounts.length)
     } catch (error) {
       console.error('Error al cargar cuentas:', error)
     } finally {
       loading.value = false
     }
-  } else if (accountStore.accounts.length > 0) {
-    console.log('Usando cuentas ya cargadas:', accountStore.accounts.length)
   }
 })
 
@@ -81,8 +77,8 @@ const selectAccount = (account: Account) => {
       @click="
         async () => {
           // Evitar múltiples clics mientras carga
-          if (loading) return;
-          
+          if (loading) return
+
           loading = true
           try {
             await accountStore.fetchUserAccounts()

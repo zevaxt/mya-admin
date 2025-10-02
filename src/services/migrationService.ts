@@ -320,6 +320,25 @@ export interface PublishProductResponse {
   message?: string
 }
 
+export interface PublicationSearchItem {
+  id: string
+  account_id: number
+  sync_active: boolean
+  catalog_active: boolean
+  status: boolean
+  is_populate: boolean
+  status_ml: string
+  ext_created_at?: string
+  ext_updated_at?: string
+}
+
+export interface SearchPublicationsResponse {
+  success: boolean
+  total: number
+  message?: string
+  publications: PublicationSearchItem[]
+}
+
 export interface UpdateProductResponse {
   success: boolean
   message: string
@@ -379,6 +398,21 @@ export const migrationService = {
       }
     } catch (error) {
       console.error('Error al actualizar IDs de productos:', error)
+      throw error
+    }
+  },
+
+  async searchPublications(query: string): Promise<SearchPublicationsResponse> {
+    try {
+      const response = await apiClient.get('/v1/migration/products/search', {
+        params: {
+          id: query,
+        },
+      })
+
+      return response.data as SearchPublicationsResponse
+    } catch (error) {
+      console.error('Error al buscar publicaciones:', error)
       throw error
     }
   },

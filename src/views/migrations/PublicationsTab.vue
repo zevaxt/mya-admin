@@ -161,9 +161,9 @@
             placeholder="Buscar ID"
             class="search-field"
             clearable
-            @update:model-value="handleSearchQueryChange"
+            @update:model-value="handleSearchInputChange"
             @click:clear="clearSearchField"
-            @keyup.enter="handleSearchQueryChange"
+            @keyup.enter="executeSearch"
           >
             <template #append-inner>
               <v-btn
@@ -171,7 +171,7 @@
                 variant="text"
                 color="primary"
                 size="x-small"
-                @click="handleSearchQueryChange"
+                @click="executeSearch"
               >
                 <v-icon size="small">mdi-magnify</v-icon>
               </v-btn>
@@ -1730,26 +1730,112 @@ const getSortIcon = (column: TableColumn) => {
 }
 
 // Función para manejar el cambio en la búsqueda
-const handleSearchQueryChange = () => {
-  // Reiniciar a la primera página cuando cambia la búsqueda
+const handleSearchInputChange = () => {
   page.value = 1
 }
 
-// Función para limpiar el campo de búsqueda desde la barra superior
-const clearSearchField = () => {
-  if (!searchQuery.value) return
-  searchQuery.value = ''
-  handleSearchQueryChange()
+const executeSearch = async () => {
+  page.value = 1
+  const query = searchQuery.value.trim()
+
+  if (!query) {
+    await loadProductIds()
+    return
+  }
+
+  loading.value = true
+  error.value = null
+
+  try {
+    const response = await migrationService.searchPublications(query)
+    const publications = response.publications || []
+
+    if (!publications.length) {
+      productIds.value = []
+      totalProductIds.value = 0
+      showNotification.value = true
+      notificationMessage.value =
+        response.message || 'No se encontraron publicaciones que coincidan con la búsqueda'
+      notificationType.value = 'warning'
+      return
+    }
+
+    const accounts = accountStore.accounts
+
+    productIds.value = publications.map((item) => {
+      const account = accounts.find((acc) => acc.ID === item.account_id)
+      const accountName = account ? account.Nickname : `ID: ${item.account_id}`
+
+      return {
+        ID: item.id,
+        AccountID: item.account_id,
+        AccountName: accountName,
+        SyncActive: item.sync_active,
+        CatalogActive: item.catalog_active,
+        Status: item.status,
+        StatusML: item.status_ml || 'unknown',
+        ToSync: null,
+        updated_at: item.ext_updated_at || '',
+        ExtCreatedAt: item.ext_created_at,
+        ExtUpdatedAt: item.ext_updated_at,
+        IsPopulate: item.is_populate,
+        deleted_at: null,
+      }
+    })
+
+    totalProductIds.value = response.total ?? publications.length
+  } catch (err) {
+    console.error('Error al buscar publicaciones:', err)
+
+    let errorMessage = 'Error al buscar publicaciones'
+
+    if (err instanceof Error) {
+      errorMessage = `Error al buscar publicaciones: ${err.message}`
+    } else if (typeof err === 'object' && err !== null && 'response' in err) {
+      const axiosError = err as {
+        response?: {
+          status?: number
+          data?: {
+            message?: string
+            Message?: string
+          }
+        }
+      }
+      if (axiosError.response?.status === 502) {
+        errorMessage = 'El servidor no está disponible (Error 502). Por favor, intenta más tarde.'
+      } else if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message
+      } else if (axiosError.response?.data?.Message) {
+        errorMessage = axiosError.response.data.Message
+      }
+    }
+
+    error.value = errorMessage
+    showNotification.value = true
+    notificationMessage.value = errorMessage
+    notificationType.value = 'error'
+  } finally {
+    loading.value = false
+  }
 }
 
-// Limpiar todos los filtros
-const clearAllFilters = () => {
-  statusFilter.value = 'active' // Volver al filtro por defecto
+const clearSearchField = async () => {
+  if (!searchQuery.value) return
+  searchQuery.value = ''
+  page.value = 1
+  await loadProductIds()
+}
+
+const clearAllFilters = async () => {
+  statusFilter.value = 'active'
   isDefaultStatusFilter.value = true
   syncActiveFilter.value = ''
   catalogActiveFilter.value = ''
-  searchQuery.value = ''
-  handleStatusFilterChange()
+  if (searchQuery.value) {
+    searchQuery.value = ''
+  }
+  page.value = 1
+  await loadProductIds()
 }
 
 // Observar cambios en la cuenta seleccionada
