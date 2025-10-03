@@ -57,6 +57,50 @@
 
       <!-- Pills de filtros -->
       <div class="filter-pills-container d-flex flex-wrap align-center gap-0">
+        <!-- Filtro de estado -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="statusFilter !== 'active' ? 'success' : 'grey-lighten-3'"
+              :variant="statusFilter !== 'active' ? 'elevated' : 'flat'"
+              :prepend-icon="statusFilter !== 'active' ? 'mdi-check-circle' : 'mdi-filter-variant'"
+              class="filter-pill ct-border-right"
+              label
+            >
+              <span class="text-body-2">Estado: {{ getStatusLabel(statusFilter) }}</span>
+            </v-chip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Estado</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="statusFilter"
+                @update:model-value="handleStatusFilterChange"
+                hide-details
+                density="compact"
+              >
+                <v-radio
+                  v-for="option in statusOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="success"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn variant="text" color="primary" size="small" @click="resetStatusFilter">
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
         <!-- Estado de sincronización -->
         <v-menu location="bottom" offset-y :close-on-content-click="false">
           <template #activator="{ props }">
@@ -65,10 +109,12 @@
               :color="syncStatusFilter !== 'all' ? 'primary' : 'grey-lighten-3'"
               :variant="syncStatusFilter !== 'all' ? 'elevated' : 'flat'"
               :prepend-icon="syncStatusFilter !== 'all' ? 'mdi-check-circle' : 'mdi-sync'"
-              class="filter-pill-IZQUIERDA"
+              class="filter-pill"
               label
             >
-              <span class="text-body-2">Estado: {{ getSyncStatusLabel(syncStatusFilter) }}</span>
+              <span class="text-body-2"
+                >Sincronizaciones: {{ getSyncStatusLabel(syncStatusFilter) }}</span
+              >
             </v-chip>
           </template>
 
@@ -183,50 +229,6 @@
             <v-card-actions class="pa-2 pt-0">
               <v-spacer></v-spacer>
               <v-btn variant="text" color="primary" size="small" @click="resetCatalogFilter">
-                Restablecer
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-menu>
-
-        <!-- Filtro de estado -->
-        <v-menu location="bottom" offset-y :close-on-content-click="false">
-          <template #activator="{ props }">
-            <v-chip
-              v-bind="props"
-              :color="statusFilter !== 'active' ? 'success' : 'grey-lighten-3'"
-              :variant="statusFilter !== 'active' ? 'elevated' : 'flat'"
-              :prepend-icon="statusFilter !== 'active' ? 'mdi-check-circle' : 'mdi-filter-variant'"
-              class="filter-pill"
-              label
-            >
-              <span class="text-body-2">Estado: {{ getStatusLabel(statusFilter) }}</span>
-            </v-chip>
-          </template>
-
-          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
-            <v-card-title class="text-subtitle-2 pa-2">Estado</v-card-title>
-            <v-divider></v-divider>
-            <v-card-text class="pa-2">
-              <v-radio-group
-                v-model="statusFilter"
-                @update:model-value="handleStatusFilterChange"
-                hide-details
-                density="compact"
-              >
-                <v-radio
-                  v-for="option in statusOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  :label="option.title"
-                  color="success"
-                  density="compact"
-                ></v-radio>
-              </v-radio-group>
-            </v-card-text>
-            <v-card-actions class="pa-2 pt-0">
-              <v-spacer></v-spacer>
-              <v-btn variant="text" color="primary" size="small" @click="resetStatusFilter">
                 Restablecer
               </v-btn>
             </v-card-actions>
@@ -408,7 +410,7 @@
         v-model:expanded="expanded"
         v-model="publicationsSelected"
         :headers="headers"
-        :items="publications"
+        :items="publicationsShow"
         :loading="loading"
         :items-per-page="itemsPerPage"
         :page="page"
@@ -1634,9 +1636,10 @@ import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 // Estado
 const accountStore = useAccountStore()
 const loading = ref(false)
-const publications = ref<PublicationSyncData[]>([])
+const publicationsShow = ref<PublicationSyncData[]>([])
 const totalPublicationsAll = ref(0)
 const totalPublicationsFiltered = ref(0)
+const filteredPublicationsAll = ref(0)
 const expanded = ref<string[]>([])
 const showStats = ref(true)
 
@@ -1799,7 +1802,7 @@ const hasFilters = computed(() => {
 
 // Total de relaciones para mostrar en el contador
 const totalRelations = computed(() => {
-  return publications.value.reduce((acc, pub) => acc + (pub.to_syncs?.length || 0), 0)
+  return allPublications.value.reduce((acc, pub) => acc + (pub.to_syncs?.length || 0), 0)
 })
 
 // Encabezados de la tabla
@@ -2013,8 +2016,9 @@ const loadSyncRelations = async (forceReload?: boolean) => {
       filteredPublications.push(item)
     })
 
-    // Actualizar el total de publicaciones filtradas
+    // Actualizar las métricas de publicaciones filtradas
     totalPublicationsFiltered.value = filteredPublications.length
+    filteredPublicationsAll.value = filteredPublications.length
 
     // Aplicar paginación
     const offset = (page.value - 1) * itemsPerPage.value
@@ -2022,14 +2026,15 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     const paginatedPublications = filteredPublications.slice(offset, offset + limit)
 
     // Actualizar el estado
-    publications.value = paginatedPublications
+    publicationsShow.value = paginatedPublications
   } catch (error) {
     console.error('Error al cargar las sincronizaciones:', error)
     showNotification.value = true
     notificationMessage.value = 'Error al cargar las sincronizaciones'
     notificationType.value = 'error'
-    publications.value = []
+    publicationsShow.value = []
     allPublications.value = []
+    filteredPublicationsAll.value = 0
     totalPublicationsFiltered.value = 0
     hasLoadedPublications.value = false
   } finally {
@@ -2445,7 +2450,9 @@ const syncSelectedPublications = async () => {
         if (!accountId) continue
 
         // Encontrar la publicación en la lista para obtener sus relaciones
-        const publication = publications.value.find((item) => item.publication_id === publicationId)
+        const publication = publicationsShow.value.find(
+          (item) => item.publication_id === publicationId,
+        )
         if (!publication) {
           console.warn(`No se encontró la publicación ${publicationId} en la lista`)
           continue
@@ -2725,7 +2732,7 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
     }
 
     // Encontrar la publicación en la lista
-    const publication = publications.value.find((item) => item.publication_id === publicationId)
+    const publication = publicationsShow.value.find((item) => item.publication_id === publicationId)
     if (!publication) {
       throw new Error(`No se encontró la publicación ${publicationId}`)
     }
@@ -2924,13 +2931,13 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
 // Función auxiliar para encontrar el ID de cuenta por ID de publicación
 const findAccountIdByPublicationId = (publicationId: string): number | undefined => {
   // Buscar en las publicaciones cargadas
-  const publication = publications.value.find((item) => item.publication_id === publicationId)
+  const publication = publicationsShow.value.find((item) => item.publication_id === publicationId)
   if (publication) {
     return publication.account_id
   }
 
   // Si no se encuentra, buscar en las sincronizaciones entrantes y salientes
-  for (const item of publications.value) {
+  for (const item of publicationsShow.value) {
     // Buscar en sincronizaciones salientes
     const outgoingSync = item.to_syncs?.find((sync) => sync.to_sync_id === publicationId)
     if (outgoingSync) {
@@ -3433,7 +3440,7 @@ const getTotalSyncRelations = (): number => {
 
   // Contar todas las relaciones de sincronización (salientes y entrantes)
   publicationsSelected.value.forEach((publicationId) => {
-    const publication = publications.value.find((p) => p.publication_id === publicationId)
+    const publication = publicationsShow.value.find((p) => p.publication_id === publicationId)
     if (publication) {
       // Contar relaciones salientes
       totalRelations += publication.to_syncs.length
@@ -3469,7 +3476,7 @@ const deleteSelectedSyncRelations = async () => {
 
     // Recopilar todas las relaciones de sincronización (salientes y entrantes)
     publicationsSelected.value.forEach((publicationId) => {
-      const publication = publications.value.find((p) => p.publication_id === publicationId)
+      const publication = publicationsShow.value.find((p) => p.publication_id === publicationId)
       if (publication) {
         // Agregar relaciones salientes
         publication.to_syncs.forEach((sync) => {
@@ -3524,7 +3531,8 @@ watch(
     if (newAccountId !== oldAccountId) {
       hasLoadedPublications.value = false
       allPublications.value = []
-      publications.value = []
+      publicationsShow.value = []
+      filteredPublicationsAll.value = []
       totalPublicationsFiltered.value = 0
       loadSyncRelations(true)
     }
@@ -3745,17 +3753,7 @@ const resetStatusFilter = () => {
   border-radius: 0px !important; /* REDONDEO DE FILTROS */
 }
 
-.filter-pill-IZQUIERDA {
-  font-family: 'Poppins', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  min-height: 44px !important;
-  height: 44px !important;
-  min-width: 160px;
-  padding: 0 16px !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  border-radius: 0px !important; /* REDONDEO DE FILTROS */
+.ct-border-right {
   border-start-start-radius: 15px !important;
   border-bottom-left-radius: 15px !important;
 }
