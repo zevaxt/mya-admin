@@ -589,7 +589,7 @@ defineExpose({
     <!-- Título y botones -->
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
-        <h3 class="text-h6 text-info font-weight-medium mb-1">Publicaciones Faltantes</h3>
+        <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones Faltantes</h3>
         <p class="text-caption text-grey">
           Publicaciones que existen en Mercado Libre pero no en la base de datos
         </p>

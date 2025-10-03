@@ -929,9 +929,9 @@ const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 const statusOptions = [
   { title: 'Todos', value: '' },
   { title: 'Activas', value: 'active' },
-  { title: 'En revisión', value: 'under_review' },
-  { title: 'Inactivas', value: 'inactive' },
+  { title: 'Inactivas (Todas)', value: 'inactive' },
   { title: 'Pausado', value: 'paused' },
+  { title: 'En revisión', value: 'under_review' },
   { title: 'Finalizado', value: 'closed' },
   { title: 'Eliminado', value: 'deleted' },
 ]
@@ -1065,12 +1065,18 @@ const filteredProductIds = computed(() => {
           item.StatusML?.toLowerCase() !== 'active' &&
           !(item.StatusML === undefined && item.Status === true),
       )
+    } else if (filterValue === 'under_review') {
+      // Filtrar solo los productos con estado 'under_review'
+      filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'under_review')
     } else if (filterValue === 'paused') {
       // Filtrar solo los productos con estado 'paused'
       filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'paused')
     } else if (filterValue === 'closed') {
       // Filtrar solo los productos con estado 'closed'
       filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'closed')
+    } else if (filterValue === 'deleted') {
+      // Filtrar solo los productos con estado 'closed'
+      filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'deleted')
     }
   }
 

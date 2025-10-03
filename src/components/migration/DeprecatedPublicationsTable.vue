@@ -3,7 +3,7 @@
     <!-- Título y botones -->
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
-        <h3 class="text-h6 text-error font-weight-medium mb-1">Publicaciones Deprecadas</h3>
+        <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones Deprecadas</h3>
         <p class="text-caption text-grey">
           Publicaciones que existen en la base de datos pero no en Mercado Libre
         </p>
@@ -166,10 +166,16 @@
         </v-card-text>
 
         <v-divider></v-divider>
-        
+
         <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" size="small" @click="showConfirmDialog = false">Cancelar</v-btn>
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            size="small"
+            @click="showConfirmDialog = false"
+            >Cancelar</v-btn
+          >
           <v-btn
             color="primary"
             variant="text"
@@ -254,7 +260,7 @@ const loadDeprecatedPublications = async () => {
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver las publicaciones deprecadas'
     emit('error', error.value)
-    
+
     // Mostrar notificación cuando no hay cuenta seleccionada
     showNotification.value = true
     notificationMessage.value = 'Selecciona una cuenta para ver las publicaciones deprecadas'
@@ -277,10 +283,10 @@ const loadDeprecatedPublications = async () => {
     total.value = response.total || 0
   } catch (err) {
     console.error('Error al cargar publicaciones deprecadas:', err)
-    
+
     // Extraer mensaje de error más detallado
     let errorMessage = 'Error al cargar publicaciones deprecadas'
-    
+
     if (err instanceof Error) {
       errorMessage = `Error al cargar publicaciones deprecadas: ${err.message}`
     } else if (typeof err === 'object' && err !== null && 'response' in err) {
@@ -294,10 +300,10 @@ const loadDeprecatedPublications = async () => {
         errorMessage = axiosError.response.data.Message
       }
     }
-    
+
     error.value = errorMessage
     emit('error', error.value)
-    
+
     // Mostrar notificación de error
     showNotification.value = true
     notificationMessage.value = errorMessage

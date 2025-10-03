@@ -3,7 +3,8 @@
     <!-- Título y botones -->
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
-        <h3 class="text-h6 text-warning font-weight-medium mb-1">Publicaciones Huérfanas</h3>
+        <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones Huérfanas</h3>
+
         <p class="text-caption text-grey">
           Publicaciones que tiene sincronizaciones asociadas, (Es decir no estan como una
           publicacion Saliente o Entrantes de sincronizacion)

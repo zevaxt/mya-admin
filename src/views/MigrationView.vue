@@ -10,15 +10,16 @@
           {{ error }}
         </v-alert>
 
-        <v-card>
-          <v-tabs
-            v-model="activeTab"
-            @update:model-value="handleTabChange"
-            bg-color="grey-lighten-4"
-            slider-color="primary"
-            class="tabs-with-separators sticky-tabs"
-            show-arrows
-          >
+        <v-card class="tabs-card">
+          <div class="tabs-sticky-wrapper">
+            <v-tabs
+              v-model="activeTab"
+              @update:model-value="handleTabChange"
+              bg-color="grey-lighten-4"
+              slider-color="primary"
+              class="tabs-with-separators"
+              show-arrows
+            >
             <v-tab
               value="0"
               :color="activeTab === 0 ? 'primary' : undefined"
@@ -60,6 +61,7 @@
               DEPRECADAS
             </v-tab>
           </v-tabs>
+          </div>
 
           <v-card-text>
             <!-- Componentes de pestañas -->
@@ -147,11 +149,20 @@ const handleError = (errorMessage: string | null) => {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.sticky-tabs {
+.tabs-card {
+  overflow: visible;
+}
+
+.tabs-sticky-wrapper {
   position: sticky;
-  top: 0;
+  top: calc(var(--v-layout-top, 0px) + 8px);
   z-index: 5;
   background-color: var(--v-theme-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.tabs-sticky-wrapper :deep(.v-slide-group__container) {
+  background-color: var(--v-theme-surface);
 }
 </style>
