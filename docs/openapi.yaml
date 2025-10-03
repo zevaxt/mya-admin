@@ -827,41 +827,7 @@ paths:
           schema:
             type: integer
           example: '1'
-      description: >-
-        ### Get Product IDs for Migration
-
-
-        Consulta los ids almacenados en la bd de una cuenta
-
-
-        ### Response Structure
-
-
-        The response is a JSON object containing the following fields:
-
-
-        - `publications_ids` (array of strings): An array containing the product IDs.
-
-        - `total` (number): The total count of product IDs available for the account.
-
-        - `offset` (number): The offset used in the request.
-
-        - `limit` (number): The limit used in the request.
-
-
-        Example:
-
-
-        ``` json
-
-        {
-            "publications_ids": ["MCO1119265852", "MCO1146473973", "MCO1149637532"],
-            "total": 437,
-            "offset": 0,
-            "limit": 3
-        }
-
-        ```
+      description: 'Get Product IDs for Migration Consulta los ids almacenados en la bd de una cuenta'
       security:
         - bearerAuth: []
       responses:
@@ -884,7 +850,7 @@ paths:
             minimum: 0
         - name: limit
           in: query
-          description: Número máximo de registros a devolver (para paginación)
+          description: 'Número máximo de registros a devolver (para paginación)'
           schema:
             type: integer
             default: 100
@@ -894,40 +860,54 @@ paths:
           schema:
             type: integer
           example: '1'
+        - name: status
+          in: header
+          description: 'Estado de la publicación en Mercado Libre. Valores permitidos `active`, `inactive`, `paused`, `deleted`, `closed`, `under_review`.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+              - paused
+              - deleted
+              - closed
+              - under_review
+          example: active
+        - name: catalog-active
+          in: header
+          description: 'Filtra publicaciones por pertenecer o no al catálogo.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - true
+              - false
+              - all
+            default: all
+          example: all
+        - name: is_sync_active
+          in: header
+          description: 'Filtra publicaciones según su estado de sincronización (`true`, `false`, `all`).'
+          required: false
+          schema:
+            type: string
+            enum:
+              - true
+              - false
+              - all
+            default: all
+          example: true
       description: >-
         ### Request Description
 
-        - **products**: Array de objetos de publicación, cada uno contiene:
-          - **ID**: Identificador único de la publicación.
-          - **AccountID**: ID de la cuenta a la que pertenece la publicación.
-          - **SyncActive**: Indica si la sincronización está activa.
-          - **CatalogActive**: Indica si es una publicación de catálogo.
-          - **Status**: Estado de la publicación.
-          - **IsPopulate**: Indica si la publicación ha sido poblada con datos completos.
-          - **StatusML**: Estado de la publicación en Mercado Libre (active, inactive, paused, etc.).
-          - **ExtCreatedAt**: Fecha de creación en la plataforma externa (Mercado Libre).
-          - **ExtUpdatedAt**: Fecha de última actualización en la plataforma externa (Mercado Libre).
-          - **CreatedAt**: Fecha de creación en la base de datos.
-          - **UpdatedAt**: Fecha de última actualización en la base de datos.
-          - **DeletedAt**: Fecha de eliminación (soft delete).
-        - **total**: Número total de publicaciones disponibles para la cuenta.
-        - **offset**: El offset utilizado en la solicitud.
-        - **limit**: El límite utilizado en la solicitud.
-
+        - Los encabezados opcionales `status`, `catalog-active` e `is_sync_active` permiten filtrar el resultado sin afectar el cálculo de estadísticas totales.
 
         ### Notas importantes
-
-
         - Este endpoint NO devuelve el campo `Attributes` para optimizar el rendimiento.
         - Si necesita acceder a los atributos completos de una publicación, use el endpoint `/v1/migration/product/{id}`.
         - Si no se proporcionan parámetros de paginación, se devolverán todas las publicaciones.
 
-
-        ### Response Code
-
-
-        - **200 OK**: Indica que la solicitud fue exitosa y se devuelven los datos de las publicaciones.
-        - **409 Conflict**: Indica que hubo un error al procesar la solicitud.
       security:
         - bearerAuth: []
       responses:
@@ -945,12 +925,15 @@ paths:
                   total:
                     type: integer
                     description: Número total de publicaciones disponibles
+                    example: 437
                   offset:
                     type: integer
                     description: Offset utilizado en la consulta
+                    example: 0
                   limit:
                     type: integer
                     description: Límite utilizado en la consulta
+                    example: 100
         '409':
           description: Error al procesar la solicitud
           content:

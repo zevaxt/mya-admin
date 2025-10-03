@@ -2186,7 +2186,7 @@ const loadPublicationsForAccount = async (accountId: number | null) => {
 
   try {
     // Usar la API para obtener las publicaciones de la cuenta seleccionada
-    const response = await migrationService.getProductIds(accountId, undefined, 0, 100)
+    const response = await migrationService.getProductIds(accountId, undefined, 0, 25)
 
     // Transformar los datos al formato que necesitamos
     accountPublications.value = response.products.map((product) => ({
@@ -2322,30 +2322,6 @@ const createNewPublication = async () => {
     const publicationId = response.ID
 
     if (publicationId) {
-      // Recargar las publicaciones de la cuenta para obtener la nueva publicación
-      await loadPublicationsForAccount(selectedAccountId.value)
-
-      // Esperar un momento para asegurarnos de que la lista se ha actualizado
-      // y la nueva publicación está disponible
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // Buscar la nueva publicación en la lista actualizada
-      const newPublication = accountPublications.value.find((p) => p.id === publicationId)
-
-      console.log('Buscando publicación con ID:', publicationId)
-      console.log(
-        'Publicaciones disponibles:',
-        accountPublications.value.map((p) => p.id),
-      )
-
-      // Seleccionar la nueva publicación si la encontramos en la lista
-      if (newPublication) {
-        console.log('Publicación encontrada:', newPublication)
-        targetPublicationId.value = newPublication
-      } else {
-        console.log('No se encontró la publicación con ID:', publicationId)
-      }
-
       // Mostrar notificación de éxito
       showNotification.value = true
       notificationMessage.value = 'Publicación creada exitosamente'
@@ -2379,6 +2355,7 @@ const createNewPublication = async () => {
     notificationMessage.value = 'Error al crear la publicación'
     notificationType.value = 'error'
   } finally {
+    loadSyncRelations(true) // cargar siempre por si falla pero no se sincroniza
     creatingPublication.value = false
   }
 }

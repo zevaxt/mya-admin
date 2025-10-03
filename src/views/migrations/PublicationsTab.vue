@@ -1031,10 +1031,17 @@ const paginationInfo = computed(() => {
   }
 })
 
-// Mensaje de resultados filtrados para el chip
 const filteredMessage = computed(() => {
-  if (!paginationInfo.value.text) return ''
-  return `Mostrando ${paginationInfo.value.text} publicaciones`
+  if (!productIds.value.length) return ''
+
+  const total = filteredProductIds.value.length
+  const isFilteredView = hasActiveFilters.value || searchQuery.value.trim().length > 0
+
+  if (isFilteredView) {
+    return `${total} publicaciones filtradas`
+  }
+
+  return `${total} publicaciones`
 })
 
 // Filtrar IDs de productos

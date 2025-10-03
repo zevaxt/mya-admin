@@ -430,10 +430,10 @@ export const migrationService = {
         url += `&status=${status}`
       }
       if (syncActive !== undefined) {
-        url += `&syncActive=${syncActive}`
+        url += `&is-sync-active=${syncActive}`
       }
       if (catalogActive !== undefined) {
-        url += `&catalogActive=${catalogActive}`
+        url += `&catalog-active=${catalogActive}`
       }
 
       const response = await apiClient.get(url, {
