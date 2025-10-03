@@ -51,7 +51,7 @@
       <div class="search-container mb-3">
         <v-text-field
           v-model="searchQuery"
-          variant="solo"
+          variant="outlined"
           density="compact"
           hide-details
           placeholder="Buscar ID..."
@@ -2067,6 +2067,16 @@ onMounted(() => {
 
 :deep(.v-field__field) {
   height: 32px;
+}
+
+:deep(.modern-search .v-field__input::placeholder) {
+  font-size: 12px;
+  padding-left: 8px;
+}
+
+:deep(.modern-search .v-field__prepend-inner .v-icon) {
+  font-size: 16px;
+  padding-left: 8px;
 }
 
 /* Animación de pulso para el chip cuando se está procesando */
