@@ -26,14 +26,13 @@
           variant="outlined"
           size="small"
           :loading="loading"
-          @click="loadSyncRelations"
+          @click="loadSyncRelations(true)"
         >
           <v-icon start>mdi-refresh</v-icon>
           Actualizar
         </v-btn>
       </div>
     </div>
-
     <!-- Filtros -->
     <div class="filter-container mb-4">
       <v-row>
@@ -45,7 +44,7 @@
             variant="outlined"
             density="compact"
             hide-details
-            @update:model-value="loadSyncRelations"
+            @update:model-value="handleSyncStatusFilterChange"
           >
             <template v-slot:prepend>
               <v-icon color="primary">mdi-sync</v-icon>
@@ -54,12 +53,7 @@
               <v-icon
                 v-if="syncStatusFilter !== 'all'"
                 color="primary"
-                @click.stop="
-                  () => {
-                    syncStatusFilter = 'all'
-                    loadSyncRelations()
-                  }
-                "
+                @click.stop="resetSyncStatusFilter"
               >
                 mdi-close
               </v-icon>
@@ -74,7 +68,7 @@
             variant="outlined"
             density="compact"
             hide-details
-            @update:model-value="loadSyncRelations"
+            @update:model-value="handleSyncCountFilterChange"
           >
             <template v-slot:prepend>
               <v-icon color="primary">mdi-counter</v-icon>
@@ -83,12 +77,7 @@
               <v-icon
                 v-if="syncCountFilter !== 'all'"
                 color="primary"
-                @click.stop="
-                  () => {
-                    syncCountFilter = 'all'
-                    loadSyncRelations()
-                  }
-                "
+                @click.stop="resetSyncCountFilter"
               >
                 mdi-close-circle
               </v-icon>
@@ -103,7 +92,7 @@
             variant="outlined"
             density="compact"
             hide-details
-            @update:model-value="loadSyncRelations"
+            @update:model-value="handleCatalogFilterChange"
           >
             <template v-slot:prepend>
               <v-icon color="purple">mdi-book-open-variant</v-icon>
@@ -112,12 +101,7 @@
               <v-icon
                 v-if="catalogFilter !== 'all'"
                 color="primary"
-                @click.stop="
-                  () => {
-                    catalogFilter = 'all'
-                    loadSyncRelations()
-                  }
-                "
+                @click.stop="resetCatalogFilter"
               >
                 mdi-close-circle
               </v-icon>
@@ -132,7 +116,7 @@
             variant="outlined"
             density="compact"
             hide-details
-            @update:model-value="loadSyncRelations"
+            @update:model-value="handleStatusFilterChange"
           >
             <template v-slot:prepend>
               <v-icon color="success">mdi-check-circle</v-icon>
@@ -141,12 +125,7 @@
               <v-icon
                 v-if="statusFilter !== 'all'"
                 color="primary"
-                @click.stop="
-                  () => {
-                    statusFilter = 'all'
-                    loadSyncRelations()
-                  }
-                "
+                @click.stop="resetStatusFilter"
               >
                 mdi-close-circle
               </v-icon>
@@ -1632,9 +1611,10 @@ const otherStatusCount = computed(() => {
 
 // Variable para almacenar todas las publicaciones (para estadísticas)
 const allPublications = ref<PublicationSyncData[]>([])
+const hasLoadedPublications = ref(false)
 
 // Métodos
-const loadSyncRelations = async () => {
+const loadSyncRelations = async (forceReload?: boolean) => {
   const accountId = accountStore.currentAccount?.ID
   if (!accountId) {
     showNotification.value = true
@@ -1643,22 +1623,30 @@ const loadSyncRelations = async () => {
     return
   }
 
-  loading.value = true
+  const shouldForceReload = forceReload === true
+  const shouldFetchFromApi = shouldForceReload || !hasLoadedPublications.value
+
+  if (shouldFetchFromApi) {
+    loading.value = true
+  }
 
   try {
-    // Obtener las estadísticas de sincronización que ya incluyen status_ml
-    const syncResponse = await migrationService.getSyncStats(accountId)
+    let publicationsData: PublicationSyncData[] = allPublications.value
 
-    // Usar los datos directamente de la respuesta sin necesidad de procesamiento adicional
-    // Ya contiene status_ml e is_populate
-    const allPublicationsWithDetails = syncResponse.publications
+    if (shouldFetchFromApi) {
+      // Obtener las estadísticas de sincronización que ya incluyen status_ml
+      const syncResponse = await migrationService.getSyncStats(accountId)
 
-    // Guardar todas las publicaciones para estadísticas
-    allPublications.value = allPublicationsWithDetails
+      // Guardar todas las publicaciones para estadísticas
+      publicationsData = syncResponse.publications || []
+      allPublications.value = publicationsData
+      hasLoadedPublications.value = true
+    }
 
     // Aplicar filtros
-    let filteredPublications = [...allPublicationsWithDetails]
+    let filteredPublications = [...publicationsData]
 
+    // Aplicar filtros localmente
     // Filtrar por búsqueda
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase()
@@ -1762,8 +1750,11 @@ const loadSyncRelations = async () => {
     publications.value = []
     allPublications.value = []
     totalPublications.value = 0
+    hasLoadedPublications.value = false
   } finally {
-    loading.value = false
+    if (shouldFetchFromApi) {
+      loading.value = false
+    }
   }
 }
 
@@ -1964,7 +1955,7 @@ const submitAddSync = async () => {
       showAddSyncDialog.value = false
 
       // Recargar los datos
-      loadSyncRelations()
+      await loadSyncRelations(true)
     } else {
       showNotification.value = true
       notificationMessage.value = `Error: ${response.errors?.[0]?.message || 'No se pudo crear la sincronización'}`
@@ -2076,7 +2067,7 @@ const createNewPublication = async () => {
 
 // Ciclo de vida
 onMounted(() => {
-  loadSyncRelations()
+  loadSyncRelations(true)
 })
 
 // Función para sincronizar todas las publicaciones
@@ -2120,7 +2111,7 @@ const syncAllPublications = async () => {
 
     // Recargar los datos después de un tiempo para ver los cambios iniciales
     setTimeout(() => {
-      loadSyncRelations()
+      loadSyncRelations(true)
 
       // Mostrar mensaje adicional explicando que el proceso continuará en segundo plano
       showNotification.value = true
@@ -2299,7 +2290,7 @@ const syncSelectedPublications = async () => {
     }
 
     // Recargar los datos para ver los cambios
-    await loadSyncRelations()
+    await loadSyncRelations(true)
   } catch (error) {
     console.error('Error al sincronizar publicaciones seleccionadas:', error)
     showNotification.value = true
@@ -2387,7 +2378,7 @@ const syncRelation = async (
       notificationType.value = 'success'
 
       // Recargar los datos para ver los cambios
-      await loadSyncRelations()
+      await loadSyncRelations(true)
     }
 
     return { success: true, message: successMessage }
@@ -3250,7 +3241,11 @@ watch(
   () => accountStore.currentAccount?.ID,
   (newAccountId, oldAccountId) => {
     if (newAccountId !== oldAccountId) {
-      loadSyncRelations()
+      hasLoadedPublications.value = false
+      allPublications.value = []
+      publications.value = []
+      totalPublications.value = 0
+      loadSyncRelations(true)
     }
   },
 )
@@ -3268,14 +3263,14 @@ watch(
 const handlePageChange = (newPage: number) => {
   page.value = newPage
   console.log('Cambiando a página:', newPage)
-  loadSyncRelations() // Recargar los datos para la nueva página
+  applyLocalFilters() // Aplicar filtros localmente sin recargar de la API
 }
 
 // Función para manejar el cambio en el número de elementos por página
 const handleItemsPerPageChange = (newItemsPerPage: number) => {
   itemsPerPage.value = newItemsPerPage
   page.value = 1 // Reiniciar a la primera página cuando cambia el número de elementos por página
-  loadSyncRelations()
+  applyLocalFilters()
 }
 
 // Funciones para manejar la búsqueda
@@ -3317,13 +3312,13 @@ const handleSearchBlur = () => {
 // Función para manejar el cambio en la búsqueda
 const handleSearchQueryChange = () => {
   // Cargar los datos cuando cambia la búsqueda
-  loadSyncRelations()
+  applyLocalFilters()
 }
 
 // Función para limpiar la búsqueda
 const clearSearchQuery = () => {
   searchQuery.value = ''
-  loadSyncRelations()
+  applyLocalFilters()
 }
 
 // Función para manejar el ordenamiento
@@ -3348,6 +3343,56 @@ const isSorted = (column: any) => {
 const getSortIcon = () => {
   // Usar el icono neutral de Vuetify
   return 'mdi-arrow-up-down'
+}
+
+// Funciones para manejar los filtros
+// Función para aplicar filtros localmente sin recargar de la API
+const applyLocalFilters = () => {
+  if (!hasLoadedPublications.value) {
+    loadSyncRelations(true)
+    return
+  }
+  loadSyncRelations(false)
+}
+
+// Manejadores para el filtro de estado de sincronización
+const handleSyncStatusFilterChange = () => {
+  applyLocalFilters()
+}
+
+const resetSyncStatusFilter = () => {
+  syncStatusFilter.value = 'all'
+  applyLocalFilters()
+}
+
+// Manejadores para el filtro de cantidad de sincronizaciones
+const handleSyncCountFilterChange = () => {
+  applyLocalFilters()
+}
+
+const resetSyncCountFilter = () => {
+  syncCountFilter.value = 'all'
+  applyLocalFilters()
+}
+
+// Manejadores para el filtro de catálogo
+const handleCatalogFilterChange = () => {
+  applyLocalFilters()
+}
+
+const resetCatalogFilter = () => {
+  catalogFilter.value = 'all'
+  applyLocalFilters()
+}
+
+// Manejadores para el filtro de estado
+const handleStatusFilterChange = () => {
+  applyLocalFilters()
+}
+
+const resetStatusFilter = () => {
+  statusFilter.value = 'all'
+  applyLocalFilters()
 }
 </script>
 
