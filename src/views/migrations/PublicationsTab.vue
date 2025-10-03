@@ -535,7 +535,6 @@
             ></v-select>
           </div>
 
-          
           <v-pagination
             v-model="page"
             :length="Math.ceil(totalProductIds / itemsPerPage)"
@@ -930,9 +929,11 @@ const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 const statusOptions = [
   { title: 'Todos', value: '' },
   { title: 'Activas', value: 'active' },
+  { title: 'En revisión', value: 'under_review' },
   { title: 'Inactivas', value: 'inactive' },
   { title: 'Pausado', value: 'paused' },
   { title: 'Finalizado', value: 'closed' },
+  { title: 'Eliminado', value: 'deleted' },
 ]
 
 const booleanFilterOptions = [

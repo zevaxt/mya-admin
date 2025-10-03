@@ -427,6 +427,7 @@
         show-select
         class="elevation-0"
         :server-items-length="totalPublicationsFiltered"
+        :item-selectable="isPublicationSelectable"
       >
         <!-- No usamos el slot bottom para poder tener un paginador fijo -->
         <template #bottom></template>
@@ -1640,6 +1641,7 @@ const publicationsShow = ref<PublicationSyncData[]>([])
 const totalPublicationsAll = ref(0)
 const totalPublicationsFiltered = ref(0)
 const filteredPublicationsAll = ref(0)
+const selectablePublicationIds = ref<Set<string>>(new Set())
 const expanded = ref<string[]>([])
 const showStats = ref(true)
 
@@ -1745,6 +1747,9 @@ const statusOptions = [
   { title: 'Pausado', value: 'paused' },
   { title: 'Cerrado', value: 'closed' },
   { title: 'Otros', value: 'other' },
+  { title: 'Inactivas', value: 'inactive' },
+  { title: 'Eliminado', value: 'deleted' },
+  { title: 'En revisión', value: 'under_review' },
 ]
 
 // Funciones auxiliares para etiquetas
@@ -1804,6 +1809,26 @@ const hasFilters = computed(() => {
 const totalRelations = computed(() => {
   return allPublications.value.reduce((acc, pub) => acc + (pub.to_syncs?.length || 0), 0)
 })
+
+const isPublicationSelectable = (item: PublicationSyncData) => {
+  const outgoing = item.to_syncs?.length ?? 0
+  const incoming = item.from_syncs?.length ?? 0
+  return outgoing + incoming > 0
+}
+
+const filterSelectablePublications = (selectedIds: unknown[]): string[] => {
+  if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+    return []
+  }
+
+  return selectedIds.filter((id): id is string => {
+    if (typeof id !== 'string') {
+      return false
+    }
+
+    return selectablePublicationIds.value.has(id)
+  })
+}
 
 // Encabezados de la tabla
 const headers = [
@@ -2019,6 +2044,11 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     // Actualizar las métricas de publicaciones filtradas
     totalPublicationsFiltered.value = filteredPublications.length
     filteredPublicationsAll.value = filteredPublications.length
+    selectablePublicationIds.value = new Set(
+      filteredPublications
+        .filter((item) => isPublicationSelectable(item))
+        .map((item) => item.publication_id),
+    )
 
     // Aplicar paginación
     const offset = (page.value - 1) * itemsPerPage.value
@@ -2027,6 +2057,7 @@ const loadSyncRelations = async (forceReload?: boolean) => {
 
     // Actualizar el estado
     publicationsShow.value = paginatedPublications
+    publicationsSelected.value = filterSelectablePublications(publicationsSelected.value)
   } catch (error) {
     console.error('Error al cargar las sincronizaciones:', error)
     showNotification.value = true
@@ -2035,6 +2066,7 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     publicationsShow.value = []
     allPublications.value = []
     filteredPublicationsAll.value = 0
+    selectablePublicationIds.value = new Set()
     totalPublicationsFiltered.value = 0
     hasLoadedPublications.value = false
   } finally {
@@ -3533,10 +3565,22 @@ watch(
       allPublications.value = []
       publicationsShow.value = []
       filteredPublicationsAll.value = []
+      selectablePublicationIds.value = new Set()
       totalPublicationsFiltered.value = 0
       loadSyncRelations(true)
     }
   },
+)
+
+watch(
+  () => publicationsSelected.value,
+  (newSelected) => {
+    const filtered = filterSelectablePublications(newSelected)
+    if (!Array.isArray(newSelected) || filtered.length !== newSelected.length) {
+      publicationsSelected.value = filtered
+    }
+  },
+  { deep: true },
 )
 
 // Función para manejar la paginación

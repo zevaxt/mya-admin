@@ -44,6 +44,8 @@ const statusOptions = [
   { title: 'Pausadas', value: 'paused' },
   { title: 'Inactivas', value: 'inactive' },
   { title: 'Finalizadas', value: 'closed' },
+  { title: 'Eliminado', value: 'deleted' },
+  { title: 'En revisión', value: 'under_review' },
 ]
 
 const channelsOptions = [
