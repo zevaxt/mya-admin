@@ -122,11 +122,7 @@
               <v-icon color="success">mdi-check-circle</v-icon>
             </template>
             <template v-slot:append>
-              <v-icon
-                v-if="statusFilter !== 'all'"
-                color="primary"
-                @click.stop="resetStatusFilter"
-              >
+              <v-icon v-if="statusFilter !== 'all'" color="primary" @click.stop="resetStatusFilter">
                 mdi-close-circle
               </v-icon>
             </template>
@@ -136,85 +132,148 @@
     </div>
 
     <!-- Estadísticas -->
-    <div class="mb-4">
-      <v-card variant="outlined">
-        <v-card-text class="d-flex justify-space-around flex-wrap">
-          <div class="text-center px-2">
-            <div class="text-h6">{{ totalPublications }}</div>
-            <div class="text-caption">Total Publicaciones</div>
-          </div>
+    <section class="mb-4">
+      <v-toolbar density="compact" flat class="stats-toolbar px-0">
+        <v-toolbar-title class="text-subtitle-1 font-weight-medium">Estadísticas</v-toolbar-title>
+        <v-spacer></v-spacer>
+        <v-btn size="small" variant="text" color="primary" @click="showStats = !showStats">
+          <v-icon size="small" class="mr-1">
+            {{ showStats ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+          </v-icon>
+          {{ showStats ? 'Ocultar' : 'Mostrar' }}
+        </v-btn>
+      </v-toolbar>
 
-          <!-- Grupo de estado de sincronización -->
-          <div class="d-flex flex-column align-center px-4 border-start">
-            <div class="text-caption text-primary font-weight-medium mb-2">
-              Estado de sincronización
-            </div>
-            <div class="d-flex">
-              <div class="text-center px-3">
-                <div class="text-h6">{{ statsCounters.origin }}</div>
-                <div class="text-caption">Origen</div>
-              </div>
-              <div class="text-center px-3">
-                <div class="text-h6">{{ statsCounters.destination }}</div>
-                <div class="text-caption">Destino</div>
-              </div>
-              <div class="text-center px-3">
-                <div class="text-h6">{{ statsCounters.both }}</div>
-                <div class="text-caption">Ambos</div>
-              </div>
-              <div class="text-center px-3">
-                <div class="text-h6">{{ statsCounters.none }}</div>
-                <div class="text-caption">Ninguno</div>
-              </div>
-            </div>
-          </div>
+      <v-expand-transition>
+        <v-container v-if="showStats" fluid class="stats-columns pa-0">
+          <v-row dense class="ma-0" align="stretch">
+            <v-col cols="12" md="3" class="pa-0 pr-md-3 mb-3 mb-md-0">
+              <v-list density="compact" lines="one" class="stats-column">
+                <v-list-subheader class="text-caption text-uppercase"
+                  >Resumen general</v-list-subheader
+                >
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Total de publicaciones</v-list-item-title>
+                  <template #append>
+                    <v-chip color="primary" variant="flat" class="font-weight-medium">
+                      {{ totalPublications }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-col>
 
-          <!-- Grupo de tipo de publicación -->
-          <div class="d-flex flex-column align-center px-4 border-start">
-            <div class="text-caption text-primary font-weight-medium mb-2">Tipo de publicación</div>
-            <div class="d-flex">
-              <div class="text-center px-3">
-                <div class="text-h6">{{ statsCounters.catalog }}</div>
-                <div class="text-caption">Catálogo</div>
-              </div>
-              <div class="text-center px-3">
-                <div class="text-h6">{{ statsCounters.nonCatalog }}</div>
-                <div class="text-caption">Estándar</div>
-              </div>
-            </div>
-          </div>
+            <v-col cols="12" md="3" class="pa-0 px-md-3 mb-3 mb-md-0">
+              <v-list density="compact" lines="one" class="stats-column">
+                <v-list-subheader class="text-caption text-uppercase"
+                  >Estado de sincronización</v-list-subheader
+                >
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Origen</v-list-item-title>
+                  <template #append>
+                    <v-chip color="primary" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.origin }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Destino</v-list-item-title>
+                  <template #append>
+                    <v-chip color="success" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.destination }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Ambos</v-list-item-title>
+                  <template #append>
+                    <v-chip color="purple" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.both }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Ninguno</v-list-item-title>
+                  <template #append>
+                    <v-chip color="grey" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.none }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-col>
 
-          <!-- Grupo de estado de publicación -->
-          <div class="d-flex flex-column align-center px-4 border-start">
-            <div class="text-caption text-primary font-weight-medium mb-2">
-              Estado de publicación
-            </div>
-            <div class="d-flex">
-              <div class="text-center px-2">
-                <div class="text-h6 text-success">{{ statsCounters.active }}</div>
-                <div class="text-caption">Activo</div>
-              </div>
-              <div class="text-center px-2">
-                <div class="text-h6 text-warning">{{ statsCounters.paused }}</div>
-                <div class="text-caption">Pausado</div>
-              </div>
-              <div class="text-center px-2">
-                <div class="text-h6 text-error">{{ statsCounters.closed }}</div>
-                <div class="text-caption">Cerrado</div>
-              </div>
-              <div class="text-center px-2">
-                <div class="text-h6 text-grey">{{ statsCounters.otherStatus }}</div>
-                <div class="text-caption">Otros</div>
-              </div>
-            </div>
-          </div>
-        </v-card-text>
-      </v-card>
-    </div>
+            <v-col cols="12" md="3" class="pa-0 px-md-3 mb-3 mb-md-0">
+              <v-list density="compact" lines="one" class="stats-column">
+                <v-list-subheader class="text-caption text-uppercase"
+                  >Tipo de publicación</v-list-subheader
+                >
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Catálogo</v-list-item-title>
+                  <template #append>
+                    <v-chip color="secondary" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.catalog }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Estándar</v-list-item-title>
+                  <template #append>
+                    <v-chip color="indigo" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.nonCatalog }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-col>
+
+            <v-col cols="12" md="3" class="pa-0 pl-md-3">
+              <v-list density="compact" lines="one" class="stats-column">
+                <v-list-subheader class="text-caption text-uppercase"
+                  >Estado de publicación</v-list-subheader
+                >
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Activo</v-list-item-title>
+                  <template #append>
+                    <v-chip color="success" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.active }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Pausado</v-list-item-title>
+                  <template #append>
+                    <v-chip color="warning" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.paused }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Cerrado</v-list-item-title>
+                  <template #append>
+                    <v-chip color="error" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.closed }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="stats-label">Otros</v-list-item-title>
+                  <template #append>
+                    <v-chip color="grey" variant="elevated" class="font-weight-medium">
+                      {{ statsCounters.otherStatus }}
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-expand-transition>
+    </section>
 
     <!-- Tabla de publicaciones -->
-    <v-card variant="outlined">
-      <v-data-table
+    <v-card variant="flat">
+      <v-data-table-virtual
         ref="dataTable"
         v-model:expanded="expanded"
         v-model="publicationsSelected"
@@ -223,6 +282,12 @@
         :loading="loading"
         :items-per-page="itemsPerPage"
         :page="page"
+        :height="tableHeight"
+        :item-height="virtualRowHeight"
+        :bench="virtualScrollBench"
+        :get-row-height="getRowHeight"
+        :item-transition="virtualScrollItemTransition"
+        :expand-transition="expandTransition"
         @update:items-per-page="handleItemsPerPageChange"
         item-value="publication_id"
         density="comfortable"
@@ -912,7 +977,7 @@
             </td>
           </tr>
         </template>
-      </v-data-table>
+      </v-data-table-virtual>
     </v-card>
 
     <!-- Snackbar para notificaciones -->
@@ -1442,6 +1507,7 @@ const loading = ref(false)
 const publications = ref<PublicationSyncData[]>([])
 const totalPublications = ref(0)
 const expanded = ref<string[]>([])
+const showStats = ref(true)
 
 // Estado para notificaciones
 const showNotification = ref(false)
@@ -1503,6 +1569,16 @@ const statusFilter = ref('all') // Filtro para el status de la publicación
 const showSearchField = ref(false)
 const searchInput = ref<HTMLElement | null>(null)
 const dataTable = ref<any>(null)
+
+// Configuración de virtual scroll
+const tableHeight = 500 // Altura fija para el contenedor de la tabla
+const virtualRowHeight = 56 // Altura estándar de una fila (density: comfortable) 56
+const expandedRowAdditionalHeight = 100 // Altura adicional cuando una fila está expandida
+const virtualScrollBench = 20 // Número de filas adicionales a renderizar fuera de la vista (buffer)
+
+// Opciones de transición para animaciones más suaves
+const virtualScrollItemTransition = 'scroll-y-transition'
+const expandTransition = 'expand-transition'
 
 // Opciones para los filtros
 const syncStatusOptions = [
@@ -1617,6 +1693,29 @@ const statsCounters = computed<StatsCounters>(() => {
   return counters
 })
 
+interface DataTableVirtualItem {
+  type: string
+  raw?: PublicationSyncData
+}
+
+const getRowHeight = (item: DataTableVirtualItem) => {
+  // Para encabezados, pies de página, etc.
+  if (item.type !== 'item') {
+    return virtualRowHeight
+  }
+
+  const publicationId = item.raw?.publication_id
+  if (!publicationId) {
+    return virtualRowHeight
+  }
+
+  if (expanded.value.includes(publicationId)) {
+    return virtualRowHeight + expandedRowAdditionalHeight
+  }
+
+  return virtualRowHeight
+}
+
 // No se necesitan datos para el gráfico ya que se ha eliminado
 
 // Variable para almacenar todas las publicaciones (para estadísticas)
@@ -1653,94 +1752,76 @@ const loadSyncRelations = async (forceReload?: boolean) => {
       hasLoadedPublications.value = true
     }
 
-    // Aplicar filtros
-    let filteredPublications = [...publicationsData]
+    const query = searchQuery.value ? searchQuery.value.toLowerCase() : null
+    const syncStatus = syncStatusFilter.value
+    const syncCount = syncCountFilter.value
+    const catalog = catalogFilter.value
+    const statusFilterValue = statusFilter.value
 
-    // Aplicar filtros localmente
-    // Filtrar por búsqueda
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase()
-      filteredPublications = filteredPublications.filter((item) => {
-        return item.publication_id.toLowerCase().includes(query)
-      })
-    }
+    const filteredPublications: PublicationSyncData[] = []
 
-    // Filtrar por estado de sincronización
-    if (syncStatusFilter.value !== 'all') {
-      filteredPublications = filteredPublications.filter((item) => {
-        const hasOutgoing = item.to_syncs.length > 0
-        const hasIncoming = item.from_syncs.length > 0
+    publicationsData.forEach((item) => {
+      if (query && !item.publication_id.toLowerCase().includes(query)) {
+        return
+      }
 
-        switch (syncStatusFilter.value) {
-          case 'origin':
-            return hasOutgoing && !hasIncoming
-          case 'destination':
-            return !hasOutgoing && hasIncoming
-          case 'both':
-            return hasOutgoing && hasIncoming
-          case 'none':
-            return !hasOutgoing && !hasIncoming
-          default:
-            return true
+      const hasOutgoing = item.to_syncs.length > 0
+      const hasIncoming = item.from_syncs.length > 0
+
+      if (syncStatus !== 'all') {
+        const matchesStatusFilter =
+          (syncStatus === 'origin' && hasOutgoing && !hasIncoming) ||
+          (syncStatus === 'destination' && !hasOutgoing && hasIncoming) ||
+          (syncStatus === 'both' && hasOutgoing && hasIncoming) ||
+          (syncStatus === 'none' && !hasOutgoing && !hasIncoming)
+
+        if (!matchesStatusFilter) {
+          return
         }
-      })
-    }
+      }
 
-    // Filtrar por cantidad de sincronizaciones
-    if (syncCountFilter.value !== 'all') {
-      filteredPublications = filteredPublications.filter((item) => {
+      if (syncCount !== 'all') {
         const totalSyncs = item.to_syncs.length + item.from_syncs.length
+        const matchesSyncCount =
+          (syncCount === 'none' && totalSyncs === 0) ||
+          (syncCount === 'few' && totalSyncs >= 1 && totalSyncs <= 5) ||
+          (syncCount === 'medium' && totalSyncs >= 6 && totalSyncs <= 10) ||
+          (syncCount === 'many' && totalSyncs > 10)
 
-        switch (syncCountFilter.value) {
-          case 'none':
-            return totalSyncs === 0
-          case 'few':
-            return totalSyncs >= 1 && totalSyncs <= 5
-          case 'medium':
-            return totalSyncs >= 6 && totalSyncs <= 10
-          case 'many':
-            return totalSyncs > 10
-          default:
-            return true
+        if (!matchesSyncCount) {
+          return
         }
-      })
-    }
+      }
 
-    // Filtrar por catálogo
-    if (catalogFilter.value !== 'all') {
-      filteredPublications = filteredPublications.filter((item) => {
-        switch (catalogFilter.value) {
-          case 'yes':
-            return item.catalog_active === true
-          case 'no':
-            return item.catalog_active === false || item.catalog_active === undefined
-          default:
-            return true
+      if (catalog !== 'all') {
+        const isCatalog = item.catalog_active === true
+        const matchesCatalogFilter =
+          (catalog === 'yes' && isCatalog) || (catalog === 'no' && !isCatalog)
+
+        if (!matchesCatalogFilter) {
+          return
         }
-      })
-    }
+      }
 
-    // Filtrar por status de la publicación
-    if (statusFilter.value !== 'all') {
-      filteredPublications = filteredPublications.filter((item) => {
-        if (!item.status_ml) return false
-
-        const status = item.status_ml.toLowerCase()
-
-        switch (statusFilter.value) {
-          case 'active':
-            return status === 'active'
-          case 'paused':
-            return status === 'paused'
-          case 'closed':
-            return status === 'closed'
-          case 'other':
-            return !['active', 'paused', 'closed'].includes(status)
-          default:
-            return true
+      if (statusFilterValue !== 'all') {
+        const status = item.status_ml?.toLowerCase()
+        if (!status) {
+          return
         }
-      })
-    }
+
+        const matchesStatus =
+          (statusFilterValue === 'active' && status === 'active') ||
+          (statusFilterValue === 'paused' && status === 'paused') ||
+          (statusFilterValue === 'closed' && status === 'closed') ||
+          (statusFilterValue === 'other' && !['active', 'paused', 'closed'].includes(status))
+
+        if (!matchesStatus) {
+          return
+        }
+      }
+
+      filteredPublications.push(item)
+    })
 
     // Actualizar el total de publicaciones filtradas
     totalPublications.value = filteredPublications.length
@@ -3453,27 +3534,45 @@ const resetStatusFilter = () => {
   border-radius: 4px;
 }
 
-:deep(.error-snackbar .text-subtitle-2) {
-  font-weight: 500;
-  margin-top: 8px;
-  margin-bottom: 2px;
+.error-details {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-/* Animación para el icono giratorio */
-.rotating-icon {
-  animation: rotate 1.5s linear infinite;
+.error-table :deep(th) {
+  white-space: nowrap;
 }
 
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Estilos para mejorar animaciones de la tabla virtual */
+:deep(.v-data-table-virtual__wrapper) {
+  scroll-behavior: smooth;
+  will-change: transform;
 }
 
-/* Ajustes para las transiciones */
+:deep(.v-data-table-virtual__item) {
+  transition:
+    transform 0.2s ease-out,
+    opacity 0.2s ease-out;
+  will-change: transform, opacity;
+}
+
+:deep(.v-data-table-virtual__expanded-row) {
+  transition: max-height 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+  will-change: max-height;
+  overflow: hidden;
+}
+
+:deep(.v-data-table-virtual__expanded-content) {
+  transition: opacity 0.2s ease-out;
+  will-change: opacity;
+}
+
+.stats-label {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 100;
+  font-size: 0.8rem;
+}
+
 .v-fade-transition-enter-active,
 .v-fade-transition-leave-active {
   transition: opacity 0.3s ease;
