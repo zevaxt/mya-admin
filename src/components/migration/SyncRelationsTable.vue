@@ -244,7 +244,6 @@
         :loading="loading"
         :items-per-page="itemsPerPage"
         :page="page"
-        @update:page="handlePageChange"
         @update:items-per-page="handleItemsPerPageChange"
         item-value="publication_id"
         density="comfortable"
