@@ -244,7 +244,7 @@
           class="filter-pill ms-auto"
           label
         >
-          <span class="text-body-2">{{ totalRelations }} sincronizaciones encontradas</span>
+          <span class="text-body-2">{{ totalPublicationsFiltered }} registros encontrados</span>
         </v-chip>
 
         <!-- Botón limpiar filtros -->
