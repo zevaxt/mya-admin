@@ -79,7 +79,9 @@
               class="filter-pill"
               label
             >
-              <span class="text-body-2">Estado: {{ statusFilter ? getStatusLabel(statusFilter) : 'Todos' }}</span>
+              <span class="text-body-2"
+                >Estado: {{ statusFilter ? getStatusLabel(statusFilter) : 'Todos' }}</span
+              >
             </v-chip>
           </template>
 
@@ -109,7 +111,13 @@
                 variant="text"
                 color="primary"
                 size="small"
-                @click="statusFilter = 'active'; isDefaultStatusFilter = true; handleStatusFilterChange()"
+                @click="
+                  () => {
+                    statusFilter = 'active'
+                    isDefaultStatusFilter = true
+                    handleStatusFilterChange()
+                  }
+                "
               >
                 Restablecer
               </v-btn>
@@ -128,7 +136,9 @@
               class="filter-pill"
               label
             >
-              <span class="text-body-2">Sync: {{ syncActiveFilter ? getSyncLabel(syncActiveFilter) : 'Todos' }}</span>
+              <span class="text-body-2"
+                >Sync: {{ syncActiveFilter ? getSyncLabel(syncActiveFilter) : 'Todos' }}</span
+              >
             </v-chip>
           </template>
 
@@ -158,7 +168,12 @@
                 variant="text"
                 color="primary"
                 size="small"
-                @click="syncActiveFilter = ''; handleSyncActiveFilterChange()"
+                @click="
+                  () => {
+                    syncActiveFilter = ''
+                    handleSyncActiveFilterChange()
+                  }
+                "
               >
                 Restablecer
               </v-btn>
@@ -177,7 +192,10 @@
               class="filter-pill"
               label
             >
-              <span class="text-body-2">Catálogo: {{ catalogActiveFilter ? getCatalogLabel(catalogActiveFilter) : 'Todos' }}</span>
+              <span class="text-body-2"
+                >Catálogo:
+                {{ catalogActiveFilter ? getCatalogLabel(catalogActiveFilter) : 'Todos' }}</span
+              >
             </v-chip>
           </template>
 
@@ -207,7 +225,12 @@
                 variant="text"
                 color="primary"
                 size="small"
-                @click="catalogActiveFilter = ''; handleCatalogActiveFilterChange()"
+                @click="
+                  () => {
+                    catalogActiveFilter = ''
+                    handleCatalogActiveFilterChange()
+                  }
+                "
               >
                 Restablecer
               </v-btn>
@@ -216,7 +239,12 @@
         </v-menu>
 
         <!-- Botón de columnas -->
-        <v-menu location="bottom" offset-y :close-on-content-click="false" v-model="showColumnsMenu">
+        <v-menu
+          location="bottom"
+          offset-y
+          :close-on-content-click="false"
+          v-model="showColumnsMenu"
+        >
           <template #activator="{ props }">
             <v-chip
               v-bind="props"
@@ -461,8 +489,6 @@
             </v-menu>
           </div>
         </template>
-
-
       </v-data-table>
 
       <!-- Paginador fijo -->
@@ -1823,17 +1849,17 @@ const getSortIcon = (column: TableColumn) => {
 
 // Funciones auxiliares para las etiquetas de los filtros
 const getStatusLabel = (value: string): string => {
-  const option = statusOptions.find(opt => opt.value === value)
+  const option = statusOptions.find((opt) => opt.value === value)
   return option ? option.title : value
 }
 
 const getSyncLabel = (value: string): string => {
-  const option = booleanFilterOptions.find(opt => opt.value === value)
+  const option = booleanFilterOptions.find((opt) => opt.value === value)
   return option ? option.title : value
 }
 
 const getCatalogLabel = (value: string): string => {
-  const option = booleanFilterOptions.find(opt => opt.value === value)
+  const option = booleanFilterOptions.find((opt) => opt.value === value)
   return option ? option.title : value
 }
 
