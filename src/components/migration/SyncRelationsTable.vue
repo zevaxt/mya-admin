@@ -6,7 +6,8 @@
         <h3 class="text-h6 text-primary font-weight-medium mb-1">Sincronizaciones</h3>
         <p class="text-caption text-grey">
           Gestiona las relaciones de sincronización entre publicaciones de diferentes cuentas.
-          <span class="font-weight-medium">{{ totalPublications }}</span> publicaciones disponibles.
+          <span class="font-weight-medium">{{ totalPublicationsFiltered }}</span> publicaciones
+          disponibles.
         </p>
       </div>
       <div class="d-flex gap-2">
@@ -33,102 +34,231 @@
         </v-btn>
       </div>
     </div>
-    <!-- Filtros -->
-    <div class="filter-container mb-4">
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="syncStatusFilter"
-            :items="syncStatusOptions"
-            label="Estado de Sincronización"
-            variant="outlined"
-            density="compact"
-            hide-details
-            @update:model-value="handleSyncStatusFilterChange"
-          >
-            <template v-slot:prepend>
-              <v-icon color="primary">mdi-sync</v-icon>
-            </template>
-            <template v-slot:append>
-              <v-icon
-                v-if="syncStatusFilter !== 'all'"
-                color="primary"
-                @click.stop="resetSyncStatusFilter"
+    <!-- Filtros modernos tipo pills -->
+    <div class="filter-bar mb-4">
+      <!-- Barra de búsqueda principal -->
+      <div class="search-container mb-3">
+        <v-text-field
+          v-model="searchQuery"
+          variant="outlined"
+          density="compact"
+          hide-details
+          placeholder="Buscar ID o SKU..."
+          class="search-field modern-search"
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          rounded
+          bg-color="grey-lighten-4"
+          @update:model-value="handleSearchInputChange"
+          @click:clear="clearSearchField"
+          @keyup.enter="loadSyncRelations"
+        ></v-text-field>
+      </div>
+
+      <!-- Pills de filtros -->
+      <div class="filter-pills-container d-flex flex-wrap align-center gap-0">
+        <!-- Estado de sincronización -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="syncStatusFilter !== 'all' ? 'primary' : 'grey-lighten-3'"
+              :variant="syncStatusFilter !== 'all' ? 'elevated' : 'flat'"
+              :prepend-icon="syncStatusFilter !== 'all' ? 'mdi-check-circle' : 'mdi-sync'"
+              class="filter-pill-IZQUIERDA"
+              label
+            >
+              <span class="text-body-2">Estado: {{ getSyncStatusLabel(syncStatusFilter) }}</span>
+            </v-chip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Estado de Sincronización</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="syncStatusFilter"
+                @update:model-value="handleSyncStatusFilterChange"
+                hide-details
+                density="compact"
               >
-                mdi-close
-              </v-icon>
-            </template>
-          </v-select>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="syncCountFilter"
-            :items="syncCountOptions"
-            label="Cantidad de Sincronizaciones"
-            variant="outlined"
-            density="compact"
-            hide-details
-            @update:model-value="handleSyncCountFilterChange"
-          >
-            <template v-slot:prepend>
-              <v-icon color="primary">mdi-counter</v-icon>
-            </template>
-            <template v-slot:append>
-              <v-icon
-                v-if="syncCountFilter !== 'all'"
-                color="primary"
-                @click.stop="resetSyncCountFilter"
+                <v-radio
+                  v-for="option in syncStatusOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn variant="text" color="primary" size="small" @click="resetSyncStatusFilter">
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
+        <!-- Cantidad de sincronizaciones -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="syncCountFilter !== 'all' ? 'primary' : 'grey-lighten-3'"
+              :variant="syncCountFilter !== 'all' ? 'elevated' : 'flat'"
+              :prepend-icon="syncCountFilter !== 'all' ? 'mdi-check-circle' : 'mdi-counter'"
+              class="filter-pill"
+              label
+            >
+              <span class="text-body-2">Cantidad: {{ getSyncCountLabel(syncCountFilter) }}</span>
+            </v-chip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Cantidad de Sincronizaciones</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="syncCountFilter"
+                @update:model-value="handleSyncCountFilterChange"
+                hide-details
+                density="compact"
               >
-                mdi-close-circle
-              </v-icon>
-            </template>
-          </v-select>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="catalogFilter"
-            :items="catalogOptions"
-            label="Catálogo"
-            variant="outlined"
-            density="compact"
-            hide-details
-            @update:model-value="handleCatalogFilterChange"
-          >
-            <template v-slot:prepend>
-              <v-icon color="purple">mdi-book-open-variant</v-icon>
-            </template>
-            <template v-slot:append>
-              <v-icon
-                v-if="catalogFilter !== 'all'"
-                color="primary"
-                @click.stop="resetCatalogFilter"
+                <v-radio
+                  v-for="option in syncCountOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn variant="text" color="primary" size="small" @click="resetSyncCountFilter">
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
+        <!-- Filtro de catálogo -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="catalogFilter !== 'all' ? 'purple' : 'grey-lighten-3'"
+              :variant="catalogFilter !== 'all' ? 'elevated' : 'flat'"
+              :prepend-icon="catalogFilter !== 'all' ? 'mdi-check-circle' : 'mdi-book-open-variant'"
+              class="filter-pill"
+              label
+            >
+              <span class="text-body-2">Catálogo: {{ getCatalogLabel(catalogFilter) }}</span>
+            </v-chip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Catálogo</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="catalogFilter"
+                @update:model-value="handleCatalogFilterChange"
+                hide-details
+                density="compact"
               >
-                mdi-close-circle
-              </v-icon>
-            </template>
-          </v-select>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="statusFilter"
-            :items="statusOptions"
-            label="Estado"
-            variant="outlined"
-            density="compact"
-            hide-details
-            @update:model-value="handleStatusFilterChange"
-          >
-            <template v-slot:prepend>
-              <v-icon color="success">mdi-check-circle</v-icon>
-            </template>
-            <template v-slot:append>
-              <v-icon v-if="statusFilter !== 'all'" color="primary" @click.stop="resetStatusFilter">
-                mdi-close-circle
-              </v-icon>
-            </template>
-          </v-select>
-        </v-col>
-      </v-row>
+                <v-radio
+                  v-for="option in catalogOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn variant="text" color="primary" size="small" @click="resetCatalogFilter">
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
+        <!-- Filtro de estado -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="statusFilter !== 'active' ? 'success' : 'grey-lighten-3'"
+              :variant="statusFilter !== 'active' ? 'elevated' : 'flat'"
+              :prepend-icon="statusFilter !== 'active' ? 'mdi-check-circle' : 'mdi-filter-variant'"
+              class="filter-pill"
+              label
+            >
+              <span class="text-body-2">Estado: {{ getStatusLabel(statusFilter) }}</span>
+            </v-chip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Estado</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="statusFilter"
+                @update:model-value="handleStatusFilterChange"
+                hide-details
+                density="compact"
+              >
+                <v-radio
+                  v-for="option in statusOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="success"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn variant="text" color="primary" size="small" @click="resetStatusFilter">
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
+        <!-- Chip de resultados -->
+        <v-chip
+          v-if="totalRelations > 0"
+          :color="hasFilters ? 'info-lighten-4' : 'grey-lighten-4'"
+          variant="flat"
+          :prepend-icon="hasFilters ? 'mdi-filter' : 'mdi-information'"
+          class="filter-pill ms-auto"
+          label
+        >
+          <span class="text-body-2">{{ totalRelations }} sincronizaciones encontradas</span>
+        </v-chip>
+
+        <!-- Botón limpiar filtros -->
+        <v-btn
+          v-if="hasFilters"
+          color="grey-darken-1"
+          variant="text"
+          size="small"
+          @click="resetAllFilters"
+          class="filter-clear-btn"
+          density="comfortable"
+        >
+          <v-icon start size="small">mdi-filter-remove</v-icon>
+          Limpiar filtros
+        </v-btn>
+      </div>
     </div>
 
     <!-- Estadísticas -->
@@ -153,10 +283,10 @@
                   >Resumen general</v-list-subheader
                 >
                 <v-list-item>
-                  <v-list-item-title class="stats-label">Total de publicaciones</v-list-item-title>
+                  <v-list-item-title class="stats-label">Publicaciones filtradas</v-list-item-title>
                   <template #append>
                     <v-chip color="primary" variant="flat" class="font-weight-medium">
-                      {{ totalPublications }}
+                      {{ totalPublicationsFiltered }} / {{ totalPublicationsAll }}
                     </v-chip>
                   </template>
                 </v-list-item>
@@ -294,7 +424,7 @@
         hover
         show-select
         class="elevation-0"
-        :server-items-length="totalPublications"
+        :server-items-length="totalPublicationsFiltered"
       >
         <!-- No usamos el slot bottom para poder tener un paginador fijo -->
         <template #bottom></template>
@@ -1452,11 +1582,11 @@
         <div class="d-flex align-center">
           <div class="text-body-2 text-grey-darken-1 font-weight-medium me-4">
             {{
-              totalPublications > 0
+              totalPublicationsFiltered > 0
                 ? `${(page - 1) * itemsPerPage + 1}-${Math.min(
                     page * itemsPerPage,
-                    totalPublications,
-                  )} de ${totalPublications}`
+                    totalPublicationsFiltered,
+                  )} de ${totalPublicationsFiltered}`
                 : '0-0 de 0'
             }}
           </div>
@@ -1476,7 +1606,7 @@
 
           <v-pagination
             v-model="page"
-            :length="Math.ceil(totalPublications / itemsPerPage)"
+            :length="Math.ceil(totalPublicationsFiltered / itemsPerPage)"
             @update:model-value="handlePageChange"
             :disabled="loading"
             :total-visible="5"
@@ -1505,7 +1635,8 @@ import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 const accountStore = useAccountStore()
 const loading = ref(false)
 const publications = ref<PublicationSyncData[]>([])
-const totalPublications = ref(0)
+const totalPublicationsAll = ref(0)
+const totalPublicationsFiltered = ref(0)
 const expanded = ref<string[]>([])
 const showStats = ref(true)
 
@@ -1563,7 +1694,7 @@ const searchQuery = ref('')
 const syncStatusFilter = ref('all')
 const syncCountFilter = ref('all')
 const catalogFilter = ref('all')
-const statusFilter = ref('all') // Filtro para el status de la publicación
+const statusFilter = ref<'all' | 'active' | 'paused' | 'closed' | 'other'>('active')
 
 // Estado para el campo de búsqueda
 const showSearchField = ref(false)
@@ -1612,6 +1743,64 @@ const statusOptions = [
   { title: 'Cerrado', value: 'closed' },
   { title: 'Otros', value: 'other' },
 ]
+
+// Funciones auxiliares para etiquetas
+const getSyncStatusLabel = (value: string): string => {
+  const option = syncStatusOptions.find((opt) => opt.value === value)
+  return option ? option.title : 'Todos'
+}
+
+const getSyncCountLabel = (value: string): string => {
+  const option = syncCountOptions.find((opt) => opt.value === value)
+  return option ? option.title : 'Todos'
+}
+
+const getCatalogLabel = (value: string): string => {
+  const option = catalogOptions.find((opt) => opt.value === value)
+  return option ? option.title : 'Todos'
+}
+
+const getStatusLabel = (value: string): string => {
+  const option = statusOptions.find((opt) => opt.value === value)
+  return option ? option.title : 'Todos'
+}
+
+// Funciones para manejo de búsqueda
+const handleSearchInputChange = () => {
+  page.value = 1
+  loadSyncRelations()
+}
+
+// Función para limpiar el campo de búsqueda
+const clearSearchField = () => {
+  searchQuery.value = ''
+  loadSyncRelations()
+}
+
+const resetAllFilters = () => {
+  syncStatusFilter.value = 'all'
+  syncCountFilter.value = 'all'
+  catalogFilter.value = 'all'
+  statusFilter.value = 'active'
+  searchQuery.value = ''
+  loadSyncRelations()
+}
+
+// Propiedades computadas para los filtros
+const hasFilters = computed(() => {
+  return (
+    syncStatusFilter.value !== 'all' ||
+    syncCountFilter.value !== 'all' ||
+    catalogFilter.value !== 'all' ||
+    statusFilter.value !== 'active' ||
+    searchQuery.value !== ''
+  )
+})
+
+// Total de relaciones para mostrar en el contador
+const totalRelations = computed(() => {
+  return publications.value.reduce((acc, pub) => acc + (pub.to_syncs?.length || 0), 0)
+})
 
 // Encabezados de la tabla
 const headers = [
@@ -1757,6 +1946,7 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     const syncCount = syncCountFilter.value
     const catalog = catalogFilter.value
     const statusFilterValue = statusFilter.value
+    totalPublicationsAll.value = publicationsData.length
 
     const filteredPublications: PublicationSyncData[] = []
 
@@ -1824,7 +2014,7 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     })
 
     // Actualizar el total de publicaciones filtradas
-    totalPublications.value = filteredPublications.length
+    totalPublicationsFiltered.value = filteredPublications.length
 
     // Aplicar paginación
     const offset = (page.value - 1) * itemsPerPage.value
@@ -1840,7 +2030,7 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     notificationType.value = 'error'
     publications.value = []
     allPublications.value = []
-    totalPublications.value = 0
+    totalPublicationsFiltered.value = 0
     hasLoadedPublications.value = false
   } finally {
     if (shouldFetchFromApi) {
@@ -3335,7 +3525,7 @@ watch(
       hasLoadedPublications.value = false
       allPublications.value = []
       publications.value = []
-      totalPublications.value = 0
+      totalPublicationsFiltered.value = 0
       loadSyncRelations(true)
     }
   },
@@ -3473,7 +3663,7 @@ const handleStatusFilterChange = () => {
 }
 
 const resetStatusFilter = () => {
-  statusFilter.value = 'all'
+  statusFilter.value = 'active'
   applyLocalFilters()
 }
 </script>
@@ -3504,6 +3694,99 @@ const resetStatusFilter = () => {
 .sortable-header {
   cursor: pointer;
   user-select: none;
+}
+
+/* Estilos para los filtros modernos */
+.filter-bar {
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f9fafb 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-container {
+  max-width: 100%;
+}
+
+.modern-search {
+  max-width: 100%;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+}
+
+.modern-search :deep(.v-field__input) {
+  min-height: 44px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.modern-search :deep(.v-field__prepend-inner) {
+  padding-top: 10px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.filter-pills-container {
+  padding: 4px 0;
+  gap: 0px !important; /* SEPARACION FILTROS*/
+}
+
+.filter-pill {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  min-width: 160px;
+  padding: 0 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 0px !important; /* REDONDEO DE FILTROS */
+}
+
+.filter-pill-IZQUIERDA {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  min-width: 160px;
+  padding: 0 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 0px !important; /* REDONDEO DE FILTROS */
+  border-start-start-radius: 15px !important;
+  border-bottom-left-radius: 15px !important;
+}
+
+.filter-pill:hover,
+.filter-pill-IZQUIERDA:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.filter-pill :deep(.v-chip__content),
+.filter-pill-IZQUIERDA :deep(.v-chip__content) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-menu {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.filter-clear-btn {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 0 20px !important;
+  border-radius: 8px !important;
 }
 
 /* Estilo para hover aplicado en la clase .visible-on-hover */

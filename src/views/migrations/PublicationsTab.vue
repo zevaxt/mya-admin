@@ -347,6 +347,7 @@
             ? 'No hay productos disponibles'
             : 'Selecciona una cuenta para ver los productos'
         "
+        :ripple="false"
         show-select
         item-value="ID"
       >
@@ -365,8 +366,6 @@
             </div>
           </div>
         </template>
-
-        <!-- Columna de precio eliminada -->
 
         <template #[`item.SyncActive`]="{ item }">
           <div class="d-flex align-center justify-center w-100">
@@ -524,7 +523,7 @@
             </div>
           </div>
           <div class="d-flex align-center me-4">
-            <span class="text-caption text-grey me-2">Mostrar:</span>
+            <span class="text-caption me-2">Registros por página:</span>
             <v-select
               v-model="itemsPerPage"
               :items="itemsPerPageOptions"
@@ -532,19 +531,11 @@
               density="compact"
               class="items-per-page-select"
               hide-details
-              style="max-width: 90px"
-              bg-color="grey-lighten-5"
-              color="primary"
               @update:model-value="handleItemsPerPageChange"
-            >
-              <template #prepend>
-                <v-icon size="x-small" color="primary">mdi-format-list-numbered</v-icon>
-              </template>
-              <template #selection="{ item }">
-                <span class="text-body-2">{{ item.value }}</span>
-              </template>
-            </v-select>
+            ></v-select>
           </div>
+
+          
           <v-pagination
             v-model="page"
             :length="Math.ceil(totalProductIds / itemsPerPage)"

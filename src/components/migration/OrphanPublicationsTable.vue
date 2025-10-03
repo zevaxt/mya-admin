@@ -23,179 +23,320 @@
       </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="filter-container mb-4">
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-tooltip
-            location="top"
-            text="Al elegir la opción Activas, se listan únicamente las publicaciones cuyo estado interno quedó marcado como activo durante el proceso de populate, siempre que su estado fuera active en Mercado Libre y pertenezcan al canal Marketplace."
-          >
-            <template v-slot:activator="{ props }">
-              <div v-bind="props" class="w-100">
-                <v-select
-                  v-model="statusFilter"
-                  :items="statusOptions"
-                  item-title="title"
-                  item-value="value"
-                  label="Filtrar por estado"
-                  variant="outlined"
-                  density="comfortable"
-                  @update:model-value="handleStatusFilterChange"
-                  :color="isDefaultStatusFilter ? undefined : 'primary'"
-                  :bg-color="isDefaultStatusFilter ? undefined : 'primary-lighten-5'"
-                >
-                  <template v-slot:append-inner>
-                    <v-icon
-                      v-if="!isDefaultStatusFilter"
-                      color="primary"
-                      @click.stop="resetStatusFilter"
-                    >
-                      mdi-close
-                    </v-icon>
-                  </template>
-                </v-select>
-              </div>
-            </template>
-          </v-tooltip>
-        </v-col>
+    <!-- Filtros modernos tipo pills -->
+    <div class="filter-bar mb-4">
+      <!-- Barra de búsqueda principal -->
+      <div class="search-container mb-3">
+        <v-text-field
+          v-model="searchQuery"
+          variant="outlined"
+          density="compact"
+          hide-details
+          placeholder="Buscar ID..."
+          class="search-field modern-search"
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          rounded
+          bg-color="grey-lighten-4"
+          @update:model-value="handleSearchInputChange"
+          @click:clear="clearSearchField"
+          @keyup.enter="loadOrphanPublications"
+        ></v-text-field>
+      </div>
 
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="soldQuantityFilter"
-            :items="soldQuantityOptions"
-            item-title="title"
-            item-value="value"
-            label="Filtrar por ventas"
-            variant="outlined"
-            density="comfortable"
-            @update:model-value="loadOrphanPublications"
-            :color="soldQuantityFilter !== 'all' ? 'primary' : undefined"
-            :bg-color="soldQuantityFilter !== 'all' ? 'primary-lighten-5' : undefined"
-          >
-            <template v-slot:append-inner>
-              <v-icon
-                v-if="soldQuantityFilter !== 'all'"
+      <!-- Pills de filtros -->
+      <div class="filter-pills-container d-flex flex-wrap align-center gap-2">
+        <!-- Filtro de estado -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-tooltip
+              location="top"
+              text="Al elegir la opción Activas, se listan únicamente las publicaciones cuyo estado interno quedó marcado como activo durante el proceso de populate, siempre que su estado fuera active en Mercado Libre y pertenezcan al canal Marketplace."
+            >
+              <template #activator="{ tooltipProps }">
+                <v-chip
+                  v-bind="{ ...props, ...tooltipProps }"
+                  :color="!isDefaultStatusFilter ? 'primary' : 'grey-lighten-3'"
+                  :variant="!isDefaultStatusFilter ? 'elevated' : 'flat'"
+                  :prepend-icon="!isDefaultStatusFilter ? 'mdi-check-circle' : 'mdi-filter-variant'"
+                  class="filter-pill-IZQUIERDA"
+                  label
+                >
+                  <span class="text-body-2"> Estado: {{ getStatusLabel(statusFilter) }} </span>
+                </v-chip>
+              </template>
+            </v-tooltip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Filtrar por estado</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="statusFilter"
+                @update:model-value="handleStatusFilterChange"
+                hide-details
+                density="compact"
+              >
+                <v-radio
+                  v-for="option in statusOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn
+                variant="text"
                 color="primary"
-                @click.stop="
+                size="small"
+                @click="
+                  () => {
+                    resetStatusFilter()
+                  }
+                "
+              >
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
+        <!-- Filtro de Ventas -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-chip
+              v-bind="props"
+              :color="soldQuantityFilter !== 'all' ? 'primary' : 'grey-lighten-3'"
+              :variant="soldQuantityFilter !== 'all' ? 'elevated' : 'flat'"
+              :prepend-icon="soldQuantityFilter !== 'all' ? 'mdi-check-circle' : 'mdi-cart'"
+              class="filter-pill"
+              label
+            >
+              <span class="text-body-2">
+                Ventas: {{ getSoldQuantityLabel(soldQuantityFilter) }}
+              </span>
+            </v-chip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Filtrar por ventas</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="soldQuantityFilter"
+                @update:model-value="loadOrphanPublications"
+                hide-details
+                density="compact"
+              >
+                <v-radio
+                  v-for="option in soldQuantityOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn
+                variant="text"
+                color="primary"
+                size="small"
+                @click="
                   () => {
                     soldQuantityFilter = 'all'
                     loadOrphanPublications()
                   }
                 "
               >
-                mdi-close
-              </v-icon>
-            </template>
-          </v-select>
-        </v-col>
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
 
-        <v-col cols="12" md="3">
-          <v-tooltip
-            location="top"
-            text="Selecciona 'De catálogo' para mostrar solo publicaciones que están en el catálogo de Mercado Libre, o 'Estándar' para las publicaciones normales"
-          >
-            <template v-slot:activator="{ props }">
-              <div v-bind="props" class="w-100">
-                <v-select
-                  v-model="catalogActiveFilter"
-                  :items="catalogActiveOptions"
-                  item-title="title"
-                  item-value="value"
-                  label="Tipo de publicación"
-                  variant="outlined"
-                  density="comfortable"
-                  @update:model-value="loadOrphanPublications"
-                  :color="catalogActiveFilter !== 'all' ? 'primary' : undefined"
-                  :bg-color="catalogActiveFilter !== 'all' ? 'primary-lighten-5' : undefined"
-                >
-                  <template v-slot:append-inner>
-                    <v-icon
-                      v-if="catalogActiveFilter !== 'all'"
-                      color="primary"
-                      @click.stop="
-                        () => {
-                          catalogActiveFilter = 'all'
-                          loadOrphanPublications()
-                        }
-                      "
-                    >
-                      mdi-close
-                    </v-icon>
-                  </template>
-                </v-select>
-              </div>
-            </template>
-          </v-tooltip>
-        </v-col>
-
-        <v-col cols="12" md="3">
-          <v-tooltip
-            location="top"
-            text="Selecciona el tipo de sincronización que falta: 'Salientes' para publicaciones que no tienen sincronizaciones salientes, 'Entrantes' para las que no tienen sincronizaciones entrantes, o 'Todas' para las que no tienen ninguna sincronización"
-          >
-            <template v-slot:activator="{ props }">
-              <div v-bind="props" class="w-100">
-                <v-select
-                  v-model="relationQueryTypeFilter"
-                  :items="relationQueryTypeOptions"
-                  item-title="title"
-                  item-value="value"
-                  label="No Tiene Sincronizaciones"
-                  variant="outlined"
-                  density="comfortable"
-                  @update:model-value="loadOrphanPublications"
-                  :color="relationQueryTypeFilter !== 'incoming' ? 'primary' : undefined"
-                  :bg-color="
-                    relationQueryTypeFilter !== 'incoming' ? 'primary-lighten-5' : undefined
+        <!-- Filtro de Catálogo -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-tooltip
+              location="top"
+              text="Selecciona 'De catálogo' para mostrar solo publicaciones que están en el catálogo de Mercado Libre, o 'Estándar' para las publicaciones normales"
+            >
+              <template #activator="{ tooltipProps }">
+                <v-chip
+                  v-bind="{ ...props, ...tooltipProps }"
+                  :color="catalogActiveFilter !== 'all' ? 'primary' : 'grey-lighten-3'"
+                  :variant="catalogActiveFilter !== 'all' ? 'elevated' : 'flat'"
+                  :prepend-icon="
+                    catalogActiveFilter !== 'all' ? 'mdi-check-circle' : 'mdi-book-open-variant'
                   "
+                  class="filter-pill"
+                  label
                 >
-                  <template v-slot:append-inner>
-                    <v-icon
-                      v-if="relationQueryTypeFilter !== 'incoming'"
-                      color="primary"
-                      @click.stop="
-                        () => {
-                          relationQueryTypeFilter = 'incoming'
-                          loadOrphanPublications()
-                        }
-                      "
-                    >
-                      mdi-close
-                    </v-icon>
-                  </template>
-                </v-select>
-              </div>
-            </template>
-          </v-tooltip>
-        </v-col>
+                  <span class="text-body-2">
+                    Tipo: {{ getCatalogLabel(catalogActiveFilter) }}
+                  </span>
+                </v-chip>
+              </template>
+            </v-tooltip>
+          </template>
 
-        <v-col cols="12" md="6" class="d-flex justify-start align-center gap-2">
-          <v-btn
-            v-if="
-              !isDefaultStatusFilter ||
-              soldQuantityFilter !== 'all' ||
-              catalogActiveFilter !== 'all' ||
-              relationQueryTypeFilter !== 'incoming'
-            "
-            color="secondary"
-            variant="outlined"
-            @click="clearFilters"
-            size="small"
-          >
-            <v-icon start>mdi-filter-remove</v-icon>
-            Limpiar filtros
-          </v-btn>
-        </v-col>
-      </v-row>
-    </div>
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">Tipo de publicación</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="catalogActiveFilter"
+                @update:model-value="loadOrphanPublications"
+                hide-details
+                density="compact"
+              >
+                <v-radio
+                  v-for="option in catalogActiveOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn
+                variant="text"
+                color="primary"
+                size="small"
+                @click="
+                  () => {
+                    catalogActiveFilter = 'all'
+                    loadOrphanPublications()
+                  }
+                "
+              >
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
 
-    <!-- Contador de resultados -->
-    <div v-if="total > 0" class="mb-2">
-      <v-chip color="warning" size="small" variant="outlined">
-        <v-icon start size="small">mdi-information</v-icon>
-        {{ total }} publicaciones huérfanas encontradas
-      </v-chip>
+        <!-- Filtro de Sincronizaciones -->
+        <v-menu location="bottom" offset-y :close-on-content-click="false">
+          <template #activator="{ props }">
+            <v-tooltip
+              location="top"
+              text="Selecciona el tipo de sincronización que falta: 'Salientes' para publicaciones que no tienen sincronizaciones salientes, 'Entrantes' para las que no tienen sincronizaciones entrantes, o 'Todas' para las que no tienen ninguna sincronización"
+            >
+              <template #activator="{ tooltipProps }">
+                <v-chip
+                  v-bind="{ ...props, ...tooltipProps }"
+                  :color="relationQueryTypeFilter !== 'incoming' ? 'primary' : 'grey-lighten-3'"
+                  :variant="relationQueryTypeFilter !== 'incoming' ? 'elevated' : 'flat'"
+                  :prepend-icon="
+                    relationQueryTypeFilter !== 'incoming' ? 'mdi-check-circle' : 'mdi-sync-off'
+                  "
+                  class="filter-pill"
+                  label
+                >
+                  <span class="text-body-2">
+                    No Tiene: {{ getRelationLabel(relationQueryTypeFilter) }}
+                  </span>
+                </v-chip>
+              </template>
+            </v-tooltip>
+          </template>
+
+          <v-card min-width="280" max-width="320" class="filter-menu pa-2">
+            <v-card-title class="text-subtitle-2 pa-2">No Tiene Sincronizaciones</v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-2">
+              <v-radio-group
+                v-model="relationQueryTypeFilter"
+                @update:model-value="loadOrphanPublications"
+                hide-details
+                density="compact"
+              >
+                <v-radio
+                  v-for="option in relationQueryTypeOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  :label="option.title"
+                  color="primary"
+                  density="compact"
+                ></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-spacer></v-spacer>
+              <v-btn
+                variant="text"
+                color="primary"
+                size="small"
+                @click="
+                  () => {
+                    relationQueryTypeFilter = 'incoming'
+                    loadOrphanPublications()
+                  }
+                "
+              >
+                Restablecer
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-menu>
+
+        <!-- Chip de resultados -->
+        <v-chip
+          v-if="total > 0"
+          :color="
+            !isDefaultStatusFilter ||
+            soldQuantityFilter !== 'all' ||
+            catalogActiveFilter !== 'all' ||
+            relationQueryTypeFilter !== 'incoming'
+              ? 'info-lighten-4'
+              : 'grey-lighten-4'
+          "
+          variant="flat"
+          :prepend-icon="
+            !isDefaultStatusFilter ||
+            soldQuantityFilter !== 'all' ||
+            catalogActiveFilter !== 'all' ||
+            relationQueryTypeFilter !== 'incoming'
+              ? 'mdi-filter'
+              : 'mdi-information'
+          "
+          class="filter-pill ct-right ms-auto"
+          label
+        >
+          <span class="text-body-2">{{ total }} publicaciones huérfanas encontradas</span>
+        </v-chip>
+
+        <!-- Botón limpiar filtros -->
+        <v-btn
+          v-if="
+            !isDefaultStatusFilter ||
+            soldQuantityFilter !== 'all' ||
+            catalogActiveFilter !== 'all' ||
+            relationQueryTypeFilter !== 'incoming'
+          "
+          color="grey-darken-1"
+          variant="text"
+          size="small"
+          @click="clearFilters"
+          class="filter-clear-btn ms-auto"
+          density="comfortable"
+        >
+          <v-icon start size="small">mdi-filter-remove</v-icon>
+          Limpiar filtros
+        </v-btn>
+      </div>
     </div>
 
     <div class="position-relative">
@@ -682,18 +823,152 @@ onMounted(() => {
     loadOrphanPublications()
   }
 })
+
+// Agregar las funciones auxiliares para las etiquetas de los filtros
+const searchQuery = ref('')
+
+// Función para manejar el cambio en el campo de búsqueda
+const handleSearchInputChange = () => {
+  // Implementar la lógica de búsqueda si es necesario
+}
+
+// Función para limpiar el campo de búsqueda
+const clearSearchField = () => {
+  searchQuery.value = ''
+}
+
+// Funciones auxiliares para las etiquetas de los filtros
+const getStatusLabel = (value: boolean | string): string => {
+  if (value === true) return 'Activas'
+  if (value === false) return 'Inactivas'
+  return 'Todas'
+}
+
+const getSoldQuantityLabel = (value: string): string => {
+  const option = soldQuantityOptions.find((opt) => opt.value === value)
+  return option ? option.title : value
+}
+
+const getCatalogLabel = (value: string): string => {
+  const option = catalogActiveOptions.find((opt) => opt.value === value)
+  return option ? option.title : value
+}
+
+const getRelationLabel = (value: string): string => {
+  const option = relationQueryTypeOptions.find((opt) => opt.value === value)
+  return option ? option.title : value
+}
 </script>
 
 <style scoped>
-.filter-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+.filter-bar {
   margin-bottom: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #f9fafb 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.filter-select {
-  width: 200px;
+.search-container {
+  max-width: 100%;
+}
+
+.modern-search {
+  max-width: 100%;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+}
+
+.modern-search :deep(.v-field__input) {
+  min-height: 44px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.modern-search :deep(.v-field__prepend-inner) {
+  padding-top: 10px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.filter-pills-container {
+  padding: 4px 0;
+  gap: 0px !important; /* SEPARACION FILTROS*/
+}
+
+.filter-pill {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  min-width: 160px;
+  padding: 0 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 0px !important;
+}
+
+.filter-pill {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  min-width: 160px;
+  padding: 0 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 0px !important;
+}
+
+.ct-right {
+  border-top-right-radius: 15px !important;
+  border-bottom-right-radius: 15px !important;
+}
+
+.filter-pill-IZQUIERDA {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  min-width: 160px;
+  padding: 0 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 0px !important;
+  border-start-start-radius: 15px !important;
+  border-bottom-left-radius: 15px !important;
+}
+
+.filter-pill:hover,
+.filter-pill-IZQUIERDA:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.filter-pill :deep(.v-chip__content),
+.filter-pill-IZQUIERDA :deep(.v-chip__content) {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-menu {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.filter-clear-btn {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 0 20px !important;
+  border-radius: 8px !important;
 }
 
 .v-data-table :deep(th) {
