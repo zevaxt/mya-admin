@@ -151,19 +151,19 @@
             </div>
             <div class="d-flex">
               <div class="text-center px-3">
-                <div class="text-h6">{{ originCount }}</div>
+                <div class="text-h6">{{ statsCounters.origin }}</div>
                 <div class="text-caption">Origen</div>
               </div>
               <div class="text-center px-3">
-                <div class="text-h6">{{ destinationCount }}</div>
+                <div class="text-h6">{{ statsCounters.destination }}</div>
                 <div class="text-caption">Destino</div>
               </div>
               <div class="text-center px-3">
-                <div class="text-h6">{{ bothCount }}</div>
+                <div class="text-h6">{{ statsCounters.both }}</div>
                 <div class="text-caption">Ambos</div>
               </div>
               <div class="text-center px-3">
-                <div class="text-h6">{{ noneCount }}</div>
+                <div class="text-h6">{{ statsCounters.none }}</div>
                 <div class="text-caption">Ninguno</div>
               </div>
             </div>
@@ -174,11 +174,11 @@
             <div class="text-caption text-primary font-weight-medium mb-2">Tipo de publicación</div>
             <div class="d-flex">
               <div class="text-center px-3">
-                <div class="text-h6">{{ catalogCount }}</div>
+                <div class="text-h6">{{ statsCounters.catalog }}</div>
                 <div class="text-caption">Catálogo</div>
               </div>
               <div class="text-center px-3">
-                <div class="text-h6">{{ nonCatalogCount }}</div>
+                <div class="text-h6">{{ statsCounters.nonCatalog }}</div>
                 <div class="text-caption">Estándar</div>
               </div>
             </div>
@@ -191,19 +191,19 @@
             </div>
             <div class="d-flex">
               <div class="text-center px-2">
-                <div class="text-h6 text-success">{{ activeCount }}</div>
+                <div class="text-h6 text-success">{{ statsCounters.active }}</div>
                 <div class="text-caption">Activo</div>
               </div>
               <div class="text-center px-2">
-                <div class="text-h6 text-warning">{{ pausedCount }}</div>
+                <div class="text-h6 text-warning">{{ statsCounters.paused }}</div>
                 <div class="text-caption">Pausado</div>
               </div>
               <div class="text-center px-2">
-                <div class="text-h6 text-error">{{ closedCount }}</div>
+                <div class="text-h6 text-error">{{ statsCounters.closed }}</div>
                 <div class="text-caption">Cerrado</div>
               </div>
               <div class="text-center px-2">
-                <div class="text-h6 text-grey">{{ otherStatusCount }}</div>
+                <div class="text-h6 text-grey">{{ statsCounters.otherStatus }}</div>
                 <div class="text-caption">Otros</div>
               </div>
             </div>
@@ -1551,60 +1551,70 @@ const headers = [
 // Ya no necesitamos la función filteredPublications computada
 // porque ahora aplicamos los filtros directamente en loadSyncRelations
 
-// Contadores para estadísticas (usando allPublications para contar todas las publicaciones)
-const originCount = computed(() => {
-  return allPublications.value.filter(
-    (item) => item.to_syncs.length > 0 && item.from_syncs.length === 0,
-  ).length
-})
+interface StatsCounters {
+  origin: number
+  destination: number
+  both: number
+  none: number
+  catalog: number
+  nonCatalog: number
+  active: number
+  paused: number
+  closed: number
+  otherStatus: number
+}
 
-const destinationCount = computed(() => {
-  return allPublications.value.filter(
-    (item) => item.to_syncs.length === 0 && item.from_syncs.length > 0,
-  ).length
-})
+const statsCounters = computed<StatsCounters>(() => {
+  const counters: StatsCounters = {
+    origin: 0,
+    destination: 0,
+    both: 0,
+    none: 0,
+    catalog: 0,
+    nonCatalog: 0,
+    active: 0,
+    paused: 0,
+    closed: 0,
+    otherStatus: 0,
+  }
 
-const bothCount = computed(() => {
-  return allPublications.value.filter(
-    (item) => item.to_syncs.length > 0 && item.from_syncs.length > 0,
-  ).length
-})
+  allPublications.value.forEach((item) => {
+    const hasOutgoing = item.to_syncs.length > 0
+    const hasIncoming = item.from_syncs.length > 0
 
-const noneCount = computed(() => {
-  return allPublications.value.filter(
-    (item) => item.to_syncs.length === 0 && item.from_syncs.length === 0,
-  ).length
-})
+    if (hasOutgoing && hasIncoming) {
+      counters.both += 1
+    } else if (hasOutgoing) {
+      counters.origin += 1
+    } else if (hasIncoming) {
+      counters.destination += 1
+    } else {
+      counters.none += 1
+    }
 
-// Contador para publicaciones de catálogo
-const catalogCount = computed(() => {
-  return allPublications.value.filter((item) => item.catalog_active === true).length
-})
+    if (item.catalog_active === true) {
+      counters.catalog += 1
+    } else {
+      counters.nonCatalog += 1
+    }
 
-// Contador para publicaciones estándar (no catálogo)
-const nonCatalogCount = computed(() => {
-  return allPublications.value.filter(
-    (item) => item.catalog_active === false || item.catalog_active === undefined,
-  ).length
-})
+    const status = (item.status_ml ?? item.status)?.toLowerCase()
+    if (!status) {
+      return
+    }
 
-// Contadores para los diferentes estados de publicación
-const activeCount = computed(() => {
-  return allPublications.value.filter((item) => item.status_ml?.toLowerCase() === 'active').length
-})
+    if (status === 'active') {
+      counters.active += 1
+    } else if (status === 'paused') {
+      counters.paused += 1
+    } else if (status === 'closed') {
+      counters.closed += 1
+    } else {
+      counters.otherStatus += 1
+    }
+  })
 
-const pausedCount = computed(() => {
-  return allPublications.value.filter((item) => item.status_ml?.toLowerCase() === 'paused').length
-})
-
-const closedCount = computed(() => {
-  return allPublications.value.filter((item) => item.status_ml?.toLowerCase() === 'closed').length
-})
-
-const otherStatusCount = computed(() => {
-  return allPublications.value.filter(
-    (item) => item.status_ml && !['active', 'paused', 'closed'].includes(item.status_ml.toLowerCase()),
-  ).length
+  return counters
 })
 
 // No se necesitan datos para el gráfico ya que se ha eliminado
