@@ -1489,7 +1489,7 @@ const deletingSelected = ref(false)
 
 // Estado para la paginación
 const page = ref(1)
-const itemsPerPage = ref(10)
+const itemsPerPage = ref(25)
 const itemsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000]
 
 // Filtros
