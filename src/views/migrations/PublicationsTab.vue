@@ -1006,20 +1006,20 @@ const hasActiveFilters = computed(() => {
 const paginationInfo = computed(() => {
   if (!productIds.value.length) return { text: '', start: 0, end: 0, total: 0 }
 
-  // Si hay filtros locales activos (no búsqueda)
-  if (hasActiveFilters.value && !searchQuery.value.trim()) {
-    const total = productIds.value.length
-    const filtered = filteredProductIds.value.length
+  const filtersApplied = hasActiveFilters.value || !!searchQuery.value.trim()
+
+  if (filtersApplied) {
+    const filteredTotal = filteredProductIds.value.length
     return {
-      text: `${filtered} de ${total}`,
-      start: 0,
-      end: filtered,
-      total: total,
+      text: `${filteredTotal} de ${filteredTotal}`,
+      start: filteredTotal > 0 ? 1 : 0,
+      end: filteredTotal,
+      total: filteredTotal,
       isFiltered: true,
     }
   }
 
-  // Para paginación normal o búsqueda remota
+  // Para paginación normal
   const start = (page.value - 1) * itemsPerPage.value + 1
   const end = Math.min(page.value * itemsPerPage.value, totalProductIds.value)
   return {
@@ -1027,7 +1027,7 @@ const paginationInfo = computed(() => {
     start,
     end,
     total: totalProductIds.value,
-    isFiltered: hasActiveFilters.value,
+    isFiltered: false,
   }
 })
 
