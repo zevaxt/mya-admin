@@ -3260,15 +3260,6 @@ watch(
   },
 )
 
-// Watcher para depurar la selección
-watch(
-  publicationsSelected,
-  (newSelected) => {
-    console.log('Elementos seleccionados:', newSelected)
-  },
-  { deep: true },
-)
-
 // Función para manejar la paginación
 const handlePageChange = (newPage: number) => {
   page.value = newPage
