@@ -47,8 +47,29 @@
 
     <!-- Filtros -->
     <div class="filter-container mb-4">
+      <!-- Barra de búsqueda principal -->
+      <div class="search-container mb-3">
+        <v-text-field
+          v-model="searchQuery"
+          variant="solo"
+          density="compact"
+          hide-details
+          placeholder="Buscar ID..."
+          class="search-field modern-search"
+          prepend-inner-icon="mdi-magnify"
+          clearable
+          rounded
+          bg-color="grey-lighten-4"
+          @update:model-value="handleSearchInputChange"
+          @click:clear="clearSearchField"
+          @keyup.enter="executeSearch"
+        ></v-text-field>
+      </div>
+
+      <!-- Filtros en columnas -->
       <v-row>
         <v-col cols="12" md="3">
+          <!-- Filtro de estado -->
           <v-select
             v-model="statusFilter"
             :items="statusOptions"
@@ -56,7 +77,9 @@
             item-value="value"
             label="Filtrar por estado"
             variant="outlined"
-            density="comfortable"
+            density="compact"
+            class="filter-select"
+            hide-details
             @update:model-value="handleStatusFilterChange"
             :color="statusFilter ? 'primary' : undefined"
             :bg-color="statusFilter ? 'primary-lighten-5' : undefined"
@@ -72,13 +95,15 @@
                     handleStatusFilterChange()
                   }
                 "
-                >mdi-close</v-icon
               >
+                mdi-close
+              </v-icon>
             </template>
           </v-select>
         </v-col>
 
         <v-col cols="12" md="3">
+          <!-- Filtro de Sync Activo -->
           <v-select
             v-model="syncActiveFilter"
             :items="booleanFilterOptions"
@@ -86,7 +111,9 @@
             item-value="value"
             label="Filtrar por Sync Activo"
             variant="outlined"
-            density="comfortable"
+            density="compact"
+            class="filter-select"
+            hide-details
             @update:model-value="handleSyncActiveFilterChange"
             :color="syncActiveFilter ? 'primary' : undefined"
             :bg-color="syncActiveFilter ? 'primary-lighten-5' : undefined"
@@ -101,13 +128,15 @@
                     handleSyncActiveFilterChange()
                   }
                 "
-                >mdi-close</v-icon
               >
+                mdi-close
+              </v-icon>
             </template>
           </v-select>
         </v-col>
 
         <v-col cols="12" md="3">
+          <!-- Filtro de Catálogo Activo -->
           <v-select
             v-model="catalogActiveFilter"
             :items="booleanFilterOptions"
@@ -115,7 +144,9 @@
             item-value="value"
             label="Filtrar por Catálogo Activo"
             variant="outlined"
-            density="comfortable"
+            density="compact"
+            class="filter-select"
+            hide-details
             @update:model-value="handleCatalogActiveFilterChange"
             :color="catalogActiveFilter ? 'primary' : undefined"
             :bg-color="catalogActiveFilter ? 'primary-lighten-5' : undefined"
@@ -130,8 +161,9 @@
                     handleCatalogActiveFilterChange()
                   }
                 "
-                >mdi-close</v-icon
               >
+                mdi-close
+              </v-icon>
             </template>
           </v-select>
         </v-col>
@@ -148,110 +180,6 @@
             <v-icon start>mdi-filter-remove</v-icon>
             Limpiar filtros
           </v-btn>
-        </v-col>
-      </v-row>
-
-      <v-row class="mt-2 align-center" dense>
-        <v-col cols="12" md="3">
-          <v-text-field
-            v-model="searchQuery"
-            variant="outlined"
-            density="compact"
-            hide-details
-            placeholder="Buscar ID"
-            class="search-field"
-            clearable
-            @update:model-value="handleSearchInputChange"
-            @click:clear="clearSearchField"
-            @keyup.enter="executeSearch"
-          >
-            <template #append-inner>
-              <v-btn icon variant="text" color="primary" size="x-small" @click="executeSearch">
-                <v-icon size="small">mdi-magnify</v-icon>
-              </v-btn>
-            </template>
-          </v-text-field>
-        </v-col>
-
-        <v-col cols="12" md="3" class="d-flex align-center">
-          <div v-if="productIds.length > 0" class="d-flex align-center">
-            <v-chip :color="hasActiveFilters ? 'info' : 'grey-lighten-1'" variant="outlined" size="small" class="mr-2">
-              <v-icon start size="small">{{ hasActiveFilters ? 'mdi-filter' : 'mdi-information' }}</v-icon>
-              {{ filteredMessage }}
-            </v-chip>
-            <v-btn
-              size="x-small"
-              icon
-              variant="text"
-              color="grey"
-              @click="clearAllFilters"
-              v-if="hasActiveFilters"
-            >
-              <v-icon size="small">mdi-close</v-icon>
-              <v-tooltip activator="parent" location="top">Limpiar filtros</v-tooltip>
-            </v-btn>
-          </div>
-        </v-col>
-
-        <v-col cols="12" md="6" class="d-flex justify-end">
-          <v-menu
-            v-model="showColumnsMenu"
-            :close-on-content-click="false"
-            location="bottom"
-            offset-y
-          >
-            <template v-slot:activator="{ props }">
-              <v-btn size="small" variant="outlined" color="secondary" v-bind="props">
-                <v-icon start>mdi-eye-settings</v-icon>
-                Columnas
-              </v-btn>
-            </template>
-
-            <v-card min-width="300" max-width="400" class="elevation-8">
-              <v-card-title class="text-subtitle-1 d-flex align-center pa-3">
-                <span>Columnas visibles</span>
-                <v-spacer></v-spacer>
-                <v-btn icon size="small" @click="showColumnsMenu = false">
-                  <v-icon>mdi-close</v-icon>
-                </v-btn>
-              </v-card-title>
-
-              <v-divider></v-divider>
-
-              <v-card-text style="max-height: 300px; overflow-y: auto" class="pa-0">
-                <v-list density="compact">
-                  <v-list-item
-                    v-for="column in allColumns.filter((col) => !col.required && col.title)"
-                    :key="column.key"
-                  >
-                    <template v-slot:prepend>
-                      <v-checkbox
-                        v-model="visibleColumns"
-                        :value="column.key"
-                        :disabled="column.required"
-                        hide-details
-                        density="compact"
-                        @click="toggleColumnVisibility(column.key)"
-                      ></v-checkbox>
-                    </template>
-                    <v-list-item-title class="text-body-2">{{ column.title }}</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-card-text>
-
-              <v-divider></v-divider>
-
-              <v-card-actions class="pa-3">
-                <v-btn color="primary" variant="text" size="small" @click="selectDefaultColumns"
-                  >Por defecto</v-btn
-                >
-                <v-spacer></v-spacer>
-                <v-btn color="primary" variant="text" size="small" @click="resetColumns"
-                  >Mostrar todas</v-btn
-                >
-              </v-card-actions>
-            </v-card>
-          </v-menu>
         </v-col>
       </v-row>
     </div>
@@ -289,484 +217,8 @@
             </div>
           </div>
         </template>
-
-        <!-- Columna de precio eliminada -->
-
-        <template #[`item.SyncActive`]="{ item }">
-          <div class="d-flex align-center justify-center w-100">
-            <v-switch
-              v-model="item.SyncActive"
-              color="success"
-              hide-details
-              density="compact"
-              :loading="processingSyncActiveId === item.ID"
-              :disabled="processingSyncActiveId === item.ID"
-              @click.stop="toggleSyncActive(item.ID, item.SyncActive)"
-              class="ma-0 pa-0"
-            ></v-switch>
-          </div>
-        </template>
-
-        <template #[`item.CatalogActive`]="{ item }">
-          <v-chip :color="item.CatalogActive ? 'success' : 'error'" size="small">
-            {{ item.CatalogActive ? 'Sí' : 'No' }}
-          </v-chip>
-        </template>
-
-        <template #[`item.Status`]="{ item }">
-          <v-chip :color="getStatusColor(item.StatusML)" size="small" class="text-capitalize">
-            {{ item.StatusML || (item.Status ? 'active' : 'inactive') }}
-          </v-chip>
-        </template>
-
-        <template #[`item.IsPopulate`]="{ item }">
-          <v-chip :color="item.IsPopulate ? 'success' : 'grey'" size="small">
-            {{ item.IsPopulate ? 'Sí' : 'No' }}
-          </v-chip>
-        </template>
-
-        <template #[`item.updated_at`]="{ item }">
-          {{ formatDate(item.updated_at) }}
-        </template>
-
-        <template #[`item.ExtUpdatedAt`]="{ item }">
-          {{ item.ExtUpdatedAt ? formatDate(item.ExtUpdatedAt) : 'No disponible' }}
-        </template>
-
-        <template #[`item.ExtCreatedAt`]="{ item }">
-          {{ item.ExtCreatedAt ? formatDate(item.ExtCreatedAt) : 'No disponible' }}
-        </template>
-
-        <template #[`item.actions`]="{ item }">
-          <div class="text-left">
-            <v-menu location="bottom">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  size="small"
-                  color="grey-darken-1"
-                  variant="text"
-                  v-bind="props"
-                  :disabled="loading"
-                >
-                  <v-icon>mdi-menu</v-icon>
-                </v-btn>
-              </template>
-
-              <v-list density="compact">
-                <!-- Ver detalles -->
-                <v-list-item @click="viewProductDetail(item.ID)" :disabled="loading">
-                  <template v-slot:prepend>
-                    <v-icon color="primary" size="small">mdi-eye</v-icon>
-                  </template>
-                  <v-list-item-title class="text-body-2">Ver detalles</v-list-item-title>
-                </v-list-item>
-
-                <!-- Eliminar publicación -->
-                <v-list-item
-                  @click="confirmDeleteProduct(item.ID)"
-                  :disabled="loading || processingDeleteId === item.ID"
-                >
-                  <template v-slot:prepend>
-                    <v-icon color="error" size="small" v-if="processingDeleteId !== item.ID"
-                      >mdi-delete</v-icon
-                    >
-                    <v-progress-circular
-                      v-else
-                      indeterminate
-                      size="16"
-                      color="error"
-                      class="mr-2"
-                    ></v-progress-circular>
-                  </template>
-                  <v-list-item-title class="text-body-2">Eliminar publicación</v-list-item-title>
-                </v-list-item>
-
-                <!-- Populate -->
-                <v-list-item
-                  @click="confirmPopulateProduct(item.ID)"
-                  :disabled="loading || processingPopulateId === item.ID"
-                >
-                  <template v-slot:prepend>
-                    <v-icon color="success" size="small" v-if="processingPopulateId !== item.ID"
-                      >mdi-database-import</v-icon
-                    >
-                    <v-progress-circular
-                      v-else
-                      indeterminate
-                      size="16"
-                      color="success"
-                      class="mr-2"
-                    ></v-progress-circular>
-                  </template>
-                  <v-list-item-title class="text-body-2">Populate</v-list-item-title>
-                </v-list-item>
-
-                <!-- Ver en Mercado Libre -->
-                <v-list-item @click="openProductInNewTab(item.ID)">
-                  <template v-slot:prepend>
-                    <v-icon color="info" size="small">mdi-open-in-new</v-icon>
-                  </template>
-                  <v-list-item-title class="text-body-2">Ver en Mercado Libre</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </div>
-        </template>
-
-        <!-- No usamos el slot bottom para poder tener un paginador fijo -->
-        <template #bottom> </template>
       </v-data-table>
-
-      <!-- Paginador fijo -->
-      <div class="pagination-fixed">
-        <div class="d-flex align-center w-100 px-4 py-2 bg-white">
-          <div class="d-flex align-center">
-            <v-btn
-              color="error"
-              variant="outlined"
-              size="small"
-              :disabled="selectedItems.length === 0"
-              @click="deleteSelectedItems"
-              class="me-4"
-            >
-              <v-icon start>mdi-delete</v-icon>
-              Eliminar {{ selectedItems.length }} seleccionadas
-            </v-btn>
-
-            <v-btn
-              color="success"
-              variant="outlined"
-              size="small"
-              :disabled="selectedItems.length === 0 || processingPopulateMultiple"
-              @click="confirmPopulateSelectedItems"
-              :loading="processingPopulateMultiple"
-              class="me-4"
-            >
-              <v-icon start>mdi-database-import</v-icon>
-              Populate {{ selectedItems.length }} seleccionadas
-            </v-btn>
-            <div class="text-caption text-grey me-4">
-              {{ paginationInfo.text || '0-0 de 0' }}
-            </div>
-          </div>
-          <div class="d-flex align-center me-4">
-            <span class="text-caption me-2">Registros por página:</span>
-            <v-select
-              v-model="itemsPerPage"
-              :items="itemsPerPageOptions"
-              variant="outlined"
-              density="compact"
-              class="items-per-page-select"
-              hide-details
-              @update:model-value="handleItemsPerPageChange"
-            ></v-select>
-          </div>
-          <v-pagination
-            v-model="page"
-            :length="Math.ceil(totalProductIds / itemsPerPage)"
-            @update:model-value="handlePageChange"
-            :disabled="loading"
-            :total-visible="5"
-            show-first
-            show-last
-            class="pagination-centered flex-grow-1"
-            density="comfortable"
-            rounded="circle"
-            active-color="primary"
-          ></v-pagination>
-        </div>
-      </div>
     </div>
-
-    <!-- Diálogo de confirmación -->
-    <v-dialog v-model="showConfirmDialog" max-width="450" content-class="elevation-0">
-      <v-card class="rounded-lg" elevation="3">
-        <v-card-title class="text-subtitle-1 pa-4 pb-0">
-          {{ confirmDialogTitle }}
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <p class="text-body-2 text-medium-emphasis">{{ confirmDialogMessage }}</p>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-3">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="grey-darken-1"
-            variant="text"
-            size="small"
-            @click="showConfirmDialog = false"
-            >Cancelar</v-btn
-          >
-          <v-btn
-            color="primary"
-            variant="text"
-            size="small"
-            @click="
-              async () => {
-                showConfirmDialog = false
-                await confirmDialogAction()
-              }
-            "
-          >
-            Confirmar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Diálogo de progreso para populate múltiple -->
-    <v-dialog v-model="showProgressDialog" persistent max-width="450" content-class="elevation-0">
-      <v-card class="rounded-lg" elevation="3">
-        <v-card-title class="text-subtitle-1 pa-4 pb-0">
-          {{ progressDialogTitle }}
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <p class="text-body-2 text-medium-emphasis mb-4">{{ progressDialogMessage }}</p>
-
-          <div
-            class="progress-container pa-3 rounded-lg"
-            style="background: rgba(0, 0, 0, 0.02); position: relative"
-          >
-            <v-progress-linear
-              v-model="progressValue"
-              color="primary"
-              height="6"
-              rounded
-              bg-opacity="0.1"
-            ></v-progress-linear>
-            <div class="text-caption text-center mt-2" style="color: rgba(0, 0, 0, 0.6)">
-              {{ Math.ceil(progressValue) }}%
-            </div>
-          </div>
-
-          <div class="d-flex justify-space-between mt-3 text-caption text-medium-emphasis">
-            <span>Procesados: {{ processedCount }} de {{ totalItemsToProcess }}</span>
-            <span>Exitosos: {{ successCount }}</span>
-          </div>
-        </v-card-text>
-
-        <v-divider v-if="!isProcessing"></v-divider>
-
-        <v-card-actions v-if="!isProcessing" class="pa-3">
-          <v-spacer></v-spacer>
-          <v-btn color="primary" variant="text" size="small" @click="showProgressDialog = false"
-            >Cerrar</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Notificación de éxito o error -->
-    <v-snackbar v-model="showNotification" :color="notificationType" :timeout="3000" location="top">
-      {{ notificationMessage }}
-      <template v-slot:actions>
-        <v-btn variant="text" icon="mdi-close" @click="showNotification = false"></v-btn>
-      </template>
-    </v-snackbar>
-
-    <!-- Overlay de resultados de populate -->
-    <v-overlay
-      v-model="showResultsOverlay"
-      class="align-center justify-center"
-      persistent
-      :scrim="true"
-      scrim-class="bg-white"
-      :opacity="0.3"
-    >
-      <v-card class="pa-3" min-width="600" max-width="800" elevation="8" rounded="lg">
-        <v-card-title class="d-flex align-center py-2 px-3">
-          <span class="text-subtitle-2 font-weight-medium">
-            {{ resultsMessage }}
-          </span>
-
-          <!-- Botón de cerrar -->
-          <v-spacer></v-spacer>
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            density="compact"
-            size="small"
-            color="grey-darken-1"
-            @click="showResultsOverlay = false"
-          ></v-btn>
-        </v-card-title>
-
-        <v-divider></v-divider>
-
-        <v-card-text class="pa-3">
-          <!-- Resultados del populate en formato minimalista -->
-          <div
-            class="d-flex align-center mb-3 pa-2"
-            style="background: rgba(76, 175, 80, 0.05); border-left: 3px solid #4caf50"
-          >
-            <v-icon color="success" size="small" class="mr-2">mdi-check</v-icon>
-            <span class="text-caption"
-              >{{ successCount }} publicaciones procesadas correctamente</span
-            >
-          </div>
-
-          <div v-if="failedCount > 0" class="mb-4">
-            <div
-              class="d-flex align-center mb-2 pa-2"
-              style="background: rgba(244, 67, 54, 0.05); border-left: 3px solid #f44336"
-            >
-              <v-icon color="error" size="small" class="mr-2">mdi-close</v-icon>
-              <span class="text-caption">{{ failedCount }} publicaciones fallaron</span>
-            </div>
-
-            <!-- Mostrar los detalles de los errores en una tabla minimalista -->
-            <div v-if="errorResults.length > 0" class="mt-3">
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-body-2">Detalles de los errores:</div>
-                <div class="d-flex align-center">
-                  <v-btn
-                    size="small"
-                    variant="outlined"
-                    color="grey-darken-1"
-                    prepend-icon="mdi-content-copy"
-                    @click="copyAllErrorsToClipboard"
-                    class="mr-2"
-                    density="comfortable"
-                  >
-                    Copiar todos
-                  </v-btn>
-                  <span class="text-caption">{{ errorResults.length }} errores</span>
-                </div>
-              </div>
-
-              <v-data-table
-                :headers="[
-                  { title: '#', key: 'index', width: '30px' },
-                  { title: 'ID', key: 'id', width: '120px' },
-                  { title: 'Resumen', key: 'summary' },
-                  { title: '', key: 'actions', width: '40px', sortable: false },
-                ]"
-                :items="
-                  errorResults.map((item, idx) => ({
-                    index: idx + 1,
-                    id: item.id,
-                    summary: item.message
-                      ? item.message.substring(0, 100) + (item.message.length > 100 ? '...' : '')
-                      : 'Error desconocido',
-                    error: item,
-                  }))
-                "
-                density="compact"
-                hover
-                class="error-table text-caption"
-              >
-                <template #item.actions="{ item }">
-                  <v-btn
-                    icon
-                    size="x-small"
-                    color="grey-darken-1"
-                    variant="text"
-                    @click="viewErrorDetails(item.error)"
-                  >
-                    <v-icon size="small">mdi-eye</v-icon>
-                    <v-tooltip activator="parent" location="top">Ver detalles</v-tooltip>
-                  </v-btn>
-                </template>
-              </v-data-table>
-            </div>
-          </div>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-2">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="grey-darken-1"
-            variant="text"
-            size="small"
-            @click="showResultsOverlay = false"
-            >Cerrar</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-overlay>
-
-    <!-- Diálogo para mostrar detalles completos del error -->
-    <v-dialog
-      v-model="showErrorDialog"
-      max-width="650"
-      scrollable
-      content-class="bg-overlay-minimal"
-    >
-      <v-card class="rounded-lg" elevation="8">
-        <v-card-title class="d-flex align-center py-2 px-3">
-          <span class="text-subtitle-2">Detalle del error</span>
-          <v-spacer></v-spacer>
-          <v-btn
-            prepend-icon="mdi-content-copy"
-            variant="outlined"
-            density="comfortable"
-            size="small"
-            color="grey-darken-1"
-            @click="copyErrorToClipboard(selectedError)"
-            class="mr-2"
-          >
-            Copiar
-          </v-btn>
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            density="compact"
-            size="small"
-            color="grey-darken-1"
-            @click="showErrorDialog = false"
-          >
-          </v-btn>
-        </v-card-title>
-
-        <v-divider></v-divider>
-
-        <v-card-text class="pa-3">
-          <div class="d-flex flex-column">
-            <!-- Resumen del error -->
-            <div
-              class="mb-3 pa-3"
-              style="background: rgba(244, 67, 54, 0.05); border-left: 3px solid #f44336"
-            >
-              <p class="text-body-2 mb-0">
-                {{
-                  typeof selectedError === 'string'
-                    ? selectedError
-                    : selectedError?.message || 'Error desconocido'
-                }}
-              </p>
-            </div>
-
-            <!-- Detalles completos del error -->
-            <div class="mt-2">
-              <p class="text-caption mb-1">Detalles completos:</p>
-              <pre
-                class="error-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto"
-                style="max-height: 300px; font-size: 12px; line-height: 1.5"
-                >{{ formatErrorDetails(selectedError) }}</pre
-              >
-            </div>
-          </div>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-3">
-          <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" size="small" @click="showErrorDialog = false"
-            >Cerrar</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- El menú desplegable está ahora en la barra de herramientas -->
   </div>
 </template>
 
@@ -940,7 +392,7 @@ const paginationInfo = computed(() => {
       start: 0,
       end: filtered,
       total: total,
-      isFiltered: true
+      isFiltered: true,
     }
   }
 
@@ -952,7 +404,7 @@ const paginationInfo = computed(() => {
     start,
     end,
     total: totalProductIds.value,
-    isFiltered: hasActiveFilters.value
+    isFiltered: hasActiveFilters.value,
   }
 })
 
@@ -1764,6 +1216,22 @@ const getSortIcon = (column: TableColumn) => {
   return column.options.sortDesc && column.options.sortDesc[0] ? 'mdi-arrow-down' : 'mdi-arrow-up'
 }
 
+// Funciones auxiliares para las etiquetas de los filtros
+const getStatusLabel = (value: string): string => {
+  const option = statusOptions.find(opt => opt.value === value)
+  return option ? option.title : value
+}
+
+const getSyncLabel = (value: string): string => {
+  const option = booleanFilterOptions.find(opt => opt.value === value)
+  return option ? option.title : value
+}
+
+const getCatalogLabel = (value: string): string => {
+  const option = booleanFilterOptions.find(opt => opt.value === value)
+  return option ? option.title : value
+}
+
 // Función para manejar el cambio en la búsqueda
 const handleSearchInputChange = () => {
   page.value = 1
@@ -1890,6 +1358,58 @@ onMounted(() => {
 <style scoped>
 .filter-container {
   margin-bottom: 16px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.search-container {
+  max-width: 100%;
+}
+
+.modern-search {
+  max-width: 100%;
+  border-radius: 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+}
+
+.modern-search :deep(.v-field__input) {
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.modern-search :deep(.v-field__prepend-inner) {
+  padding-top: 8px;
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.filter-pills-container {
+  padding: 4px 0;
+}
+
+.filter-pill {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  height: 40px;
+  transition: all 0.2s ease;
+}
+
+.filter-pill:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.filter-menu {
+  border-radius: 8px;
+}
+
+.filter-clear-btn {
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .items-per-page-select {
