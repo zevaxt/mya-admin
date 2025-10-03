@@ -2,8 +2,6 @@
   <v-container fluid>
     <v-row>
       <v-col cols="12">
-        <h1 class="text-h4 mb-4">Gestión de Migraciones</h1>
-
         <v-alert v-if="!hasAccount" type="warning" class="mb-4">
           Selecciona una cuenta para ver los productos disponibles para migración.
         </v-alert>
@@ -18,7 +16,7 @@
             @update:model-value="handleTabChange"
             bg-color="grey-lighten-4"
             slider-color="primary"
-            class="tabs-with-separators"
+            class="tabs-with-separators sticky-tabs"
             show-arrows
           >
             <v-tab
@@ -35,7 +33,7 @@
               class="font-weight-medium tab-with-border"
             >
               <v-icon start color="warning">mdi-alert-circle-outline</v-icon>
-              Publicaciones Huérfanas
+              Huérfanas
             </v-tab>
             <v-tab
               value="2"
@@ -43,7 +41,7 @@
               class="font-weight-medium tab-with-border"
             >
               <v-icon start color="info">mdi-database-import-outline</v-icon>
-              Publicaciones Faltantes
+              Faltantes
             </v-tab>
             <v-tab
               value="3"
@@ -59,36 +57,21 @@
               class="font-weight-medium tab-with-border"
             >
               <v-icon start color="error">mdi-database-remove</v-icon>
-              PUBLICACIONES DEPRECADAS
+              DEPRECADAS
             </v-tab>
           </v-tabs>
 
           <v-card-text>
             <!-- Componentes de pestañas -->
-            <PublicationsTab 
-              v-if="activeTab === 0" 
-              @error="handleError"
-            />
-            
-            <OrphanPublicationsTab 
-              v-if="activeTab === 1" 
-              @error="handleError"
-            />
-            
-            <MissingPublicationsTab 
-              v-if="activeTab === 2" 
-              @error="handleError"
-            />
-            
-            <SyncRelationsTab 
-              v-if="activeTab === 3" 
-              @error="handleError"
-            />
-            
-            <DeprecatedPublicationsTab 
-              v-if="activeTab === 4" 
-              @error="handleError"
-            />
+            <PublicationsTab v-if="activeTab === 0" @error="handleError" />
+
+            <OrphanPublicationsTab v-if="activeTab === 1" @error="handleError" />
+
+            <MissingPublicationsTab v-if="activeTab === 2" @error="handleError" />
+
+            <SyncRelationsTab v-if="activeTab === 3" @error="handleError" />
+
+            <DeprecatedPublicationsTab v-if="activeTab === 4" @error="handleError" />
           </v-card-text>
         </v-card>
       </v-col>
@@ -156,11 +139,19 @@ const handleError = (errorMessage: string | null) => {
   background-color: rgba(255, 255, 255, 0.7);
 }
 
+.v-tabs-slider {
+  height: 3px;
+}
+
 .tabs-with-separators :deep(.v-slide-group__content) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.v-tabs-slider {
-  height: 3px;
+.sticky-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: var(--v-theme-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 </style>

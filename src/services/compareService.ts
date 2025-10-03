@@ -46,17 +46,21 @@ export const compareService = {
     accountId: number,
     status: string = '',
     channels: string = 'marketplace',
-    readOnly: boolean = false
-  ): Promise<{success: boolean; message?: string; publication_ids?: string[]} | string[]> {
+    readOnly: boolean = false,
+  ): Promise<{ success: boolean; message?: string; publication_ids?: string[] } | string[]> {
     try {
-      const response = await apiClient.post('/v1/migration/update/products/ids', {}, {
-        headers: {
-          'account-id': accountId.toString(),
-          'status': status,
-          'channels': channels,
-          'read-mode': readOnly.toString()
-        }
-      })
+      const response = await apiClient.post(
+        '/v1/migration/update/products/ids',
+        {},
+        {
+          headers: {
+            'account-id': accountId.toString(),
+            status: status,
+            channels: channels,
+            'read-mode': readOnly.toString(),
+          },
+        },
+      )
 
       // Si es modo solo lectura, devolver el array de IDs directamente
       if (readOnly) {
@@ -67,7 +71,7 @@ export const compareService = {
       return {
         success: true,
         message: 'Sincronización de IDs completada correctamente',
-        publication_ids: response.data?.publication_ids || []
+        publication_ids: response.data?.publication_ids || [],
       }
     } catch (error) {
       console.error('Error al sincronizar IDs de productos:', error)
@@ -80,7 +84,7 @@ export const compareService = {
       // Modo normal, devolver error
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Error al sincronizar IDs de productos'
+        message: error instanceof Error ? error.message : 'Error al sincronizar IDs de productos',
       }
     }
   },
@@ -105,7 +109,6 @@ export const compareService = {
 
       // Parámetros de paginación
       const url = '/v1/provider/publications/compare'
-
 
       const response = await apiClient.get(url, {
         headers,
@@ -144,9 +147,6 @@ export const compareService = {
         headers,
         params,
       })
-
-      // Depurar la respuesta
-      console.log('Respuesta del servidor (publicaciones deprecadas):', response.data)
 
       // Devolver la respuesta directamente
       return response.data as DeprecatedPublicationsResponse
@@ -190,9 +190,6 @@ export const compareService = {
       const response = await apiClient.get(url, {
         headers,
       })
-
-      // Depurar la respuesta
-      console.log('Respuesta del servidor (publicaciones huérfanas):', response.data)
 
       // Devolver la respuesta según el formato documentado
       return {

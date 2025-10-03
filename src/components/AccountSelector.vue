@@ -19,7 +19,6 @@ onMounted(async () => {
       return
     }
 
-    console.log('Token disponible:', token.substring(0, 10) + '...')
     loading.value = true
     try {
       await accountStore.fetchUserAccounts()

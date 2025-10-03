@@ -20,7 +20,6 @@ onMounted(async () => {
   // Si el usuario ya está autenticado (por ejemplo, si refrescó la página),
   // cargar sus cuentas automáticamente
   if (authStore.isAuthenticated && authStore.currentUserId) {
-    console.log('Usuario ya autenticado, cargando cuentas...')
     await accountStore.fetchUserAccounts()
   }
 })
@@ -30,18 +29,19 @@ onMounted(async () => {
   <v-app>
     <!-- Barra de navegación global -->
     <AppNavBar v-if="showNavBar" />
-    
+
     <v-main :class="{ 'pt-0': !showNavBar }">
       <router-view />
     </v-main>
-    
+
     <!-- El panel de depuración ahora está integrado en AppNavBar -->
   </v-app>
 </template>
 
 <style>
 /* Estilos globales */
-html, body {
+html,
+body {
   overflow-y: auto;
   width: 100%;
   height: 100%;

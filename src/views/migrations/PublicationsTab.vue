@@ -3,7 +3,7 @@
     <!-- Título y botones -->
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
-        <h3 class="text-h6 text-primary font-weight-medium mb-1">PUBLICACIONES</h3>
+        <h3 class="text-h6 text-primary font-weight-medium mb-1">Publicaciones</h3>
         <p class="text-caption text-grey">Publicaciones registradas en el sistema</p>
       </div>
       <div class="d-flex gap-2">
@@ -1122,12 +1122,6 @@ const loadProductIds = async () => {
     )
 
     if (response && response.products) {
-      console.log('Loaded ProductIds from getProductIds', {
-        offset,
-        limit: itemsPerPage.value,
-        total: response.total,
-        products: response.products,
-      })
       productIds.value = response.products
       totalProductIds.value = response.total
     } else {
