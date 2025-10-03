@@ -1590,20 +1590,20 @@ const nonCatalogCount = computed(() => {
 
 // Contadores para los diferentes estados de publicación
 const activeCount = computed(() => {
-  return allPublications.value.filter((item) => item.status?.toLowerCase() === 'active').length
+  return allPublications.value.filter((item) => item.status_ml?.toLowerCase() === 'active').length
 })
 
 const pausedCount = computed(() => {
-  return allPublications.value.filter((item) => item.status?.toLowerCase() === 'paused').length
+  return allPublications.value.filter((item) => item.status_ml?.toLowerCase() === 'paused').length
 })
 
 const closedCount = computed(() => {
-  return allPublications.value.filter((item) => item.status?.toLowerCase() === 'closed').length
+  return allPublications.value.filter((item) => item.status_ml?.toLowerCase() === 'closed').length
 })
 
 const otherStatusCount = computed(() => {
   return allPublications.value.filter(
-    (item) => item.status && !['active', 'paused', 'closed'].includes(item.status.toLowerCase()),
+    (item) => item.status_ml && !['active', 'paused', 'closed'].includes(item.status_ml.toLowerCase()),
   ).length
 })
 
