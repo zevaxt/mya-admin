@@ -2256,7 +2256,7 @@ const searchPublications = async () => {
 
   try {
     // Usar la API para buscar publicaciones por ID
-    const response = await migrationService.searchPublications(query, 0, 50)
+    const response = await migrationService.searchPublications(accountId, query, 0, 50)
 
     if (response && response.products) {
       // Transformar los datos al formato que necesitamos

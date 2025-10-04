@@ -965,8 +965,8 @@ const virtualRowHeight = 56 // Altura estándar de una fila (density: comfortabl
 
 const virtualScrollBench = 20 // Número de filas adicionales a renderizar fuera de la vista (buffer)
 
-// Estado para los elementos seleccionados
-const selectedItems = ref<ProductId[]>([])
+// Estado para los elementos seleccionados (IDs de productos)
+const selectedItems = ref<string[]>([])
 
 // Estado para el menú de columnas visibles
 const showColumnsMenu = ref(false)
@@ -1067,11 +1067,68 @@ const filteredMessage = computed(() => {
   return `${total} publicaciones paginadas`
 })
 
+// Mantener detalles completos de las publicaciones seleccionadas
+const selectedItemsDetails = ref<Record<string, ProductId>>({})
+const selectedItemsOrder = ref<string[]>([])
+
+// Actualizar detalles cuando cambia la selección
+watch(
+  selectedItems,
+  (newSelected) => {
+    const details: Record<string, ProductId> = { ...selectedItemsDetails.value }
+    const currentById = new Map(productIds.value.map((product) => [product.ID, product]))
+    const selectedIds = new Set<string>(newSelected)
+
+    const preservedOrder = selectedItemsOrder.value.filter((id) => selectedIds.has(id))
+    const newlySelected = newSelected.filter((id) => !preservedOrder.includes(id))
+    selectedItemsOrder.value = [...newlySelected, ...preservedOrder]
+
+    selectedItemsOrder.value.forEach((id) => {
+      const fromCurrent = currentById.get(id)
+      if (fromCurrent) {
+        details[id] = { ...fromCurrent }
+      } else if (details[id]) {
+        // keep existing details if already stored
+        details[id] = { ...details[id] }
+      }
+    })
+
+    Object.keys(details).forEach((id) => {
+      if (!selectedIds.has(id)) {
+        delete details[id]
+      }
+    })
+
+    selectedItemsDetails.value = details
+  },
+  { deep: false },
+)
+
+// Sincronizar detalles cuando se recargan publicaciones
+watch(
+  () => productIds.value,
+  (newProducts) => {
+    if (!Array.isArray(newProducts) || newProducts.length === 0) {
+      return
+    }
+
+    const details: Record<string, ProductId> = { ...selectedItemsDetails.value }
+    newProducts.forEach((product) => {
+      if (details[product.ID]) {
+        details[product.ID] = { ...product }
+      }
+    })
+    selectedItemsDetails.value = details
+  },
+  { deep: true },
+)
+
 // Filtrar IDs de productos
 const filteredProductIds = computed(() => {
+  // Aplicar filtros normales a todos los productos
   let filtered = productIds.value.filter((item): item is ProductId => {
     if (!item || typeof item.ID !== 'string' || item.ID.length === 0) {
-      console.warn('Producto inválido en filteredProductIds', item)
+      console.warn('Producto inválido en productIds', item)
       return false
     }
     return true
@@ -1082,30 +1139,24 @@ const filteredProductIds = computed(() => {
     const filterValue = statusFilter.value.toLowerCase()
 
     if (filterValue === 'active') {
-      // Filtrar solo los productos con estado 'active'
       filtered = filtered.filter(
         (item) =>
           item.StatusML?.toLowerCase() === 'active' ||
           (item.StatusML === undefined && item.Status === true),
       )
     } else if (filterValue === 'inactive') {
-      // Filtrar todos los productos con estado diferente a 'active'
       filtered = filtered.filter(
         (item) =>
           item.StatusML?.toLowerCase() !== 'active' &&
           !(item.StatusML === undefined && item.Status === true),
       )
     } else if (filterValue === 'under_review') {
-      // Filtrar solo los productos con estado 'under_review'
       filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'under_review')
     } else if (filterValue === 'paused') {
-      // Filtrar solo los productos con estado 'paused'
       filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'paused')
     } else if (filterValue === 'closed') {
-      // Filtrar solo los productos con estado 'closed'
       filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'closed')
     } else if (filterValue === 'deleted') {
-      // Filtrar solo los productos con estado 'closed'
       filtered = filtered.filter((item) => item.StatusML?.toLowerCase() === 'deleted')
     }
   }
@@ -1131,7 +1182,18 @@ const filteredProductIds = computed(() => {
     })
   }
 
-  return filtered
+  const selectedIds = new Set(selectedItems.value)
+
+  const selectedWithDetails = selectedItemsOrder.value
+    .filter((id) => selectedIds.has(id))
+    .map((id) => {
+      return selectedItemsDetails.value[id] || filtered.find((product) => product.ID === id)
+    })
+    .filter((item): item is ProductId => !!item)
+
+  const nonSelectedFiltered = filtered.filter((item) => !selectedIds.has(item.ID))
+
+  return [...selectedWithDetails, ...nonSelectedFiltered]
 })
 
 // Cargar IDs de productos
@@ -1903,7 +1965,12 @@ const executeSearch = async () => {
 
   try {
     const offset = (page.value - 1) * itemsPerPage.value
-    const response = await migrationService.searchPublications(query, offset, itemsPerPage.value)
+    const response = await migrationService.searchPublications(
+      accountId.value,
+      query,
+      offset,
+      itemsPerPage.value,
+    )
     const products = response.products ?? []
 
     console.log('Loaded ProductIds from searchPublications', {

@@ -382,13 +382,21 @@ export const migrationService = {
     }
   },
 
-  async searchPublications(query: string, offset = 0, limit = 100): Promise<ProductIdListResponse> {
+  async searchPublications(
+    accountId: number,
+    query: string,
+    offset = 0,
+    limit = 100,
+  ): Promise<ProductIdListResponse> {
     try {
       const response = await apiClient.get('/v1/migration/products/search', {
         params: {
           id: query,
           offset,
           limit,
+        },
+        headers: {
+          'account-id': accountId.toString(),
         },
       })
 
