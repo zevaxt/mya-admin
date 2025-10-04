@@ -13,6 +13,11 @@ defineProps({
   },
 })
 
+// Configuración de virtual scroll
+const tableHeight = 500 // Altura fija para el contenedor de la tabla
+const virtualRowHeight = 56 // Altura estándar de una fila (density: comfortable) 56
+const virtualScrollBench = 20 // Número de filas adicionales a renderizar fuera de la vista (buffer)
+
 // Emits
 const emit = defineEmits(['update:loading', 'error'])
 
@@ -33,9 +38,9 @@ const searchQuery = ref('')
 const selectedItems = ref<string[]>([])
 
 // Filtros
-const statusFilter = ref('')
+const statusFilter = ref<'' | 'active' | 'paused' | 'inactive' | 'closed'>('')
 const isDefaultStatusFilter = ref(true)
-const channelsFilter = ref('marketplace,mshops')
+const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace,mshops')
 const isDefaultChannelsFilter = ref(true)
 
 const statusOptions = [
@@ -239,6 +244,8 @@ const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
 // Estado para el diálogo de IDs
 const showIdsDialog = ref(false)
 const syncedPublicationIds = ref<string[]>([])
+const syncIds = computed(() => syncedPublicationIds.value.join('\n'))
+const copyingToClipboard = ref(false)
 
 // Sincronizar IDs de productos desde Mercado Libre
 const syncProductIds = async (readOnly: boolean = false) => {
@@ -566,19 +573,25 @@ const createMultiplePublications = async (populateAfterCreate: boolean = false) 
 // Copiar IDs al portapapeles
 const copyToClipboard = async () => {
   try {
+    copyingToClipboard.value = true
     await navigator.clipboard.writeText(syncedPublicationIds.value.join('\n'))
     notificationMessage.value = 'IDs copiadas al portapapeles'
     notificationType.value = 'success'
-  } catch (err) {
-    console.error('Error al copiar al portapapeles:', err)
+    showNotification.value = true
+  } catch (error) {
+    console.error('Error al copiar al portapapeles:', error)
     notificationMessage.value = 'Error al copiar al portapapeles'
     notificationType.value = 'error'
-  } finally {
     showNotification.value = true
+  } finally {
+    copyingToClipboard.value = false
+    setTimeout(() => {
+      showNotification.value = false
+    }, 3000)
   }
 }
 
-// Exponer funciones para el componente padre
+// Exponer funcion para el componente padre
 defineExpose({
   loadMissingPublications,
 })
@@ -797,7 +810,10 @@ defineExpose({
     </v-alert>
 
     <div class="position-relative">
-      <v-data-table
+      <v-data-table-virtual
+        :height="tableHeight"
+        :item-height="virtualRowHeight"
+        :bench="virtualScrollBench"
         v-model="selectedItems"
         show-select
         :headers="missingPublicationsHeaders"
@@ -864,7 +880,7 @@ defineExpose({
 
         <!-- No usamos el slot bottom para poder tener un paginador fijo -->
         <template #bottom> </template>
-      </v-data-table>
+      </v-data-table-virtual>
 
       <!-- Paginador fijo -->
       <div class="pagination-fixed">

@@ -24,9 +24,9 @@ export default createVuetify({
           secondary: '#7F7F7F', // gris oscuro para contraste secundario
           accent: '#A1A1A1', // gris medio para destacar elementos (botones, iconos)
           error: '#8B0A1A', // rojo binotinto más oscuro y no tan brinllante
-          info: '#C3C3C3', // gris claro, buen apoyo para secciones informativas
+          info: '#64748B', // gris claro, buen apoyo para secciones informativas
           success: '#8BC34A', // verde pastel, un poco más claro que el éxito, pero no tanto como el warning)
-          warning: '#A8A8A8', // gris muy claro, como fondo de avisos
+          warning: '#bf9000', // gris muy claro, como fondo de avisos
         },
       },
     },

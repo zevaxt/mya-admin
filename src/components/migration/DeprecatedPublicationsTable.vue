@@ -31,7 +31,10 @@
     </div>
 
     <div class="position-relative">
-      <v-data-table
+      <v-data-table-virtual
+        :height="tableHeight"
+        :item-height="virtualRowHeight"
+        :bench="virtualScrollBench"
         v-model="selectedItems"
         :headers="deprecatedPublicationsHeaders"
         :items="
@@ -92,7 +95,7 @@
 
         <!-- No usamos el slot bottom para poder tener un paginador fijo -->
         <template #bottom> </template>
-      </v-data-table>
+      </v-data-table-virtual>
 
       <!-- Paginador fijo -->
       <div class="pagination-fixed">
@@ -208,6 +211,11 @@ defineProps({
     default: false,
   },
 })
+
+// Configuración de virtual scroll
+const tableHeight = 500 // Altura fija para el contenedor de la tabla
+const virtualRowHeight = 56 // Altura estándar de una fila (density: comfortable) 56
+const virtualScrollBench = 20 // Número de filas adicionales a renderizar fuera de la vista (buffer)
 
 // Emits
 const emit = defineEmits(['update:loading', 'error'])

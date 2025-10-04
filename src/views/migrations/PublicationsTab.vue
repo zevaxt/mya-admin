@@ -354,6 +354,9 @@
         :items="filteredProductIds"
         :loading="loading"
         :items-per-page="itemsPerPage"
+        :height="tableHeight"
+        :item-height="virtualRowHeight"
+        :bench="virtualScrollBench"
         class="elevation-1 rounded-lg"
         :no-data-text="
           hasAccount
@@ -954,6 +957,12 @@ const booleanFilterOptions = [
   { title: 'Sí', value: 'true' },
   { title: 'No', value: 'false' },
 ]
+
+// Configuración de virtual scroll
+const tableHeight = 500 // Altura fija para el contenedor de la tabla
+const virtualRowHeight = 56 // Altura estándar de una fila (density: comfortable) 56
+
+const virtualScrollBench = 20 // Número de filas adicionales a renderizar fuera de la vista (buffer)
 
 // Estado para los elementos seleccionados
 const selectedItems = ref<ProductId[]>([])
