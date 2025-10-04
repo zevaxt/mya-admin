@@ -17,7 +17,7 @@
           size="small"
           :loading="syncingAll"
           :disabled="syncingAll"
-          @click="syncAllPublications"
+          @click="confirmSyncAllPublications"
         >
           <v-icon start>mdi-sync</v-icon>
           Sincronizar Todo
@@ -1370,6 +1370,90 @@
       </v-card>
     </v-overlay>
 
+    <v-dialog v-model="showConfirmDialog" max-width="450" content-class="elevation-0">
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">
+          {{ confirmDialogTitle }}
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <p class="text-body-2 text-medium-emphasis">{{ confirmDialogMessage }}</p>
+
+          <v-select
+            v-model="selectedSyncAccountId"
+            :items="syncTargetAccounts"
+            item-title="title"
+            item-value="value"
+            label="Seleccionar cuenta destino"
+            variant="outlined"
+            density="comfortable"
+            :disabled="syncTargetAccounts.length === 0"
+            class="mt-4"
+          ></v-select>
+
+          <v-select
+            v-model="syncScope"
+            :items="syncScopeOptions"
+            item-title="label"
+            item-value="value"
+            label="Alcance de la sincronización"
+            variant="outlined"
+            density="comfortable"
+            class="mt-3"
+            :disabled="syncTargetAccounts.length === 0"
+          ></v-select>
+
+          <p class="text-caption mt-3">
+            Para confirmar, escribe <strong>{{ syncConfirmationKeyword }}</strong> en el campo siguiente.
+          </p>
+
+          <v-text-field
+            v-model="syncConfirmationInput"
+            variant="outlined"
+            density="comfortable"
+            label="Palabra de confirmación"
+            placeholder="CONFIRMAR"
+            class="mt-2"
+            :disabled="syncTargetAccounts.length === 0"
+            :error="syncConfirmationInput !== '' && !isSyncConfirmationValid"
+            :error-messages="
+              syncConfirmationInput !== '' && !isSyncConfirmationValid
+                ? [`Escribe ${syncConfirmationKeyword} para continuar`]
+                : []
+            "
+          ></v-text-field>
+
+          <p v-if="syncTargetAccounts.length === 0" class="text-caption text-error mt-2">
+            No hay cuentas destino disponibles para sincronizar.
+          </p>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-3">
+          <v-btn
+            color="grey-darken-1"
+            variant="text"
+            size="small"
+            :disabled="syncingAll"
+            @click="showConfirmDialog = false"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            :loading="syncingAll"
+            :disabled="syncingAll || selectedSyncAccountId === null || !isSyncConfirmationValid"
+            @click="handleConfirmDialogAction"
+          >
+            Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Diálogo para agregar sincronización -->
     <v-dialog v-model="showAddSyncDialog" max-width="500" content-class="elevation-0">
       <v-card class="rounded-lg" elevation="3">
@@ -1709,6 +1793,58 @@ const selectedAccountId = ref<number | null>(null)
 const addingSyncRelation = ref(false)
 const creatingPublication = ref(false)
 const syncForm = ref<any>(null)
+
+// Estado para el diálogo de confirmación
+const showConfirmDialog = ref(false)
+const confirmDialogTitle = ref('')
+const confirmDialogMessage = ref('')
+const confirmDialogAction = ref<() => Promise<void>>(() => Promise.resolve())
+const selectedSyncAccountId = ref<number | null>(null)
+const syncConfirmationInput = ref('')
+const syncConfirmationKeyword = 'CONFIRMAR'
+const syncScope = ref<'active' | ''>('active')
+
+const syncScopeOptions = [
+  { label: 'Sólo publicaciones activas', value: 'active' },
+  { label: 'Todas las publicaciones', value: '' },
+]
+
+const isSyncConfirmationValid = computed(() => {
+  return syncConfirmationInput.value.trim().toUpperCase() === syncConfirmationKeyword
+})
+
+const syncTargetAccounts = computed(() => {
+  const currentId = accountStore.currentAccount?.ID
+  return accountStore.accounts
+    .filter((account) => account.ID !== currentId)
+    .map((account) => ({
+      title: account.Nickname || account.Email || `Cuenta #${account.ID}`,
+      value: account.ID,
+    }))
+})
+
+const handleConfirmDialogAction = async () => {
+  if (selectedSyncAccountId.value === null) {
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta destino para continuar'
+    notificationType.value = 'warning'
+    return
+  }
+
+  if (!isSyncConfirmationValid.value) {
+    showNotification.value = true
+    notificationMessage.value = `Escribe ${syncConfirmationKeyword} para confirmar`
+    notificationType.value = 'warning'
+    return
+  }
+
+  try {
+    showConfirmDialog.value = false
+    await confirmDialogAction.value()
+  } catch (error) {
+    console.error('Error al ejecutar la acción de confirmación:', error)
+  }
+}
 
 // Estado para la carga de publicaciones de la cuenta seleccionada
 const loadingAccountPublications = ref(false)
@@ -2676,10 +2812,48 @@ onMounted(() => {
   loadSyncRelations(true)
 })
 
-// Función para sincronizar todas las publicaciones
-const syncAllPublications = async () => {
-  syncingAll.value = true
+const confirmSyncAllPublications = () => {
+  const accountId = accountStore.currentAccount?.ID
+  if (!accountId) {
+    showNotification.value = true
+    notificationMessage.value = 'Selecciona una cuenta primero'
+    notificationType.value = 'warning'
+    return
+  }
 
+  if (syncTargetAccounts.value.length === 0) {
+    showNotification.value = true
+    notificationMessage.value = 'No hay cuentas disponibles para sincronizar'
+    notificationType.value = 'warning'
+    return
+  }
+
+  confirmDialogTitle.value = 'Sincronizar publicaciones'
+  confirmDialogMessage.value =
+    `¿Estás seguro de que deseas sincronizar todas las publicaciones de la cuenta asociada? Este proceso puede tardar varios minutos. Escribe ${syncConfirmationKeyword} para continuar.`
+
+  selectedSyncAccountId.value = null
+  syncConfirmationInput.value = ''
+  syncScope.value = 'active'
+
+  confirmDialogAction.value = async () => {
+    const targetAccountId = selectedSyncAccountId.value
+    if (targetAccountId === null || !isSyncConfirmationValid.value) {
+      showNotification.value = true
+      notificationMessage.value = 'No se ha ingresado la palabra de confirmación correcta'
+      notificationType.value = 'error'
+      return
+    }
+
+    await syncAllPublications(targetAccountId, syncScope.value)
+  }
+
+  showConfirmDialog.value = true
+}
+
+// Función para sincronizar todas las publicaciones
+const syncAllPublications = async (accountToId: number, statusFilter: 'active' | '') => {
+  syncingAll.value = true
   try {
     const accountId = accountStore.currentAccount?.ID
     if (!accountId) {
@@ -2701,7 +2875,7 @@ const syncAllPublications = async () => {
     })
 
     // Iniciamos la sincronización pero no esperamos a que termine completamente
-    const syncPromise = migrationService.syncAllPublications(accountId)
+    const syncPromise = migrationService.syncAllPublications(accountId, accountToId, statusFilter)
 
     // Esperamos solo la confirmación de inicio o el timeout, lo que ocurra primero
     const result = (await Promise.race([syncPromise, timeoutPromise])) as {

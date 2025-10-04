@@ -916,7 +916,8 @@ export const migrationService = {
   // Sincronizar todas las publicaciones de una cuenta origen a una cuenta destino
   async syncAllPublications(
     sourceAccountId: number,
-    targetAccountId?: number,
+    targetAccountId: number,
+    status: 'active' | '' = 'active',
   ): Promise<{ success: boolean; message: string; data?: SyncAllPublicationsResponse }> {
     try {
       const headers: Record<string, string> = {
@@ -926,6 +927,10 @@ export const migrationService = {
       // Agregar el header de cuenta destino si se proporciona
       if (targetAccountId) {
         headers['account-id-to'] = targetAccountId.toString()
+      }
+
+      if (status !== undefined) {
+        headers.status = status
       }
 
       const response = await apiClient.post(

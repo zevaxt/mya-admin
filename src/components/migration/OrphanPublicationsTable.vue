@@ -41,7 +41,7 @@
           bg-color="grey-lighten-4"
           @update:model-value="handleSearchInputChange"
           @click:clear="clearSearchField"
-          @keyup.enter="loadOrphanPublications"
+          @keyup.enter="handleSearchSubmit"
         ></v-text-field>
       </div>
 
@@ -218,7 +218,7 @@
                 @click="
                   () => {
                     catalogActiveFilter = 'all'
-                    loadOrphanPublications()
+                    loadOrphanPublications({ forceReload: true })
                   }
                 "
               >
@@ -283,7 +283,7 @@
                 @click="
                   () => {
                     relationQueryTypeFilter = 'incoming'
-                    loadOrphanPublications()
+                    loadOrphanPublications({ forceReload: true })
                   }
                 "
               >
@@ -347,13 +347,7 @@
         :bench="virtualScrollBench"
         v-model="selectedItems"
         :headers="orphanPublicationsHeaders"
-        :items="
-          Array.isArray(orphanPublicationIds) && orphanPublicationIds.length > 0
-            ? orphanPublicationIds.map((id) => ({
-                id,
-              }))
-            : []
-        "
+        :items="tableItems"
         :loading="loading"
         :items-per-page="itemsPerPage"
         class="elevation-1 rounded-lg"
@@ -466,7 +460,7 @@
               density="compact"
               class="items-per-page-select"
               hide-details
-              @update:model-value="loadOrphanPublications"
+              @update:model-value="handleItemsPerPageChange"
             ></v-select>
           </div>
           <v-pagination
@@ -561,12 +555,15 @@ const emit = defineEmits(['update:loading', 'error'])
 // Estado
 const accountStore = useAccountStore()
 const orphanPublicationIds = ref<string[]>([])
+const allOrphanPublicationIds = ref<string[]>([])
 const total = ref(0)
 const error = ref<string | null>(null)
 const page = ref(1)
 const itemsPerPage = ref(100)
 const processingDeleteId = ref<string | null>(null)
 const selectedItems = ref<string[]>([])
+const selectedItemsOrder = ref<string[]>([])
+const hasLoadedOrphanPublications = ref(false)
 
 // Estado para el diálogo de notificación
 const showNotification = ref(false)
@@ -621,7 +618,7 @@ const clearFilters = () => {
   soldQuantityFilter.value = 'all'
   catalogActiveFilter.value = 'all'
   relationQueryTypeFilter.value = 'incoming' // Restablecer a 'Salientes'
-  loadOrphanPublications()
+  loadOrphanPublications({ forceReload: true })
 }
 
 // Cabeceras de tabla
@@ -640,7 +637,9 @@ const accountId = computed(() => currentAccount.value?.ID || 0)
 const hasAccount = computed(() => !!currentAccount.value)
 
 // Cargar publicaciones huérfanas
-const loadOrphanPublications = async () => {
+const loadOrphanPublications = async (options: { forceReload?: boolean } = {}) => {
+  const { forceReload = false } = options
+
   if (!hasAccount.value) {
     error.value = 'Selecciona una cuenta para ver las publicaciones huérfanas'
     emit('error', error.value)
@@ -664,9 +663,14 @@ const loadOrphanPublications = async () => {
       relationQueryType: relationQueryTypeFilter.value, // Tipo de relación a consultar
     }
 
-    const response = await compareService.getOrphanPublications(accountId.value, options)
-    orphanPublicationIds.value = response.publication_ids || []
-    total.value = response.count || 0
+    if (forceReload || !hasLoadedOrphanPublications.value) {
+      const response = await compareService.getOrphanPublications(accountId.value, options)
+      allOrphanPublicationIds.value = response.publication_ids || []
+      hasLoadedOrphanPublications.value = true
+    }
+
+    page.value = 1
+    applyLocalFilters()
   } catch (err) {
     console.error('Error al cargar publicaciones huérfanas:', err)
 
@@ -699,20 +703,79 @@ const loadOrphanPublications = async () => {
   }
 }
 
-// Manejar cambio de página
-const handlePageChange = () => {
-  loadOrphanPublications()
+const filterSelectedItems = (selectedIds: unknown[]): string[] => {
+  if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+    return []
+  }
+
+  const allowedIds = new Set(allOrphanPublicationIds.value)
+  return selectedIds.filter((id): id is string => typeof id === 'string' && allowedIds.has(id))
+}
+
+const applyLocalFilters = () => {
+  if (!hasLoadedOrphanPublications.value) {
+    orphanPublicationIds.value = []
+    total.value = 0
+    return
+  }
+
+  let filtered = [...allOrphanPublicationIds.value]
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter((id) => id.toLowerCase().includes(query))
+  }
+
+  const selectedSet = new Set(selectedItems.value)
+  selectedSet.forEach((id) => {
+    if (!filtered.includes(id) && allOrphanPublicationIds.value.includes(id)) {
+      filtered.unshift(id)
+    }
+  })
+
+  const totalItems = filtered.length
+  total.value = totalItems
+
+  if (totalItems === 0) {
+    page.value = 1
+    orphanPublicationIds.value = []
+    selectedItems.value = filterSelectedItems(selectedItems.value)
+    return
+  }
+
+  const maxPage = Math.max(1, Math.ceil(totalItems / itemsPerPage.value) || 1)
+  if (page.value > maxPage) {
+    page.value = maxPage
+  } else if (page.value < 1) {
+    page.value = 1
+  }
+
+  const offset = (page.value - 1) * itemsPerPage.value
+  const paginated = filtered.slice(offset, offset + itemsPerPage.value)
+  orphanPublicationIds.value = paginated
+  selectedItems.value = filterSelectedItems(selectedItems.value)
+}
+
+const handlePageChange = (value: number) => {
+  page.value = value
+  applyLocalFilters()
+}
+
+const handleItemsPerPageChange = (value: number) => {
+  itemsPerPage.value = Number(value)
+  page.value = 1
+  applyLocalFilters()
 }
 
 const handleStatusFilterChange = () => {
   isDefaultStatusFilter.value = statusFilter.value === true
-  loadOrphanPublications()
+  loadOrphanPublications({ forceReload: true })
 }
 
 const resetStatusFilter = () => {
   statusFilter.value = true
   isDefaultStatusFilter.value = true
-  loadOrphanPublications()
+  loadOrphanPublications({ forceReload: true })
 }
 
 // Ver detalles del producto
@@ -829,7 +892,7 @@ watch(
 // Cargar datos al montar el componente
 onMounted(() => {
   if (hasAccount.value) {
-    loadOrphanPublications()
+    loadOrphanPublications({ forceReload: true })
   }
 })
 
@@ -838,12 +901,33 @@ const searchQuery = ref('')
 
 // Función para manejar el cambio en el campo de búsqueda
 const handleSearchInputChange = () => {
-  // Implementar la lógica de búsqueda si es necesario
+  if (!hasLoadedOrphanPublications.value) {
+    return
+  }
+
+  page.value = 1
+  applyLocalFilters()
+}
+
+const handleSearchSubmit = () => {
+  if (!hasLoadedOrphanPublications.value) {
+    return
+  }
+
+  page.value = 1
+  applyLocalFilters()
 }
 
 // Función para limpiar el campo de búsqueda
 const clearSearchField = () => {
+  if (!hasLoadedOrphanPublications.value) {
+    searchQuery.value = ''
+    return
+  }
+
   searchQuery.value = ''
+  page.value = 1
+  applyLocalFilters()
 }
 
 // Funciones auxiliares para las etiquetas de los filtros

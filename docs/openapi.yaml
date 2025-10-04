@@ -2116,6 +2116,15 @@ paths:
           schema:
             type: integer
           example: '2'
+        - name: status
+          in: header
+          schema:
+            type: string
+            enum:
+              - active
+              - ''
+          description: active, o vacio
+          example: 'active'
       responses:
         '200':
           description: OK
