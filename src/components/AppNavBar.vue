@@ -167,7 +167,7 @@ onUnmounted(() => {
       <template v-slot:activator="{ props }">
         <v-btn icon v-bind="props" class="mx-1">
           <v-avatar size="36">
-            <v-icon>mdi-account-circle</v-icon>
+            <v-icon color="white">mdi-account-circle</v-icon>
           </v-avatar>
         </v-btn>
       </template>
