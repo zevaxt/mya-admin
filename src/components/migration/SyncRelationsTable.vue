@@ -1404,7 +1404,8 @@
           ></v-select>
 
           <p class="text-caption mt-3">
-            Para confirmar, escribe <strong>{{ syncConfirmationKeyword }}</strong> en el campo siguiente.
+            Para confirmar, escribe <strong>{{ syncConfirmationKeyword }}</strong> en el campo
+            siguiente.
           </p>
 
           <v-text-field
@@ -1449,6 +1450,200 @@
             @click="handleConfirmDialogAction"
           >
             Confirmar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo para mostrar resultados completos de sincronización masiva -->
+    <v-dialog
+      v-model="showSyncResultsDialog"
+      max-width="800"
+      content-class="elevation-0"
+      scrollable
+    >
+      <v-card class="rounded-lg" elevation="3">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0 d-flex align-center">
+          <v-icon start icon="mdi-sync" color="primary" size="small" class="mr-2"></v-icon>
+          <span>Resultados de sincronización masiva</span>
+          <v-spacer></v-spacer>
+          <v-btn
+            icon="mdi-content-copy"
+            variant="text"
+            density="compact"
+            size="small"
+            color="grey-darken-1"
+            @click="copyToClipboard(JSON.stringify(syncMassiveResults, null, 2))"
+          >
+          </v-btn>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            density="compact"
+            size="small"
+            color="grey-darken-1"
+            @click="showSyncResultsDialog = false"
+          >
+          </v-btn>
+        </v-card-title>
+        
+        <!-- Resumen de resultados -->
+        <div class="px-4 pt-4">
+          <div class="d-flex gap-3 mb-4">
+            <v-alert type="success" variant="tonal" density="compact" class="flex-grow-1">
+              <strong>{{ syncMassiveResults?.count_successful || 0 }}</strong> publicaciones
+              sincronizadas
+            </v-alert>
+            <v-alert
+              v-if="(syncMassiveResults?.count_error || 0) > 0"
+              type="error"
+              variant="tonal"
+              density="compact"
+              class="flex-grow-1"
+            >
+              <strong>{{ syncMassiveResults?.count_error || 0 }}</strong> errores
+            </v-alert>
+          </div>
+        </div>
+        
+        <!-- Sistema de pestañas -->
+        <v-tabs v-model="activeResultTab" color="primary" align-tabs="center" class="px-4">
+          <v-tab value="publications" :disabled="!syncMassiveResults?.publications?.length">
+            <v-icon start size="small">mdi-check-circle</v-icon>
+            Publicaciones
+          </v-tab>
+          <v-tab value="errors" :disabled="!syncMassiveResults?.errors?.length">
+            <v-icon start size="small">mdi-alert-circle</v-icon>
+            Errores
+          </v-tab>
+          <v-tab value="response">
+            <v-icon start size="small">mdi-code-json</v-icon>
+            Respuesta completa
+          </v-tab>
+        </v-tabs>
+
+        <v-card-text class="pa-4">
+          <v-window v-model="activeResultTab">
+            <!-- Pestaña de publicaciones sincronizadas -->
+            <v-window-item value="publications">
+              <div v-if="syncMassiveResults?.publications?.length">
+                <v-data-table
+                  :headers="[
+                    { title: '#', key: 'index', width: '40px' },
+                    { title: 'ID Origen', key: 'publication_id', width: '150px' },
+                    { title: 'ID Destino', key: 'to_sync_id', width: '150px' },
+                    { title: 'Acciones', key: 'actions', width: '100px', sortable: false },
+                  ]"
+                  :items="
+                    syncMassiveResults.publications.map((item, idx) => ({
+                      ...item,
+                      index: idx + 1,
+                    }))
+                  "
+                  :items-per-page="10"
+                  :items-per-page-options="[5, 10, 20, 50, -1]"
+                  density="compact"
+                  hover
+                  class="success-table text-caption"
+                >
+                  <template #[`item.actions`]="{ item }">
+                    <div class="d-flex">
+                      <v-btn
+                        size="x-small"
+                        icon
+                        variant="text"
+                        color="primary"
+                        class="mr-1"
+                        @click="openInMercadoLibre(item.publication_id)"
+                      >
+                        <v-icon size="small">mdi-open-in-new</v-icon>
+                      </v-btn>
+                      <v-btn
+                        size="x-small"
+                        icon
+                        variant="text"
+                        color="primary"
+                        @click="openInMercadoLibre(item.to_sync_id)"
+                      >
+                        <v-icon size="small">mdi-open-in-new</v-icon>
+                      </v-btn>
+                    </div>
+                  </template>
+                </v-data-table>
+              </div>
+              <div v-else class="text-center py-8 text-medium-emphasis">
+                No hay publicaciones sincronizadas para mostrar
+              </div>
+            </v-window-item>
+
+            <!-- Pestaña de errores -->
+            <v-window-item value="errors">
+              <div v-if="syncMassiveResults?.errors?.length">
+                <v-data-table
+                  :headers="[
+                    { title: '#', key: 'index', width: '40px' },
+                    { title: 'ID Origen', key: 'publication_id', width: '150px' },
+                    { title: 'ID Destino', key: 'to_sync_id', width: '150px' },
+                    { title: 'Detalle', key: 'details' },
+                    { title: 'Acciones', key: 'actions', width: '100px', sortable: false },
+                  ]"
+                  :items="
+                    syncMassiveResults.errors.map((item, idx) => ({
+                      ...item,
+                      index: idx + 1,
+                    }))
+                  "
+                  :items-per-page="10"
+                  :items-per-page-options="[5, 10, 20, 50, -1]"
+                  density="compact"
+                  hover
+                  class="error-table text-caption"
+                >
+                  <template #[`item.actions`]="{ item }">
+                    <div class="d-flex">
+                      <v-btn
+                        size="x-small"
+                        icon
+                        variant="text"
+                        color="primary"
+                        class="mr-1"
+                        @click="openInMercadoLibre(item.publication_id)"
+                      >
+                        <v-icon size="small">mdi-open-in-new</v-icon>
+                      </v-btn>
+                      <v-btn
+                        size="x-small"
+                        icon
+                        variant="text"
+                        color="primary"
+                        @click="openInMercadoLibre(item.to_sync_id)"
+                      >
+                        <v-icon size="small">mdi-open-in-new</v-icon>
+                      </v-btn>
+                    </div>
+                  </template>
+                </v-data-table>
+              </div>
+              <div v-else class="text-center py-8 text-medium-emphasis">
+                No hay errores para mostrar
+              </div>
+            </v-window-item>
+
+            <!-- Pestaña de respuesta completa -->
+            <v-window-item value="response">
+              <pre
+                class="response-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto text-caption"
+                style="max-height: 400px; font-size: 11px !important"
+              >{{ JSON.stringify(syncMassiveResults, null, 2) }}</pre>
+            </v-window-item>
+          </v-window>
+        </v-card-text>
+        
+        <v-divider></v-divider>
+        <v-card-actions class="pa-3">
+          <v-spacer></v-spacer>
+          <v-btn color="primary" variant="text" @click="showSyncResultsDialog = false">
+            Cerrar
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -1782,6 +1977,11 @@ const syncErrorMessages = ref<string[]>([])
 // Estado para el diálogo de detalles de error
 const showErrorDialog = ref(false)
 const selectedError = ref<string | Record<string, unknown>>('')
+
+// Estado para el diálogo de resultados de sincronización masiva
+const showSyncResultsDialog = ref(false)
+const syncMassiveResults = ref<SyncAllPublicationsResponse | null>(null)
+const activeResultTab = ref('publications') // Pestaña activa: 'publications', 'errors', 'response'
 
 // Estado para el diálogo de agregar sincronización
 const showAddSyncDialog = ref(false)
@@ -2829,10 +3029,11 @@ const confirmSyncAllPublications = () => {
   }
 
   confirmDialogTitle.value = 'Sincronizar publicaciones'
-  confirmDialogMessage.value =
-    `¿Estás seguro de que deseas sincronizar todas las publicaciones de la cuenta asociada? Este proceso puede tardar varios minutos. Escribe ${syncConfirmationKeyword} para continuar.`
+  confirmDialogMessage.value = `¿Estás seguro de que deseas sincronizar todas las publicaciones de la cuenta asociada? Este proceso puede tardar varios minutos. Escribe ${syncConfirmationKeyword} para continuar.`
 
-  selectedSyncAccountId.value = null
+  // Seleccionar automáticamente la primera cuenta disponible si hay cuentas
+  selectedSyncAccountId.value =
+    syncTargetAccounts.value.length > 0 ? syncTargetAccounts.value[0].value : null
   syncConfirmationInput.value = ''
   syncScope.value = 'active'
 
@@ -2871,7 +3072,7 @@ const syncAllPublications = async (accountToId: number, statusFilter: 'active' |
           success: true,
           message: 'Sincronización iniciada. Este proceso puede tardar varios minutos.',
         })
-      }, 5000) // Esperamos máximo 5 segundos por una respuesta inicial
+      }, 1000) // Esperamos máximo 5 segundos por una respuesta inicial
     })
 
     // Iniciamos la sincronización pero no esperamos a que termine completamente
@@ -2903,6 +3104,25 @@ const syncAllPublications = async (accountToId: number, statusFilter: 'active' |
     // Continuamos con la promesa original en segundo plano
     syncPromise.catch((error: unknown) => {
       console.error('Error en la sincronización en segundo plano:', error)
+    })
+
+    // Procesamos la respuesta completa cuando termine
+    syncPromise.then((fullResult) => {
+      if (fullResult && fullResult.data) {
+        // Mostrar el diálogo con los resultados completos
+        syncMassiveResults.value = fullResult.data
+        
+        // Seleccionar la pestaña inicial según el contenido
+        if (fullResult.data.publications && fullResult.data.publications.length > 0) {
+          activeResultTab.value = 'publications'
+        } else if (fullResult.data.errors && fullResult.data.errors.length > 0) {
+          activeResultTab.value = 'errors'
+        } else {
+          activeResultTab.value = 'response'
+        }
+        
+        showSyncResultsDialog.value = true
+      }
     })
   } catch (error) {
     console.error('Error al iniciar la sincronización de publicaciones:', error)
@@ -3615,25 +3835,16 @@ const copyAllErrorsToClipboard = () => {
   }
 }
 
-// Función para copiar el error al portapapeles
+// Función para copiar un error al portapapeles
 const copyErrorToClipboard = (error: string | Record<string, unknown>) => {
-  try {
-    const textToCopy = typeof error === 'string' ? error : JSON.stringify(error, null, 2)
-    navigator.clipboard.writeText(textToCopy)
-
-    // Mostrar notificación de éxito
-    showNotification.value = true
-    notificationMessage.value = 'Detalles del error copiados al portapapeles'
-    notificationType.value = 'success'
-  } catch (error) {
-    console.error('Error al copiar al portapapeles:', error)
-
-    // Mostrar notificación de error
-    showNotification.value = true
-    notificationMessage.value = 'No se pudo copiar al portapapeles'
-    notificationType.value = 'error'
-  }
+  const errorText = typeof error === 'string' ? error : JSON.stringify(error, null, 2)
+  navigator.clipboard.writeText(errorText)
+  showNotification.value = true
+  notificationMessage.value = 'Error copiado al portapapeles'
+  notificationType.value = 'success'
 }
+
+// Esta función ya está definida en otra parte del código
 
 // Función para extraer un resumen del error
 const extractErrorSummary = (errorMsg: string | Record<string, unknown>): string => {
