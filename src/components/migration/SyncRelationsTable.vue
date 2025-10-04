@@ -1441,13 +1441,29 @@
                   :menu-props="{ maxHeight: '300px', closeOnContentClick: false }"
                   ref="publicationAutocomplete"
                   @focus="checkPublicationsCount"
+                  @keyup.enter="searchPublications"
+                  class="flex-grow-1"
                 >
-                  <template #append-inner v-if="loadingAccountPublications">
-                    <v-progress-circular
-                      indeterminate
-                      color="primary"
-                      size="20"
-                    ></v-progress-circular>
+                  <template #append-inner>
+                    <div class="modal-search-append">
+                      <v-progress-circular
+                        v-if="loadingAccountPublications"
+                        indeterminate
+                        color="primary"
+                        size="20"
+                      ></v-progress-circular>
+                      <v-btn
+                        color="primary"
+                        class="modal-search-action"
+                        variant="flat"
+                        min-width="44"
+                        height="40"
+                        :disabled="!selectedAccountId"
+                        @click="searchPublications"
+                      >
+                        <v-icon>mdi-magnify</v-icon>
+                      </v-btn>
+                    </div>
                   </template>
                   <template #item="{ item, props }">
                     <v-list-item v-bind="props">
@@ -1492,9 +1508,18 @@
                     </div>
                   </template>
                 </v-autocomplete>
+                <v-btn
+                  color="primary"
+                  class="ml-2 modal-search-action"
+                  min-width="48"
+                  height="56"
+                  variant="flat"
+                  :disabled="!selectedAccountId"
+                  @click="searchPublications"
+                >
+                  <v-icon>mdi-magnify</v-icon>
+                </v-btn>
               </div>
-
-              <!-- El botón para crear nueva publicación se ha movido al pie del diálogo -->
             </div>
 
             <div class="text-caption text-grey mb-4 pa-2 bg-grey-lighten-4 rounded">
@@ -2210,6 +2235,55 @@ const loadPublicationsForAccount = async (accountId: number | null) => {
     console.error('Error al cargar publicaciones de la cuenta:', error)
     showNotification.value = true
     notificationMessage.value = 'Error al cargar publicaciones de la cuenta'
+    notificationType.value = 'error'
+    accountPublications.value = []
+  } finally {
+    loadingAccountPublications.value = false
+  }
+}
+
+// Buscar publicaciones por ID
+const searchPublications = async () => {
+  const query = publicationSearchQuery.value.trim()
+  const accountId = selectedAccountId.value
+
+  if (!query || !accountId) {
+    return
+  }
+
+  loadingAccountPublications.value = true
+
+  try {
+    // Usar la API para buscar publicaciones por ID
+    const response = await migrationService.searchPublications(query, 0, 50)
+
+    if (response && response.products) {
+      // Transformar los datos al formato que necesitamos
+      accountPublications.value = response.products.map((product) => ({
+        id: product.ID,
+        title: product.ID, // Ya no tenemos acceso al título, usamos el ID como título
+        status: product.Status,
+      }))
+
+      // Actualizar estado de paginación
+      currentOffset.value = response.products.length
+      hasMorePublications.value = response.products.length >= 50
+
+      if (accountPublications.value.length === 0) {
+        showNotification.value = true
+        notificationMessage.value = 'No se encontraron publicaciones que coincidan con la búsqueda'
+        notificationType.value = 'warning'
+      }
+    } else {
+      accountPublications.value = []
+      showNotification.value = true
+      notificationMessage.value = 'Error al buscar publicaciones'
+      notificationType.value = 'error'
+    }
+  } catch (error) {
+    console.error('Error al buscar publicaciones:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al buscar publicaciones'
     notificationType.value = 'error'
     accountPublications.value = []
   } finally {
@@ -3900,8 +3974,10 @@ const resetStatusFilter = () => {
   padding-top: 0;
   padding-bottom: 0;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  line-height: 40px;
 }
-
 .modern-search :deep(.v-field__prepend-inner) {
   padding-top: 10px;
   color: rgba(0, 0, 0, 0.5);

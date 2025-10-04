@@ -48,14 +48,14 @@
     <!-- Filtros modernos tipo pills -->
     <div class="filter-bar mb-4">
       <!-- Barra de búsqueda principal -->
-      <div class="search-container mb-3">
+      <div class="search-container mb-3 d-flex">
         <v-text-field
           v-model="searchQuery"
           variant="outlined"
           density="compact"
           hide-details
           placeholder="Buscar ID..."
-          class="search-field modern-search"
+          class="search-field modern-search flex-grow-1"
           prepend-inner-icon="mdi-magnify"
           clearable
           rounded
@@ -63,7 +63,20 @@
           @update:model-value="handleSearchInputChange"
           @click:clear="clearSearchField"
           @keyup.enter="executeSearch"
-        ></v-text-field>
+        >
+          <template #append-inner>
+            <v-btn
+              color="primary"
+              class="search-action-btn"
+              min-width="48"
+              height="40"
+              variant="flat"
+              @click="executeSearch"
+            >
+              <v-icon>mdi-magnify</v-icon>
+            </v-btn>
+          </template>
+        </v-text-field>
       </div>
 
       <!-- Pills de filtros -->
@@ -334,7 +347,7 @@
 
     <!-- Tabla de IDs de productos -->
     <div class="position-relative">
-      <v-data-table
+      <v-data-table-virtual
         ref="dataTable"
         v-model="selectedItems"
         :headers="productIdsHeaders"
@@ -488,7 +501,7 @@
             </v-menu>
           </div>
         </template>
-      </v-data-table>
+      </v-data-table-virtual>
 
       <!-- Paginador fijo -->
       <div class="pagination-fixed">
@@ -2001,7 +2014,7 @@ onMounted(() => {
 .modern-search {
   max-width: 100%;
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .modern-search :deep(.v-field__input) {
@@ -2009,11 +2022,39 @@ onMounted(() => {
   padding-top: 0;
   padding-bottom: 0;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  line-height: 40px;
 }
 
 .modern-search :deep(.v-field__prepend-inner) {
-  padding-top: 10px;
+  padding: 0 10px 0 12px;
   color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+}
+
+.modern-search :deep(.v-field__append-inner) {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0;
+  margin-right: -12px;
+}
+
+.search-action-btn {
+  min-width: 48px;
+  height: 100%;
+  box-shadow: none;
+  padding: 0 12px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
+
+.search-action-btn :deep(.v-btn__content) {
+  justify-content: center;
 }
 
 .filter-pills-container {
@@ -2133,13 +2174,20 @@ onMounted(() => {
 }
 
 :deep(.modern-search .v-field__input::placeholder) {
-  font-size: 12px;
+  font-size: 14px;
   padding-left: 8px;
+  line-height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 :deep(.modern-search .v-field__prepend-inner .v-icon) {
-  font-size: 16px;
-  padding-left: 8px;
+  font-size: 20px;
+  padding-left: 0;
+}
+
+:deep(.modern-search .v-field__append-inner .v-btn .v-icon) {
+  font-size: 20px;
 }
 
 /* Animación de pulso para el chip cuando se está procesando */

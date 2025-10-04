@@ -885,6 +885,9 @@ const getRelationLabel = (value: string): string => {
   padding-top: 0;
   padding-bottom: 0;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  line-height: 40px;
 }
 
 .modern-search :deep(.v-field__prepend-inner) {
