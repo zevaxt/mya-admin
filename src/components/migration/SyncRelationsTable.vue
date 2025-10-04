@@ -408,9 +408,9 @@
       <v-data-table-virtual
         ref="dataTable"
         v-model:expanded="expanded"
-        v-model="publicationsSelected"
+        v-model="selectedItems"
         :headers="headers"
-        :items="publicationsShow"
+        :items="tableItems"
         :loading="loading"
         :items-per-page="itemsPerPage"
         :page="page"
@@ -1587,14 +1587,14 @@
               color="primary"
               variant="tonal"
               size="small"
-              :disabled="!publicationsSelected || publicationsSelected.length === 0"
+              :disabled="!selectedItems || selectedItems.length === 0"
               :loading="syncingSelected"
               @click="syncSelectedPublications"
               class="me-1"
             >
               <v-icon class="me-1">mdi-sync</v-icon>
               <span class="font-weight-medium"
-                >Sincronizar {{ publicationsSelected ? publicationsSelected.length : 0 }}</span
+                >Sincronizar {{ selectedItems ? selectedItems.length : 0 }}</span
               >
             </v-btn>
 
@@ -1605,9 +1605,7 @@
               variant="tonal"
               size="small"
               :disabled="
-                !publicationsSelected ||
-                publicationsSelected.length === 0 ||
-                getTotalSyncRelations() === 0
+                !selectedItems || selectedItems.length === 0 || getTotalSyncRelations() === 0
               "
               :loading="deletingSelected"
               @click="deleteSelectedSyncRelations"
@@ -1674,7 +1672,7 @@ import { openInMercadoLibre } from '@/utils/mercadoLibreUtils'
 // Estado
 const accountStore = useAccountStore()
 const loading = ref(false)
-const publicationsShow = ref<PublicationSyncData[]>([])
+const filteredProductIds = ref<PublicationSyncData[]>([])
 const totalPublicationsAll = ref(0)
 const totalPublicationsFiltered = ref(0)
 const filteredPublicationsAll = ref(0)
@@ -1718,7 +1716,9 @@ const accountPublications = ref<Array<{ id: string; title?: string; status: bool
 const publicationSearchQuery = ref('')
 
 // Estado para la sincronización
-const publicationsSelected = ref<any[]>([])
+const selectedItems = ref<string[]>([])
+const selectedItemsDetails = ref<Record<string, PublicationSyncData>>({})
+const selectedItemsOrder = ref<string[]>([])
 const syncingAll = ref(false)
 const syncingSelected = ref(false)
 // Variable compartida para operaciones de sincronización y eliminación individual
@@ -1976,6 +1976,78 @@ const getRowHeight = (item: DataTableVirtualItem) => {
 const allPublications = ref<PublicationSyncData[]>([])
 const hasLoadedPublications = ref(false)
 
+// Mantener detalles completos y ordenados de las publicaciones seleccionadas
+watch(
+  selectedItems,
+  (newSelected) => {
+    const details: Record<string, PublicationSyncData> = { ...selectedItemsDetails.value }
+    const currentById = new Map(filteredProductIds.value.map((pub) => [pub.publication_id, pub]))
+    const allById = new Map(allPublications.value.map((pub) => [pub.publication_id, pub]))
+    const selectedIds = new Set<string>(newSelected)
+
+    const preservedOrder = selectedItemsOrder.value.filter((id) => selectedIds.has(id))
+    const newlySelected = newSelected.filter((id) => !preservedOrder.includes(id))
+    selectedItemsOrder.value = [...newlySelected, ...preservedOrder]
+
+    selectedItemsOrder.value.forEach((id) => {
+      const current = currentById.get(id) || allById.get(id)
+      if (current) {
+        details[id] = { ...current }
+      } else if (details[id]) {
+        details[id] = { ...details[id] }
+      }
+    })
+
+    Object.keys(details).forEach((id) => {
+      if (!selectedIds.has(id)) {
+        delete details[id]
+      }
+    })
+
+    selectedItemsDetails.value = details
+  },
+  { deep: false },
+)
+
+// Sincronizar detalles cuando cambia el resultado paginado
+watch(
+  () => filteredProductIds.value,
+  (newItems) => {
+    if (!Array.isArray(newItems) || newItems.length === 0) {
+      return
+    }
+
+    const details: Record<string, PublicationSyncData> = { ...selectedItemsDetails.value }
+    newItems.forEach((item) => {
+      if (details[item.publication_id]) {
+        details[item.publication_id] = { ...item }
+      }
+    })
+    selectedItemsDetails.value = details
+  },
+  { deep: true },
+)
+
+const tableItems = computed<PublicationSyncData[]>(() => {
+  const baseItems = filteredProductIds.value
+  const selectedIds = new Set(selectedItems.value)
+
+  const selectedWithDetails = selectedItemsOrder.value
+    .filter((id) => selectedIds.has(id))
+    .map((id) => {
+      return (
+        selectedItemsDetails.value[id] ||
+        baseItems.find((item) => item.publication_id === id) ||
+        allPublications.value.find((item) => item.publication_id === id)
+      )
+    })
+    .filter((item): item is PublicationSyncData => !!item)
+
+  const nonSelected = baseItems.filter((item) => !selectedIds.has(item.publication_id))
+
+  return [...selectedWithDetails, ...nonSelected]
+})
+
 // Métodos
 const loadSyncRelations = async (forceReload?: boolean) => {
   const accountId = accountStore.currentAccount?.ID
@@ -2073,7 +2145,7 @@ const loadSyncRelations = async (forceReload?: boolean) => {
         if (!matchesStatus) {
           return
         }
-      }
+      } //perfect
 
       filteredPublications.push(item)
     })
@@ -2081,11 +2153,24 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     // Actualizar las métricas de publicaciones filtradas
     totalPublicationsFiltered.value = filteredPublications.length
     filteredPublicationsAll.value = filteredPublications.length
-    selectablePublicationIds.value = new Set(
+    const selectableSet = new Set(
       filteredPublications
         .filter((item) => isPublicationSelectable(item))
         .map((item) => item.publication_id),
     )
+
+    selectedItems.value.forEach((id) => {
+      if (typeof id !== 'string') {
+        return
+      }
+
+      const existsInAll = allPublications.value.some((item) => item.publication_id === id)
+      if (existsInAll) {
+        selectableSet.add(id)
+      }
+    })
+
+    selectablePublicationIds.value = selectableSet
 
     // Aplicar paginación
     const offset = (page.value - 1) * itemsPerPage.value
@@ -2093,14 +2178,14 @@ const loadSyncRelations = async (forceReload?: boolean) => {
     const paginatedPublications = filteredPublications.slice(offset, offset + limit)
 
     // Actualizar el estado
-    publicationsShow.value = paginatedPublications
-    publicationsSelected.value = filterSelectablePublications(publicationsSelected.value)
+    filteredProductIds.value = paginatedPublications
+    selectedItems.value = filterSelectablePublications(selectedItems.value)
   } catch (error) {
     console.error('Error al cargar las sincronizaciones:', error)
     showNotification.value = true
     notificationMessage.value = 'Error al cargar las sincronizaciones'
     notificationType.value = 'error'
-    publicationsShow.value = []
+    filteredProductIds.value = []
     allPublications.value = []
     filteredPublicationsAll.value = 0
     selectablePublicationIds.value = new Set()
@@ -2658,13 +2743,13 @@ const syncAllPublications = async () => {
 
 // Función para sincronizar las publicaciones seleccionadas
 const syncSelectedPublications = async () => {
-  if (!publicationsSelected.value || publicationsSelected.value.length === 0) return
+  if (!selectedItems.value || selectedItems.value.length === 0) return
 
   syncingSelected.value = true
 
   // Mostrar el overlay de progreso
   showProgressOverlay.value = true
-  progressMessage.value = `Sincronizando ${publicationsSelected.value.length} publicaciones...`
+  progressMessage.value = `Sincronizando ${selectedItems.value.length} publicaciones...`
   syncComplete.value = false
   progressValue.value = 0
   syncSuccessCount.value = 0
@@ -2679,13 +2764,13 @@ const syncSelectedPublications = async () => {
     const errorMessages: string[] = [] // Almacenar mensajes de error para mostrarlos después
 
     // Obtener la publicación actual para determinar sus relaciones
-    for (const publicationId of publicationsSelected.value) {
+    for (const publicationId of selectedItems.value) {
       try {
         const accountId = accountStore.currentAccount?.ID
         if (!accountId) continue
 
         // Encontrar la publicación en la lista para obtener sus relaciones
-        const publication = publicationsShow.value.find(
+        const publication = filteredProductIds.value.find(
           (item) => item.publication_id === publicationId,
         )
         if (!publication) {
@@ -2791,7 +2876,7 @@ const syncSelectedPublications = async () => {
         errorMessages.push(JSON.stringify(enrichedError))
       } finally {
         // Actualizar el indicador de progreso después de cada publicación procesada
-        progressValue.value = (successCount + errorCount) / (publicationsSelected.value.length * 2) // Aproximación del progreso
+        progressValue.value = (successCount + errorCount) / (selectedItems.value.length * 2) // Aproximación del progreso
       }
     }
 
@@ -2967,7 +3052,9 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
     }
 
     // Encontrar la publicación en la lista
-    const publication = publicationsShow.value.find((item) => item.publication_id === publicationId)
+    const publication = filteredProductIds.value.find(
+      (item) => item.publication_id === publicationId,
+    )
     if (!publication) {
       throw new Error(`No se encontró la publicación ${publicationId}`)
     }
@@ -3166,13 +3253,13 @@ const syncAllRelations = async (publicationId: string, direction: 'outgoing' | '
 // Función auxiliar para encontrar el ID de cuenta por ID de publicación
 const findAccountIdByPublicationId = (publicationId: string): number | undefined => {
   // Buscar en las publicaciones cargadas
-  const publication = publicationsShow.value.find((item) => item.publication_id === publicationId)
+  const publication = filteredProductIds.value.find((item) => item.publication_id === publicationId)
   if (publication) {
     return publication.account_id
   }
 
   // Si no se encuentra, buscar en las sincronizaciones entrantes y salientes
-  for (const item of publicationsShow.value) {
+  for (const item of filteredProductIds.value) {
     // Buscar en sincronizaciones salientes
     const outgoingSync = item.to_syncs?.find((sync) => sync.to_sync_id === publicationId)
     if (outgoingSync) {
@@ -3667,15 +3754,15 @@ const deleteSyncRelation = async (
 
 // Función para calcular el total de relaciones de sincronización de las publicaciones seleccionadas
 const getTotalSyncRelations = (): number => {
-  if (!publicationsSelected.value || publicationsSelected.value.length === 0) {
+  if (!selectedItems.value || selectedItems.value.length === 0) {
     return 0
   }
 
   let totalRelations = 0
 
   // Contar todas las relaciones de sincronización (salientes y entrantes)
-  publicationsSelected.value.forEach((publicationId) => {
-    const publication = publicationsShow.value.find((p) => p.publication_id === publicationId)
+  selectedItems.value.forEach((publicationId) => {
+    const publication = filteredProductIds.value.find((p) => p.publication_id === publicationId)
     if (publication) {
       // Contar relaciones salientes
       totalRelations += publication.to_syncs.length
@@ -3692,11 +3779,7 @@ const getTotalSyncRelations = (): number => {
 const deleteSelectedSyncRelations = async () => {
   const totalRelations = getTotalSyncRelations()
 
-  if (
-    !publicationsSelected.value ||
-    publicationsSelected.value.length === 0 ||
-    totalRelations === 0
-  ) {
+  if (!selectedItems.value || selectedItems.value.length === 0 || totalRelations === 0) {
     showNotification.value = true
     notificationMessage.value = 'No hay relaciones de sincronización para eliminar'
     notificationType.value = 'warning'
@@ -3710,8 +3793,8 @@ const deleteSelectedSyncRelations = async () => {
     const syncRelations: Array<{ publication_id: string; to_sync_id: string }> = []
 
     // Recopilar todas las relaciones de sincronización (salientes y entrantes)
-    publicationsSelected.value.forEach((publicationId) => {
-      const publication = publicationsShow.value.find((p) => p.publication_id === publicationId)
+    selectedItems.value.forEach((publicationId) => {
+      const publication = filteredProductIds.value.find((p) => p.publication_id === publicationId)
       if (publication) {
         // Agregar relaciones salientes
         publication.to_syncs.forEach((sync) => {
@@ -3766,7 +3849,7 @@ watch(
     if (newAccountId !== oldAccountId) {
       hasLoadedPublications.value = false
       allPublications.value = []
-      publicationsShow.value = []
+      filteredProductIds.value = []
       filteredPublicationsAll.value = []
       selectablePublicationIds.value = new Set()
       totalPublicationsFiltered.value = 0
@@ -3776,11 +3859,11 @@ watch(
 )
 
 watch(
-  () => publicationsSelected.value,
+  () => selectedItems.value,
   (newSelected) => {
     const filtered = filterSelectablePublications(newSelected)
     if (!Array.isArray(newSelected) || filtered.length !== newSelected.length) {
-      publicationsSelected.value = filtered
+      selectedItems.value = filtered
     }
   },
   { deep: true },
