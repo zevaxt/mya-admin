@@ -1437,7 +1437,18 @@
                   :hint="!selectedAccountId ? 'Selecciona una cuenta primero' : ''"
                   persistent-hint
                   @update:search="publicationSearchQuery = $event"
+                  @update:menu="handleMenuOpen"
+                  :menu-props="{ maxHeight: '300px', closeOnContentClick: false }"
+                  ref="publicationAutocomplete"
+                  @focus="checkPublicationsCount"
                 >
+                  <template #append-inner v-if="loadingAccountPublications">
+                    <v-progress-circular
+                      indeterminate
+                      color="primary"
+                      size="20"
+                    ></v-progress-circular>
+                  </template>
                   <template #item="{ item, props }">
                     <v-list-item v-bind="props">
                       <template #prepend>
@@ -2175,6 +2186,11 @@ const availableAccounts = computed(() => {
     }))
 })
 
+// Estado para el scroll infinito
+const currentOffset = ref(0)
+const hasMorePublications = ref(true)
+const publicationsLimit = ref(25) // Cantidad de publicaciones por carga
+
 // Cargar publicaciones para la cuenta seleccionada
 const loadPublicationsForAccount = async (accountId: number | null) => {
   if (!accountId) {
@@ -2182,18 +2198,14 @@ const loadPublicationsForAccount = async (accountId: number | null) => {
     return
   }
 
+  // Reset de paginación al cambiar de cuenta
+  currentOffset.value = 0
+  hasMorePublications.value = true
+  accountPublications.value = []
   loadingAccountPublications.value = true
 
   try {
-    // Usar la API para obtener las publicaciones de la cuenta seleccionada
-    const response = await migrationService.getProductIds(accountId, undefined, 0, 25)
-
-    // Transformar los datos al formato que necesitamos
-    accountPublications.value = response.products.map((product) => ({
-      id: product.ID,
-      title: product.ID, // Ya no tenemos acceso al título, usamos el ID como título
-      status: product.Status,
-    }))
+    await loadMorePublications(accountId)
   } catch (error) {
     console.error('Error al cargar publicaciones de la cuenta:', error)
     showNotification.value = true
@@ -2205,6 +2217,145 @@ const loadPublicationsForAccount = async (accountId: number | null) => {
   }
 }
 
+// Función para cargar más publicaciones al hacer scroll
+const loadMorePublications = async (accountId: number | null) => {
+  if (!accountId || !hasMorePublications.value || loadingAccountPublications.value) {
+    return
+  }
+
+  loadingAccountPublications.value = true
+
+  try {
+    // Usar la API para obtener más publicaciones con el offset actual
+    const response = await migrationService.getProductIds(
+      accountId,
+      undefined,
+      currentOffset.value,
+      publicationsLimit.value,
+    )
+
+    // Transformar los datos al formato que necesitamos
+    const newPublications = response.products.map((product) => ({
+      id: product.ID,
+      title: product.ID, // Ya no tenemos acceso al título, usamos el ID como título
+      status: product.Status,
+    }))
+
+    // Agregar nuevas publicaciones a las existentes
+    accountPublications.value = [...accountPublications.value, ...newPublications]
+
+    // Actualizar offset para la próxima carga
+    currentOffset.value += newPublications.length
+
+    // Verificar si hay más publicaciones por cargar
+    hasMorePublications.value = newPublications.length >= publicationsLimit.value
+  } catch (error) {
+    console.error('Error al cargar más publicaciones:', error)
+    showNotification.value = true
+    notificationMessage.value = 'Error al cargar más publicaciones'
+    notificationType.value = 'error'
+  } finally {
+    loadingAccountPublications.value = false
+  }
+}
+
+// Referencia al componente autocomplete para manejar su menú
+// Usamos type any porque necesitamos acceder a propiedades internas de Vuetify
+const publicationAutocomplete = ref<any>(null)
+
+// Variable para almacenar el observer actual
+let currentObserver: MutationObserver | null = null
+
+// Manejador de evento de scroll para el menú desplegable
+const handleMenuScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+
+  // Calcular si estamos cerca del final del scroll
+  const isNearBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 100
+
+  // Si estamos cerca del final y hay más publicaciones para cargar
+  if (isNearBottom && hasMorePublications.value && !loadingAccountPublications.value) {
+    loadMorePublications(selectedAccountId.value)
+  }
+}
+
+// Verificar si hay suficientes publicaciones o necesitamos cargar más
+const checkPublicationsCount = () => {
+  if (
+    selectedAccountId.value &&
+    accountPublications.value.length < 20 &&
+    hasMorePublications.value &&
+    !loadingAccountPublications.value
+  ) {
+    loadMorePublications(selectedAccountId.value)
+  }
+}
+
+// Manejador para cuando se abre el menú
+const handleMenuOpen = (isOpen: boolean) => {
+  // Si el menú se abre, verificar si necesitamos cargar más publicaciones
+  if (isOpen) {
+    checkPublicationsCount()
+
+    // Configurar la detección de scroll
+    setTimeout(() => {
+      setupScrollDetection()
+      console.log('Menú abierto, configurando detección de scroll')
+    }, 300) // Aumentar el tiempo de espera
+  } else if (currentObserver) {
+    // Desconectar el observer cuando se cierra el menú
+    currentObserver.disconnect()
+    currentObserver = null
+  }
+}
+
+// Configurar la detección de scroll en el menú desplegable
+const setupScrollDetection = () => {
+  // Limpiar observer anterior si existe
+  if (currentObserver) {
+    currentObserver.disconnect()
+  }
+
+  const menuList =
+    document.querySelector('.v-autocomplete__menu .v-list') ||
+    document.querySelector('.v-list.v-select__content') ||
+    document.querySelector('.v-overlay-container .v-list') ||
+    document.querySelector('.v-overlay__content .v-list')
+  if (menuList) {
+    // Agregar listener de scroll directamente
+    menuList.addEventListener('scroll', handleMenuScroll)
+    console.log('Detector de scroll agregado correctamente')
+    return
+  }
+
+  // Si no encontramos el menú, usar MutationObserver como fallback
+  console.log('Menu no encontrado, configurando observer')
+
+  // Si no encontramos el menú, usar MutationObserver como fallback
+  currentObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList' && mutation.addedNodes.length) {
+        const menuContent =
+          document.querySelector('.v-autocomplete__menu .v-list') ||
+          document.querySelector('.v-list.v-select__content') ||
+          document.querySelector('.v-overlay-container .v-list') ||
+          document.querySelector('.v-overlay__content .v-list')
+        if (menuContent) {
+          menuContent.removeEventListener('scroll', handleMenuScroll)
+          menuContent.addEventListener('scroll', handleMenuScroll)
+
+          // Ya no necesitamos seguir observando una vez encontrado
+          if (currentObserver) {
+            currentObserver.disconnect()
+            currentObserver = null
+          }
+        }
+      }
+    })
+  })
+
+  currentObserver.observe(document.body, { childList: true, subtree: true })
+}
 // Abrir el diálogo para agregar sincronización
 const openAddSyncDialog = (publicationId: string, type: 'outgoing' | 'incoming') => {
   syncDialogType.value = type

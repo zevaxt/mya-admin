@@ -420,7 +420,7 @@ export const migrationService = {
     accountId: number,
     status?: string,
     offset = 0,
-    limit = 50,
+    limit = 0,
     syncActive?: boolean,
     catalogActive?: boolean,
   ): Promise<ProductIdListResponse> {
