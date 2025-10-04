@@ -40,7 +40,7 @@ const selectedItems = ref<string[]>([])
 // Filtros
 const statusFilter = ref<'' | 'active' | 'paused' | 'inactive' | 'closed'>('')
 const isDefaultStatusFilter = ref(true)
-const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace,mshops')
+const channelsFilter = ref<'marketplace,mshops' | 'marketplace' | 'mshops'>('marketplace')
 const isDefaultChannelsFilter = ref(true)
 
 const statusOptions = [
