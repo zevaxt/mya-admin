@@ -355,6 +355,7 @@
         :loading="loading"
         :items-per-page="itemsPerPage"
         :height="tableHeight"
+        fixed-header
         :item-height="virtualRowHeight"
         :bench="virtualScrollBench"
         class="elevation-1 rounded-lg"
@@ -1060,10 +1061,10 @@ const filteredMessage = computed(() => {
   const isFilteredView = hasActiveFilters.value || searchQuery.value.trim().length > 0
 
   if (isFilteredView) {
-    return `${total} publicaciones filtradas`
+    return `${total} publicaciones filtradas paginadas`
   }
 
-  return `${total} publicaciones`
+  return `${total} publicaciones paginadas`
 })
 
 // Filtrar IDs de productos
@@ -1967,7 +1968,6 @@ const executeSearch = async () => {
 }
 
 const clearSearchField = async () => {
-  if (!searchQuery.value) return
   searchQuery.value = ''
   page.value = 1
   await loadProductIds()

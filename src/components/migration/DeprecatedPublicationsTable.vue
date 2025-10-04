@@ -32,6 +32,7 @@
 
     <div class="position-relative">
       <v-data-table-virtual
+        fixed-header
         :height="tableHeight"
         :item-height="virtualRowHeight"
         :bench="virtualScrollBench"

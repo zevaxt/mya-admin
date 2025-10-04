@@ -420,6 +420,7 @@
         :get-row-height="getRowHeight"
         :item-transition="virtualScrollItemTransition"
         :expand-transition="expandTransition"
+        fixed-header
         @update:items-per-page="handleItemsPerPageChange"
         item-value="publication_id"
         density="comfortable"
