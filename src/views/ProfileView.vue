@@ -82,6 +82,19 @@
             <v-divider></v-divider>
             
             <v-card-text>
+              <v-alert
+                v-if="authStore.username"
+                type="info"
+                variant="tonal"
+                class="mb-4"
+                density="comfortable"
+                border="start"
+                icon="mdi-information-outline"
+              >
+                <div class="text-subtitle-2 font-weight-medium">Usuario: {{ authStore.username }}</div>
+                <div class="text-body-2">Vas a cambiar la contraseña para este usuario.</div>
+              </v-alert>
+              
               <v-form ref="passwordForm" v-model="passwordFormValid" @submit.prevent="changePassword">
                 <v-text-field
                   v-model="passwordData.currentPassword"
@@ -93,6 +106,9 @@
                   :rules="[rules.required]"
                   density="comfortable"
                   class="mb-3"
+                  :error-messages="passwordErrors.currentPassword"
+                  persistent-placeholder
+                  @blur="validateField('currentPassword')"
                 ></v-text-field>
                 
                 <v-text-field
@@ -105,6 +121,9 @@
                   :rules="[rules.required, rules.min]"
                   density="comfortable"
                   class="mb-3"
+                  :error-messages="passwordErrors.newPassword"
+                  persistent-placeholder
+                  @blur="validateField('newPassword')"
                 ></v-text-field>
                 
                 <v-text-field
@@ -117,6 +136,9 @@
                   :rules="[rules.required, rules.passwordMatch]"
                   density="comfortable"
                   class="mb-3"
+                  :error-messages="passwordErrors.confirmPassword"
+                  persistent-placeholder
+                  @blur="validateField('confirmPassword')"
                 ></v-text-field>
                 
                 <div class="d-flex justify-end">
@@ -159,9 +181,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import userService, { type PasswordChangeRequest } from '@/services/userService'
+import { useRouter } from 'vue-router'
+
+// Inicializar router
+const router = useRouter()
 
 // Configuración del formulario
-const passwordForm = ref<any>(null)
+const passwordForm = ref<HTMLFormElement | null>(null)
 const passwordFormValid = ref(false)
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -171,6 +197,13 @@ const changingPassword = ref(false)
 const showCurrentPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
+
+// Estado para errores de contraseña
+const passwordErrors = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 // Estado para notificaciones
 const showNotification = ref(false)
@@ -199,6 +232,36 @@ const rules = {
   passwordMatch: (v: string) => v === passwordData.value.newPassword || 'Las contraseñas no coinciden'
 }
 
+// Validar campo específico
+const validateField = (field: 'currentPassword' | 'newPassword' | 'confirmPassword') => {
+  // Evitar limpiar el campo al perder el foco
+  // Solo validar si es necesario
+  if (field === 'currentPassword' && !passwordData.value.currentPassword) {
+    const result = rules.required('')
+    passwordErrors.value.currentPassword = typeof result === 'string' ? result : ''
+  } else if (field === 'newPassword') {
+    if (!passwordData.value.newPassword) {
+      const result = rules.required('')
+      passwordErrors.value.newPassword = typeof result === 'string' ? result : ''
+    } else if (passwordData.value.newPassword.length < 8) {
+      const result = rules.min(passwordData.value.newPassword)
+      passwordErrors.value.newPassword = typeof result === 'string' ? result : ''
+    } else {
+      passwordErrors.value.newPassword = ''
+    }
+  } else if (field === 'confirmPassword') {
+    if (!passwordData.value.confirmPassword) {
+      const result = rules.required('')
+      passwordErrors.value.confirmPassword = typeof result === 'string' ? result : ''
+    } else if (passwordData.value.confirmPassword !== passwordData.value.newPassword) {
+      const result = rules.passwordMatch(passwordData.value.confirmPassword)
+      passwordErrors.value.confirmPassword = typeof result === 'string' ? result : ''
+    } else {
+      passwordErrors.value.confirmPassword = ''
+    }
+  }
+}
+
 // Formatear tiempo restante
 const formatRemainingTime = (seconds: number): string => {
   if (seconds <= 0) return 'Sesión expirada'
@@ -220,6 +283,17 @@ const loadUserProfile = async () => {
     if (response.success && response.user) {
       // Si es necesario actualizar datos adicionales del usuario
       // que no están en el store
+      
+      // Mostrar notificación de éxito
+      showNotification.value = true
+      notificationMessage.value = 'Perfil cargado exitosamente'
+      notificationType.value = 'success'
+      
+      // Esperar un momento para que el usuario vea la notificación
+      setTimeout(() => {
+        // Redirigir a la página de landing
+        router.push('/landing')
+      }, 1500) // Esperar 1.5 segundos antes de redirigir
     }
   } catch (error) {
     console.error('Error al cargar perfil:', error)
@@ -234,6 +308,13 @@ const loadUserProfile = async () => {
 // Cambiar contraseña
 const changePassword = async () => {
   if (!passwordFormValid.value) return
+  
+  // Limpiar errores previos
+  passwordErrors.value = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
   
   changingPassword.value = true
   try {
@@ -253,11 +334,24 @@ const changePassword = async () => {
       if (passwordForm.value) {
         passwordForm.value.reset()
       }
+      
+      // Esperar un momento y redirigir a landing
+      setTimeout(() => {
+        router.push('/landing')
+      }, 2000) // Esperar 2 segundos antes de redirigir
+    } else {
+      // Manejar errores específicos
+      if (response.message.toLowerCase().includes('contraseña actual') || 
+          response.message.toLowerCase().includes('credenciales')) {
+        passwordErrors.value.currentPassword = response.message
+      } else if (response.message.toLowerCase().includes('nueva')) {
+        passwordErrors.value.newPassword = response.message
+      }
     }
   } catch (error) {
     console.error('Error al cambiar contraseña:', error)
     showNotification.value = true
-    notificationMessage.value = 'Error al procesar la solicitud'
+    notificationMessage.value = 'Error al procesar la solicitud. Inténtelo nuevamente'
     notificationType.value = 'error'
   } finally {
     changingPassword.value = false

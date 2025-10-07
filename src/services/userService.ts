@@ -27,23 +27,34 @@ export const userService = {
       return {
         success: true,
         message: 'Perfil obtenido exitosamente',
-        user: response.data
+        user: response.data,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al obtener perfil de usuario:', error)
-      
+
       // Extraer mensaje de error específico si está disponible
       let errorMessage = 'Error al obtener el perfil de usuario'
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
-      } else if (error.response?.data?.Message) {
-        errorMessage = error.response.data.Message
+
+      // Tipificar el error para acceder a sus propiedades de forma segura
+      const axiosError = error as {
+        response?: {
+          status?: number
+          data?: {
+            Message?: string
+            message?: string
+          }
+        }
       }
-      
+
+      if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message
+      } else if (axiosError.response?.data?.Message) {
+        errorMessage = axiosError.response.data.Message
+      }
+
       return {
         success: false,
-        message: errorMessage
+        message: errorMessage,
       }
     }
   },
@@ -55,39 +66,75 @@ export const userService = {
       if (passwordData.newPassword !== passwordData.confirmPassword) {
         return {
           success: false,
-          message: 'Las contraseñas nuevas no coinciden'
+          message: 'Las contraseñas nuevas no coinciden',
         }
       }
 
-      const response = await apiClient.post('/v1/user/change-password', {
+      // Obtener el nombre de usuario del localStorage o del estado
+      const userJson = localStorage.getItem('user')
+      let username = ''
+
+      if (userJson) {
+        try {
+          const userData = JSON.parse(userJson)
+          username = userData.Username || ''
+        } catch (e) {
+          console.error('Error al parsear datos de usuario:', e)
+        }
+      }
+
+      if (!username) {
+        return {
+          success: false,
+          message: 'No se pudo obtener el nombre de usuario',
+        }
+      }
+
+      // Enviar solicitud según la especificación de la API
+      const response = await apiClient.post('/v1/change-password', {
+        username: username,
         currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+        newPassword: passwordData.newPassword,
       })
 
       return {
         success: true,
-        message: response.data?.message || 'Contraseña actualizada exitosamente'
+        message: response.data?.message || 'Contraseña actualizada exitosamente',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al cambiar contraseña:', error)
-      
+
       // Extraer mensaje de error específico si está disponible
       let errorMessage = 'Error al cambiar la contraseña'
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
-      } else if (error.response?.data?.Message) {
-        errorMessage = error.response.data.Message
-      } else if (error.response?.status === 401) {
-        errorMessage = 'La contraseña actual es incorrecta'
+
+      // Tipificar el error para acceder a sus propiedades de forma segura
+      const axiosError = error as {
+        response?: {
+          status?: number
+          data?: {
+            Message?: string
+            message?: string
+            TecnicalDetails?: string
+          }
+        }
       }
-      
+
+      if (axiosError.response?.data?.Message) {
+        errorMessage = axiosError.response.data.Message
+      } else if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message
+      } else if (axiosError.response?.status === 401) {
+        errorMessage = 'La contraseña actual es incorrecta'
+      } else if (axiosError.response?.status === 400) {
+        errorMessage = 'Datos incompletos o inválidos'
+      }
+
       return {
         success: false,
-        message: errorMessage
+        message: errorMessage,
       }
     }
-  }
+  },
 }
 
 export default userService
