@@ -10,5 +10,13 @@ export default mergeConfig(
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
     },
+    server: {
+      https: false,
+      host: true,
+      port: 5173,
+      proxy: {
+        '/v1': 'http://127.0.0.1:4200',
+      },
+    },
   }),
 )
