@@ -3,7 +3,7 @@ import axios from 'axios'
 
 // Crear instancia de axios con configuración base
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4200',
+  baseURL: import.meta.env.VITE_API_URL || 'http://18.217.90.153:4200',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -33,7 +33,7 @@ apiClient.interceptors.response.use(
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
     })
 
     // Capturar errores relacionados con la autenticación
@@ -42,12 +42,12 @@ apiClient.interceptors.response.use(
         console.error('Error de autenticación:', error.response.status, error.response.data)
 
         // Verificar si es un error de inicio de sesión o un error de token
-        const isLoginError = error.config?.url?.includes('/signin');
-        const isTokenError = 
+        const isLoginError = error.config?.url?.includes('/signin')
+        const isTokenError =
           error.response.data &&
           (error.response.data.message?.includes('token') ||
-           error.response.data.Message?.includes('token') ||
-           error.response.data.error?.includes('token'));
+            error.response.data.Message?.includes('token') ||
+            error.response.data.error?.includes('token'))
 
         // Si es un error de token (no de inicio de sesión), limpiar el localStorage
         if (!isLoginError && isTokenError) {
@@ -109,7 +109,10 @@ export const authService = {
     try {
       try {
         // Intentar hacer login con la API
-        console.log('Intentando iniciar sesión con:', { username: credentials.username, passwordLength: credentials.password?.length })
+        console.log('Intentando iniciar sesión con:', {
+          username: credentials.username,
+          passwordLength: credentials.password?.length,
+        })
         const response = await apiClient.post('/v1/signin', credentials)
 
         // Registrar la respuesta para depuración (sin datos sensibles)
@@ -118,7 +121,7 @@ export const authService = {
           statusText: response.statusText,
           headers: response.headers,
           hasData: !!response.data,
-          hasToken: response.data?.Token ? 'Sí' : 'No'
+          hasToken: response.data?.Token ? 'Sí' : 'No',
         })
 
         // Obtener los datos del usuario y el token de la respuesta
@@ -161,14 +164,22 @@ export const authService = {
                 'Credenciales incorrectas. Por favor, verifica tu nombre de usuario y contraseña',
               )
             } else if (status === 404) {
-              throw new Error('El servicio de autenticación no está disponible. Por favor, contacta al administrador del sistema')
+              throw new Error(
+                'El servicio de autenticación no está disponible. Por favor, contacta al administrador del sistema',
+              )
             } else if (status === 429) {
-              throw new Error('Demasiados intentos de inicio de sesión. Por favor, espera unos minutos antes de intentarlo nuevamente')
+              throw new Error(
+                'Demasiados intentos de inicio de sesión. Por favor, espera unos minutos antes de intentarlo nuevamente',
+              )
             } else if (status >= 500) {
-              throw new Error('Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico')
+              throw new Error(
+                'Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico',
+              )
             }
           } else if (axiosError.request) {
-            throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet o si el servidor está disponible')
+            throw new Error(
+              'No se pudo conectar con el servidor. Verifica tu conexión a internet o si el servidor está disponible',
+            )
           }
         }
 
@@ -186,21 +197,33 @@ export const authService = {
 
         // Personalizar mensaje de error para el usuario
         if (error.message.includes('token')) {
-          throw new Error('Error de autenticación: No se pudo obtener un token válido. Por favor, intenta nuevamente')
+          throw new Error(
+            'Error de autenticación: No se pudo obtener un token válido. Por favor, intenta nuevamente',
+          )
         } else if (error.message.includes('401') || error.message.includes('403')) {
           throw new Error(
             'Credenciales incorrectas. Por favor, verifica tu nombre de usuario y contraseña',
           )
         } else if (error.message.includes('404')) {
-          throw new Error('El servicio de autenticación no está disponible. Por favor, contacta al administrador del sistema')
+          throw new Error(
+            'El servicio de autenticación no está disponible. Por favor, contacta al administrador del sistema',
+          )
         } else if (error.message.includes('429')) {
-          throw new Error('Demasiados intentos de inicio de sesión. Por favor, espera unos minutos antes de intentarlo nuevamente')
+          throw new Error(
+            'Demasiados intentos de inicio de sesión. Por favor, espera unos minutos antes de intentarlo nuevamente',
+          )
         } else if (error.message.includes('500')) {
-          throw new Error('Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico')
+          throw new Error(
+            'Error en el servidor. Por favor, intenta más tarde o contacta al soporte técnico',
+          )
         } else if (error.message.includes('timeout')) {
-          throw new Error('La solicitud ha excedido el tiempo de espera. Por favor, verifica tu conexión e intenta nuevamente')
+          throw new Error(
+            'La solicitud ha excedido el tiempo de espera. Por favor, verifica tu conexión e intenta nuevamente',
+          )
         } else if (error.message.includes('network')) {
-          throw new Error('Error de conexión. Verifica tu conexión a internet o si el servidor está disponible')
+          throw new Error(
+            'Error de conexión. Verifica tu conexión a internet o si el servidor está disponible',
+          )
         }
       } else {
         console.error('Error desconocido en login')
@@ -220,28 +243,32 @@ export const authService = {
   isAuthenticated(): boolean {
     return !!localStorage.getItem('token')
   },
-  
+
   // Renovar token
   async refreshToken(): Promise<string | null> {
     try {
       const token = localStorage.getItem('token')
-      
+
       if (!token) {
         throw new Error('No hay token para renovar')
       }
-      
-      const response = await apiClient.post('/v1/refresh-token', {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      
+
+      const response = await apiClient.post(
+        '/v1/refresh-token',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+
       if (response.data && response.data.token) {
         // Guardar el nuevo token
         localStorage.setItem('token', response.data.token)
         return response.data.token
       }
-      
+
       return null
     } catch (error) {
       console.error('Error al renovar el token:', error)
