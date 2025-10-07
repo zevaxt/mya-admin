@@ -339,6 +339,118 @@ paths:
                   TecnicalDetails:
                     type: string
                     example: 'Token inválido o expirado: el token ha expirado'
+  /v1/change-password:
+    post:
+      tags:
+        - session tag
+      summary: Cambiar contraseña de usuario
+      description: >
+        ### Descripción
+
+
+        Permite a un usuario autenticado actualizar su contraseña. Se requiere la
+        contraseña actual para validar la operación.
+
+
+        ### Cuerpo de la solicitud
+
+
+        - `username` (string, requerido): Nombre de usuario asociado a la cuenta.
+
+
+        - `currentPassword` (string, requerido): Contraseña actual del usuario.
+
+
+        - `newPassword` (string, requerido): Nueva contraseña que se desea establecer.
+
+
+        ### Respuestas
+
+
+        - **200 OK**: Contraseña actualizada correctamente.
+
+
+        - **400 Bad Request**: Datos faltantes o formato inválido.
+
+
+        - **401 Unauthorized**: Credenciales incorrectas.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - currentPassword
+                - newPassword
+              properties:
+                username:
+                  type: string
+                  example: admin
+                currentPassword:
+                  type: string
+                  example: admin
+                newPassword:
+                  type: string
+                  example: admin123
+      responses:
+        '200':
+          description: Contraseña actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: password updated
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Code:
+                    type: string
+                    example: '001'
+                  Status:
+                    type: integer
+                    example: 400
+                  Message:
+                    type: string
+                    example: 'username, currentPassword and newPassword are required'
+        '401':
+          description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Code:
+                    type: string
+                    example: '003'
+                  Status:
+                    type: integer
+                    example: 401
+                  Message:
+                    type: string
+                    example: 'Sus datos de autenticacion son invalidos por favor intente nuevamente'
+                  TecnicalDetails:
+                    type: string
+                    example: 'credenciales inválidas: contraseña incorrecta'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
   /v1/signin:
     post:
       tags:

@@ -401,6 +401,7 @@
           </v-row>
         </v-container>
       </v-expand-transition>
+      <v-divider class="mt-2 mb-4" thickness="1"></v-divider>
     </section>
 
     <!-- Tabla de publicaciones -->
@@ -1486,7 +1487,7 @@
           >
           </v-btn>
         </v-card-title>
-        
+
         <!-- Resumen de resultados -->
         <div class="px-4 pt-4">
           <div class="d-flex gap-3 mb-4">
@@ -1505,7 +1506,7 @@
             </v-alert>
           </div>
         </div>
-        
+
         <!-- Sistema de pestañas -->
         <v-tabs v-model="activeResultTab" color="primary" align-tabs="center" class="px-4">
           <v-tab value="publications" :disabled="!syncMassiveResults?.publications?.length">
@@ -1634,11 +1635,12 @@
               <pre
                 class="response-details pa-3 rounded bg-grey-lighten-5 overflow-x-auto text-caption"
                 style="max-height: 400px; font-size: 11px !important"
-              >{{ JSON.stringify(syncMassiveResults, null, 2) }}</pre>
+                >{{ JSON.stringify(syncMassiveResults, null, 2) }}</pre
+              >
             </v-window-item>
           </v-window>
         </v-card-text>
-        
+
         <v-divider></v-divider>
         <v-card-actions class="pa-3">
           <v-spacer></v-spacer>
@@ -1788,17 +1790,6 @@
                     </div>
                   </template>
                 </v-autocomplete>
-                <v-btn
-                  color="primary"
-                  class="ml-2 modal-search-action"
-                  min-width="48"
-                  height="56"
-                  variant="flat"
-                  :disabled="!selectedAccountId"
-                  @click="searchPublications"
-                >
-                  <v-icon>mdi-magnify</v-icon>
-                </v-btn>
               </div>
             </div>
 
@@ -2857,13 +2848,18 @@ const openAddSyncDialog = (publicationId: string, type: 'outgoing' | 'incoming')
   syncDialogType.value = type
   sourcePublicationId.value = publicationId
   targetPublicationId.value = null
-  selectedAccountId.value = null
+  const defaultAccount = availableAccounts.value[0]
+  selectedAccountId.value = defaultAccount ? defaultAccount.value : null
   accountPublications.value = []
 
   if (type === 'outgoing') {
     syncDialogTitle.value = 'Agregar sincronización saliente'
   } else {
     syncDialogTitle.value = 'Agregar sincronización entrante'
+  }
+
+  if (defaultAccount) {
+    void loadPublicationsForAccount(defaultAccount.value)
   }
 
   showAddSyncDialog.value = true
@@ -2936,6 +2932,35 @@ const submitAddSync = async () => {
   }
 }
 
+const formatPublicationErrorDetails = (data: unknown): string => {
+  if (data && typeof data === 'object') {
+    const details = data as {
+      Code?: string | number
+      code?: string | number
+      Status?: string | number
+      status?: string | number
+      Message?: string
+      message?: string
+      TecnicalDetails?: string
+      tecnicalDetails?: string
+    }
+
+    const code = details.Code ?? details.code ?? 'N/A'
+    const status = details.Status ?? details.status ?? 'N/A'
+    const message = details.Message ?? details.message ?? 'No se pudo obtener el mensaje de error.'
+    const tecnicalDetails =
+      details.TecnicalDetails ?? details.tecnicalDetails ?? 'Sin detalles técnicos.'
+
+    return `Code: ${code} | Status: ${status} | Message: ${message} | TecnicalDetails: ${tecnicalDetails}`
+  }
+
+  if (typeof data === 'string') {
+    return data
+  }
+
+  return 'No se pudo obtener detalles del error.'
+}
+
 // Función para crear una nueva publicación
 const createNewPublication = async () => {
   if (!selectedAccountId.value) {
@@ -2974,32 +2999,38 @@ const createNewPublication = async () => {
       notificationMessage.value = 'Publicación creada exitosamente'
       notificationType.value = 'success'
     } else {
-      // Manejar específicamente el error de catálogo
       showNotification.value = true
-
-      // Verificar si hay un mensaje de error específico
-      if (response.message) {
-        if (
-          response.message.includes('ErrorCatalog Listing') ||
-          response.message.includes('Code: 004') ||
-          response.message.includes('Status: 409')
-        ) {
-          notificationMessage.value =
-            'No se puede crear una publicación basada en un ítem de catálogo. Por favor, seleccione una publicación que no sea de catálogo.'
-        } else {
-          // Mostrar el mensaje de error tal como viene de la API
-          notificationMessage.value = `${response.message}`
-        }
-      } else {
-        // Mensaje genérico si no hay mensaje específico
-        notificationMessage.value = 'No se pudo crear la publicación'
-      }
+      notificationMessage.value = formatPublicationErrorDetails(response)
       notificationType.value = 'error'
     }
   } catch (error) {
     console.error('Error al crear publicación:', error)
     showNotification.value = true
-    notificationMessage.value = 'Error al crear la publicación'
+
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response?: { data?: unknown; status?: number } }
+      if (axiosError.response) {
+        const payload = axiosError.response.data
+        const formattedPayload =
+          payload && typeof payload === 'object'
+            ? { Status: axiosError.response.status, ...(payload as Record<string, unknown>) }
+            : {
+                Status: axiosError.response.status,
+                Message:
+                  typeof payload === 'string'
+                    ? payload
+                    : 'No se pudo obtener detalles adicionales del error.',
+              }
+        notificationMessage.value = formatPublicationErrorDetails(formattedPayload)
+      } else {
+        notificationMessage.value = 'Error desconocido al crear la publicación'
+      }
+    } else if (error instanceof Error) {
+      notificationMessage.value = formatPublicationErrorDetails({ Message: error.message })
+    } else {
+      notificationMessage.value = 'Error al crear la publicación'
+    }
+
     notificationType.value = 'error'
   } finally {
     loadSyncRelations(true) // cargar siempre por si falla pero no se sincroniza
@@ -3111,7 +3142,7 @@ const syncAllPublications = async (accountToId: number, statusFilter: 'active' |
       if (fullResult && fullResult.data) {
         // Mostrar el diálogo con los resultados completos
         syncMassiveResults.value = fullResult.data
-        
+
         // Seleccionar la pestaña inicial según el contenido
         if (fullResult.data.publications && fullResult.data.publications.length > 0) {
           activeResultTab.value = 'publications'
@@ -3120,7 +3151,7 @@ const syncAllPublications = async (accountToId: number, statusFilter: 'active' |
         } else {
           activeResultTab.value = 'response'
         }
-        
+
         showSyncResultsDialog.value = true
       }
     })
@@ -3371,8 +3402,8 @@ const syncRelation = async (
     const successMessage =
       response.message ||
       (direction === 'outgoing'
-        ? `Sincronización de ${sourceId} hacia ${targetId} iniciada`
-        : `Sincronización desde ${sourceId} hacia ${targetId} iniciada`)
+        ? `Sincronización de ${sourceId} hacia ${targetId} exitosa`
+        : `Sincronización desde ${sourceId} hacia ${targetId} exitosa`)
 
     if (showNotifications) {
       showNotification.value = true

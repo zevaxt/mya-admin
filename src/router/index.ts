@@ -41,6 +41,12 @@ const router = createRouter({
       component: () => import('../views/ProductDetailView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true },
+    },
     // Redirigir cualquier ruta no encontrada al login
     {
       path: '/:pathMatch(.*)*',
