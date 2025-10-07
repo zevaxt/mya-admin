@@ -17,7 +17,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      '/': 'http://127.0.0.1:4200',
+      '/v1': 'http://127.0.0.1:4200',
     },
   },
 })
